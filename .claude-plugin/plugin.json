@@ -1,0 +1,13 @@
+{
+  "name": "agent-skills",
+  "version": "0.1.0",
+  "description": "Personal Claude Code toolkit for software architecture, research and agentic development",
+  "author": {
+    "name": "Truong Thanh Tung"
+  },
+  "homepage": "https://github.com/addyosmani/agent-skills",
+  "repository": "https://github.com/addyosmani/agent-skills",
+  "license": "MIT",
+  "commands": ["./.claude/commands", "./commands"],
+  "skills": "./skills"
+}
