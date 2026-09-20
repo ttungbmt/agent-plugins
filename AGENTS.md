@@ -20,7 +20,7 @@ When a repository has `.codegraph/` at its root, use `codegraph_explore` or `cod
 | --- | --- |
 | `plugins/<id>/plugin.yaml` | Owned plugin composition (M3 onward). Until then N0 packages natively: `plugins/<id>/.claude-plugin/plugin.json` plus `skills/` symlinks into canonical homes |
 | `skills/<id>/SKILL.md` | Owned reusable capability |
-| `agents/<id>/agent.yaml` + `prompt.md` | Owned worker definition |
+| `agents/<id>/agent.yaml` + `prompt.md` | Owned worker definition (M3 onward). Until then root `agents/` stays empty: an N0 agent is a real `plugins/<owner>/agents/<id>.md`, because the target silently drops symlinked agent files — see `docs/specs.md` §6 |
 | `hooks/`, `prompts/` | Reserved owned components; later contracts |
 | `rules/` | Reserved placeholder only; rules contract deferred to M8 |
 | `vendor/<source>/<id>/` | Selected upstream snapshot |
