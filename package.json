@@ -1,0 +1,20 @@
+{
+  "name": "agent-plugins",
+  "version": "0.3.0",
+  "description": "A plugin-first collection of agent skills and workers, composed from first-party components and curated, pinned vendor snapshots.",
+  "keywords": [],
+  "author": "Truong Thanh Tung",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.5.1",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@12.5.1"
+}

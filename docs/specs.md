@@ -1,3472 +1,482 @@
-# Agent Registry — Technical Specification
+# Agent Plugins — Technical Specification
 
-> **Status:** Draft / Implementation Ready  
-> **Version:** 0.1.0  
-> **Primary target:** Claude Code + Agent Skills ecosystem  
-> **Future targets:** Codex, OpenCode, Cursor, Gemini CLI, other agent runtimes  
-> **Repository:** `agent-registry`
+Version: 0.3.0 · Status: design baseline · Updated: 2026-09-20
 
----
+This specification defines the intended system. It does not assert that the CLI, schemas, adapters, or example components have been implemented. Examples describe repository contracts; upstream examples are illustrative and must be verified before import.
 
-# 1. Overview
+## 1. Product and scope
 
-`agent-registry` là một registry cá nhân để quản lý, curate, phát triển, version và phân phối:
+`agent-plugins` is a personal collection and development platform for reusable agent plugins. Plugins are the primary product. Owned skills, agents, hooks, and prompts are canonical assets at the repository root. Curated vendor dependencies and their overlays extend those assets when useful.
 
-- Agent Skills.
-- Claude Code subagents.
-- Hooks.
-- Rules/prompts.
-- MCP configurations.
-- Plugin bundles.
-- Project profiles.
-- Third-party/vendor skills.
-- First-party skills và agents tự phát triển.
+The registry index, resolver, CLI, adapters, and update automation support authoring and distributing plugins. A plugin composed entirely of local components MUST work without vendor configuration, network access, or an overlay subsystem.
 
-Registry đóng vai trò là **single source of truth** giữa upstream repositories và các project sử dụng agent.
+Goals:
 
-Thay vì mỗi project trực tiếp cài:
+- Develop focused, reusable plugins and components in one canonical repository.
+- Let projects select only the capabilities they need through profiles and manifests.
+- Reuse selected vendor components while preserving provenance and reviewed revisions.
+- Customize vendor content without modifying its snapshot.
+- Generate runtime output from a runtime-neutral model.
+- Support central local development and reproducible project installations.
+- Preserve unmanaged project files during installation and synchronization.
 
-```text
-browser-use/browser-use
-clerk/skills
-mattpocock/skills
-Leonxlnx/taste-skill
-vercel-labs/agent-skills
-github/awesome-copilot
-affaan-m/ECC
-...
-```
+MVP includes local skills, agents, plugins, profiles, dependency resolution, curated vendor skills, replacement overlays, portable Agent Skills output, a Claude Code adapter, project installation, locks, and a non-interactive CLI. Hooks and prompts have reserved root directories but their execution/rendering contracts are deferred. Rules and MCP support require later contracts; root `rules/` and `.mcp.json` exist only as reserved placeholders and are not active contracts.
 
-mọi project chỉ phụ thuộc vào:
+Non-goals for MVP: public marketplace service, database backend, accounts, telemetry, a general package version solver, automatic vendor merging, advanced overlay merging, and simultaneous implementation of every runtime adapter.
+
+## 2. Architectural invariants
+
+1. Plugins are the main authoring and distribution unit.
+2. Local ownership is the default. Local references have no ownership prefix.
+3. `vendor/` contains selected third-party snapshots. `overlays/` customizes only those snapshots.
+4. Canonical sources and generated output are separate. Never edit `dist/` to change source behavior.
+5. Vendor snapshots remain byte-preserving imports, except for explicitly declared file selection. Metadata and normalization live outside upstream files.
+6. Core models do not encode runtime-specific paths, model names, or tool identifiers.
+7. Resolution is deterministic, explicit, type-checked, and cycle-safe.
+8. Installation manages only paths recorded as owned by this tool.
+
+## 3. Canonical repository layout
 
 ```text
-agent-registry
-```
-
-Registry chịu trách nhiệm:
-
-```text
-discover
-→ import
-→ normalize
-→ curate
-→ review
-→ version
-→ compose
-→ distribute
-→ install
-→ update
-```
-
----
-
-# 2. Problem Statement
-
-Hiện tại các Agent Skills được phân tán trên nhiều repository.
-
-Có hai cách cài phổ biến nhưng đều có vấn đề.
-
-## 2.1 Global installation
-
-Ví dụ:
-
-```text
-~/.claude/skills/
-```
-
-Ưu điểm:
-
-- dễ update;
-- dùng được ở mọi project.
-
-Nhược điểm:
-
-- mọi project đều nhìn thấy quá nhiều skill;
-- tăng số lượng skill descriptions trong context;
-- khó kiểm soát skill nào thực sự cần thiết cho project;
-- dễ conflict;
-- khó maintain theo domain.
-
----
-
-## 2.2 Project-local installation
-
-Ví dụ:
-
-```text
-mealops/.claude/skills/
-lifeops/.claude/skills/
-gtel-maps/.claude/skills/
-```
-
-Ưu điểm:
-
-- project chỉ chứa skill cần thiết;
-- dễ chia sẻ cùng team.
-
-Nhược điểm:
-
-- cùng một skill bị duplicated ở nhiều repository;
-- update vendor phải thực hiện nhiều lần;
-- khó theo dõi upstream;
-- version drift giữa projects;
-- khó quản lý bộ skill lớn.
-
----
-
-# 3. Vision
-
-Xây dựng:
-
-> **A personal package registry and distribution system for agent capabilities.**
-
-Registry tương tự về concept với:
-
-```text
-npm registry
-Homebrew Tap
-APT repository
-VS Code Marketplace
-Claude Plugin Marketplace
-```
-
-nhưng dành cho:
-
-```text
-Skills
-Agents
-Hooks
-Rules
-Prompts
-MCP
-Agent Plugins
-Project Profiles
-```
-
-Kiến trúc tổng quát:
-
-```text
-Upstream repositories
-        │
-        ▼
-    Vendor Layer
-        │
-        ▼
-      Review
-        │
-        ▼
-   Agent Registry
-        ▲
-        │
-   First-party
- Skills / Agents
-        │
-        ▼
- Plugins / Profiles
-        │
-        ▼
-      Adapters
-        │
- ┌──────┼────────┐
- ▼      ▼        ▼
-Claude Codex OpenCode ...
-        │
-        ▼
-     Projects
-```
-
----
-
-# 4. Goals
-
-Hệ thống MUST hỗ trợ các mục tiêu sau.
-
-## G1 — Centralized Management
-
-Tất cả skills, agents và related resources được quản lý từ một registry.
-
----
-
-## G2 — First-party Development
-
-Cho phép phát triển:
-
-```text
-first-party skills
-first-party agents
-first-party hooks
-first-party prompts
-first-party rules
-```
-
-mà không phụ thuộc vendor.
-
----
-
-## G3 — Vendor Curation
-
-Có thể import một subset từ repository bên ngoài.
-
-Ví dụ:
-
-```text
-mattpocock/skills
-  40 skills
-```
-
-registry chỉ lấy:
-
-```text
-domain-modeling
-codebase-design
-research
-handoff
-```
-
----
-
-## G4 — Controlled Updates
-
-Vendor updates không được tự động overwrite registry.
-
-Workflow bắt buộc:
-
-```text
-detect update
-→ diff
-→ validation
-→ PR
-→ review
-→ merge
-```
-
----
-
-## G5 — Project Isolation
-
-Project chỉ load components thực sự cần thiết.
-
-Ví dụ:
-
-```text
-MealOps
-  → core
-  → architecture
-  → nextjs
-  → clerk
-```
-
-không load toàn bộ registry.
-
----
-
-## G6 — Reproducibility
-
-Một revision của registry phải có thể rebuild lại chính xác cùng version vendor.
-
----
-
-## G7 — Multi-Agent Ready
-
-Canonical content không được coupling chặt với Claude Code.
-
-Platform-specific behavior phải nằm trong adapter layer.
-
----
-
-## G8 — Composability
-
-Phải có khả năng compose:
-
-```text
-skills
-→ plugins
-→ profiles
-→ project configuration
-```
-
----
-
-## G9 — Local Developer Experience
-
-Project mới phải có khả năng bootstrap bằng một command.
-
-Ví dụ:
-
-```bash
-agent-registry init
-```
-
-hoặc:
-
-```bash
-agent-registry apply nextjs
-```
-
----
-
-# 5. Non-goals
-
-Version đầu tiên KHÔNG cần:
-
-- public marketplace;
-- web UI;
-- cloud backend;
-- centralized SaaS registry;
-- database server;
-- arbitrary remote code execution;
-- full dependency solver như npm;
-- semantic version resolution phức tạp;
-- cross-machine synchronization server.
-
-Git repository là source of truth trong giai đoạn đầu.
-
----
-
-# 6. Core Principles
-
-## 6.1 Canonical Source ≠ Generated Output
-
-Không chỉnh sửa generated files.
-
-```text
-source
-   ↓
-build
-   ↓
-distribution
-```
-
----
-
-## 6.2 First-party và Vendor phải tách biệt
-
-```text
-first-party/
-vendor/
-```
-
-Không trộn hai loại.
-
----
-
-## 6.3 Vendor là Immutable Snapshot
-
-Không chỉnh trực tiếp:
-
-```text
-vendor/
-```
-
-Customization phải dùng:
-
-```text
-overlays/
-```
-
----
-
-## 6.4 Skills là Capability
-
-Skill chứa:
-
-```text
-knowledge
-workflow
-instructions
-references
-scripts
-```
-
-Skill không đại diện cho một worker độc lập.
-
----
-
-## 6.5 Agent là Worker
-
-Agent định nghĩa:
-
-```text
-role
-responsibility
-tools
-model/runtime configuration
-skills
-behavior
-```
-
-Concept:
-
-```text
-Agent
- =
-Role
-+ Instructions
-+ Tools
-+ Skills
-+ Runtime configuration
-```
-
----
-
-## 6.6 Plugin là Distribution Unit
-
-Plugin bundle nhiều thành phần:
-
-```text
-Plugin
-├── skills
-├── agents
-├── hooks
-├── rules
-└── MCP
-```
-
----
-
-## 6.7 Profile là Composition
-
-Profile mô tả loại project.
-
-Ví dụ:
-
-```text
-nextjs
-cloudflare
-backend
-research
-product
-fullstack
-```
-
-Profile không phải distribution package.
-
----
-
-# 7. Domain Model
-
-Core entities:
-
-```text
-Source
-Component
-Skill
-Agent
-Hook
-Plugin
-Profile
-Adapter
-Project
-Lock
-Overlay
-```
-
-Quan hệ:
-
-```text
-Source
-  │
-  └── provides
-       │
-       ▼
-    Component
-       │
-       ├── Skill
-       ├── Agent
-       ├── Hook
-       └── Rule
-            │
-            ▼
-          Plugin
-            │
-            ▼
-          Profile
-            │
-            ▼
-          Project
-```
-
----
-
-# 8. Component Types
-
-Registry SHOULD hỗ trợ:
-
-```yaml
-skill
-agent
-hook
-rule
-prompt
-mcp
-plugin
-profile
-```
-
-MVP REQUIRED:
-
-```yaml
-skill
-agent
-plugin
-profile
-```
-
-Phase sau:
-
-```yaml
-hook
-rule
-prompt
-mcp
-```
-
----
-
-# 9. Component Ownership
-
-Mỗi component có một ownership type.
-
-```yaml
-ownership:
-  first-party
-  vendor
-```
-
-Có thể thêm:
-
-```yaml
-ownership:
-  fork
-```
-
-trong tương lai.
-
----
-
-# 10. Repository Structure
-
-Cấu trúc canonical:
-
-```text
-agent-registry/
-│
+agent-plugins/
 ├── README.md
-├── specs.md
-├── CHANGELOG.md
+├── AGENTS.md
+├── CLAUDE.md                 # symlink → AGENTS.md
 ├── LICENSE
-│
-├── package.json
-├── pnpm-lock.yaml
-├── tsconfig.json
-│
+├── plugins/
+│   └── architecture/
+│       └── plugin.yaml
+├── skills/
+│   └── architecture-review/
+│       ├── SKILL.md
+│       ├── references/
+│       ├── scripts/
+│       ├── templates/
+│       └── assets/
+├── agents/
+│   └── architect/
+│       ├── agent.yaml
+│       └── prompt.md
+├── hooks/
+├── prompts/
+├── rules/                    # reserved placeholder; contract deferred to M8
+├── vendor/
+│   └── mattpocock/
+│       └── domain-modeling/
+│           └── SKILL.md
+├── overlays/
+│   └── mattpocock/
+│       └── domain-modeling/
+│           └── SKILL.md
+├── profiles/
+│   └── minimal.yaml
 ├── registry.yaml
 ├── sources.yaml
 ├── sources.lock.json
-│
-├── first-party/
-│   │
-│   ├── skills/
-│   │   ├── architecture/
-│   │   │   ├── architecture-review/
-│   │   │   │   ├── SKILL.md
-│   │   │   │   ├── references/
-│   │   │   │   └── scripts/
-│   │   │   │
-│   │   │   └── scalable-folder-design/
-│   │   │       └── SKILL.md
-│   │   │
-│   │   ├── engineering/
-│   │   ├── product/
-│   │   └── research/
-│   │
-│   ├── agents/
-│   │   ├── architect/
-│   │   │   ├── agent.yaml
-│   │   │   └── prompt.md
-│   │   │
-│   │   ├── researcher/
-│   │   └── code-reviewer/
-│   │
-│   ├── hooks/
-│   ├── rules/
-│   └── prompts/
-│
-├── vendor/
-│   │
-│   ├── mattpocock/
-│   │   ├── domain-modeling/
-│   │   ├── research/
-│   │   └── codebase-design/
-│   │
-│   ├── vercel/
-│   ├── clerk/
-│   ├── ecc/
-│   ├── browser-use/
-│   └── taste-skill/
-│
-├── overlays/
-│   │
-│   ├── mattpocock/
-│   │   └── domain-modeling/
-│   │       └── ...
-│   │
-│   └── ecc/
-│
-├── plugins/
-│   ├── core.yaml
-│   ├── architecture.yaml
-│   ├── frontend.yaml
-│   ├── backend.yaml
-│   ├── security.yaml
-│   ├── agentic-engineering.yaml
-│   └── browser.yaml
-│
-├── profiles/
-│   ├── minimal.yaml
-│   ├── fullstack.yaml
-│   ├── nextjs.yaml
-│   ├── cloudflare.yaml
-│   ├── product.yaml
-│   └── research.yaml
-│
 ├── adapters/
 │   ├── agent-skills/
-│   ├── claude-code/
-│   ├── codex/
-│   └── opencode/
-│
-├── dist/
-│
+│   └── claude-code/
 ├── schemas/
-│   ├── registry.schema.json
-│   ├── sources.schema.json
-│   ├── plugin.schema.json
-│   ├── profile.schema.json
-│   └── project.schema.json
-│
 ├── src/
-│   ├── cli/
-│   ├── core/
-│   ├── registry/
-│   ├── source/
-│   ├── resolver/
-│   ├── sync/
-│   ├── overlay/
-│   ├── build/
-│   ├── adapters/
-│   ├── installer/
-│   ├── validator/
-│   ├── audit/
-│   └── lock/
-│
+│   ├── domain/
+│   ├── application/
+│   ├── infrastructure/
+│   └── cli/
 ├── tests/
 │   ├── unit/
 │   ├── integration/
 │   └── fixtures/
-│
-└── .github/
-    └── workflows/
-        ├── validate.yml
-        ├── vendor-check.yml
-        ├── vendor-update.yml
-        └── release.yml
+├── docs/
+│   ├── specs.md
+│   ├── roadmap.md
+│   ├── todo.md
+│   ├── usage.md
+│   ├── architecture/
+│   ├── contracts/
+│   ├── engineering/
+│   ├── operations/
+│   └── adr/
+├── dist/
+├── .claude-plugin/           # bootstrap distribution metadata; generated at M3
+├── .claude/                  # this repository's own Claude Code settings, not adapter output
+├── .mcp.json                 # reserved placeholder; contract deferred to M8
+├── .gitignore
+├── package.json
+├── pnpm-lock.yaml
+└── .github/workflows/
 ```
 
----
+Directories shown are planned responsibilities, not evidence that files already exist. Optional skill resource directories are created only when needed.
 
-# 11. Registry Manifest
+This specification, the roadmap, and the backlog live under `docs/`, not at the repository root. `AGENTS.md` is the contributor operating guide; `CLAUDE.md` is a committed repository-relative symlink to it, not machine-specific state. `rules/` and `.mcp.json` are reserved placeholders whose contracts are deferred to M8; they do not grant rules or MCP support today. Root `.claude/` holds this repository's own Claude Code settings for developing the collection. Do not confuse it with the `.claude/` tree an adapter installs into a consuming project (§10); the collection is not its own install target.
 
-`registry.yaml` là index cấp cao của toàn registry.
+`plugins/<id>/plugin.yaml` composes canonical components by reference. Do not duplicate reusable skills or agents inside plugin directories. Use `skills/<id>/` without category nesting; categories are metadata. `profiles/<id>.yaml` is the single profile convention.
 
-Ví dụ:
+`plugins/<id>/` has two phases, and the difference is deliberate rather than a contradiction. Until M3, the native track (roadmap N0) packages a plugin directly as `plugins/<id>/.claude-plugin/plugin.json` plus `skills/` entries that are symlinks into `skills/<id>/`, and agents as files in the plugin that owns them. A symlink into the canonical home is not a duplicated component; the prohibition above is on *copies*. From M3 the Claude Code adapter generates that native packaging from `plugins/<id>/plugin.yaml`, which becomes the canonical input (§10).
+
+`adapters/` owns adapter implementations and runtime templates. `src/` owns core, application, infrastructure, and CLI code; do not create a second adapter implementation tree under it. `schemas/` owns manifest validation contracts. `dist/` contains disposable build output.
+
+## 4. Domain model
+
+| Entity | Responsibility |
+| --- | --- |
+| Plugin | Owned bundle of component references and plugin dependencies |
+| Skill | Reusable capability, workflow, knowledge, references, or scripts |
+| Agent | Role and instructions that depend on skills |
+| Hook | Reserved model for event-driven behavior; deferred |
+| Prompt | Reserved model for reusable prompt content; deferred |
+| Profile | Project-oriented composition of plugins and explicit components |
+| VendorSource | Upstream identity, selected components, and tracked ref |
+| Overlay | File replacements for one vendor component |
+| RegistryIndex | Explicit lookup index for local and vendor components |
+| ResolvedGraph | Validated dependency closure plus effective content provenance |
+| Adapter | Translation of the resolved graph into a target format |
+| ProjectManifest | Portable project intent |
+| SourceLock / ProjectLock | Resolved upstream state / resolved installation state |
+
+Dependency relationships:
+
+```text
+Project → Profiles → Plugins → Skills
+                    Plugins → Agents → Skills
+                    Plugins → Plugin dependencies
+Profiles → Parent profiles
+Projects and profiles → Explicit skills and agents
+
+Component reference → Local source
+                    → Vendor snapshot + optional overlay
+
+Resolved graph → Adapter → Build artifact → Project installation
+```
+
+A plugin remains owned by this repository when it references vendor skills. An overlay does not create a new component identity.
+
+## 5. Identity and references
+
+Local IDs and vendor source aliases use lowercase kebab-case: `[a-z0-9]+(?:-[a-z0-9]+)*`.
+
+| Reference | Meaning | Canonical location |
+| --- | --- | --- |
+| `architecture-review` | Local skill | `skills/architecture-review/` |
+| `architect` | Local agent | `agents/architect/` |
+| `architecture` | Local plugin | `plugins/architecture/plugin.yaml` |
+| `vendor:mattpocock/domain-modeling` | Vendor component | `vendor/mattpocock/domain-modeling/` |
+
+Bare references MUST resolve to local components only. Never fall back to a vendor search. `local:` and other ownership prefixes are not part of the reference grammar. Only vendor components use `vendor:<source>/<component>`.
+
+All entries in `registry.yaml.components` have unique canonical references across component types; the consuming field additionally checks the expected type. Profiles use their own name space because `extends` and `profiles` exclusively refer to profiles. Vendor component IDs are unique within a source alias. Two sources may provide the same short name because their qualified references differ.
+
+The source path, component type, manifest name, and registry entry MUST agree. Paths are relative to the repository, stay inside the expected ownership directory, and may not contain traversal or absolute paths. Symlink resolution must also stay within allowed roots.
+
+An overlay keeps the reference `vendor:mattpocock/domain-modeling`; there is no overlay reference prefix. Target adapters MUST detect output-name collisions, including case-insensitive collisions, and fail with both source references. Never silently overwrite or select one.
+
+## 6. Manifest conventions
+
+Canonical configuration uses YAML. Locks use JSON. Every manifest has `version: 1`, meaning schema version, not plugin release version. Unknown fields are rejected until explicitly added to the schema. Optional lists default to empty. Examples below form one consistent proposed contract.
+
+### Registry index
+
+`registry.yaml` is an internal index, not the product or a second source of component content.
 
 ```yaml
 version: 1
-
-registry:
-  name: agent-registry
-  description: Personal agent capability registry
-
+name: agent-plugins
 components:
-
   architecture-review:
     type: skill
-    ownership: first-party
+    path: skills/architecture-review
     category: architecture
-    path: first-party/skills/architecture/architecture-review
-    stability: stable
-
-  domain-modeling:
-    type: skill
-    ownership: vendor
-    category: architecture
-    source: mattpocock
-    path: vendor/mattpocock/domain-modeling
-    stability: stable
-
+    stability: experimental
   architect:
     type: agent
-    ownership: first-party
+    path: agents/architect
     category: architecture
-    path: first-party/agents/architect
+    stability: experimental
+  architecture:
+    type: plugin
+    path: plugins/architecture/plugin.yaml
+    stability: experimental
+  vendor:mattpocock/domain-modeling:
+    type: skill
+    path: vendor/mattpocock/domain-modeling
     stability: experimental
 ```
 
----
+Ownership is derived from the reference and validated against the path. Do not maintain a redundant, independently editable ownership field. Stability defaults to `experimental`; `stable` is supported, `deprecated` emits a warning, and `disabled` prevents use. Runtime loaders resolve explicit index entries rather than relying on filesystem order. Authoring validation reports unindexed components.
 
-# 12. Component Identity
+### Skill
 
-Mỗi component phải có globally unique ID.
-
-Format:
-
-```text
-[a-z0-9-]+
-```
-
-Ví dụ:
-
-```text
-domain-modeling
-architecture-review
-vercel-react-best-practices
-clerk-webhooks
-solution-architect
-```
-
-Không dùng:
-
-```text
-DomainModeling
-domain_modeling
-domain.modeling
-```
-
----
-
-# 13. Component Stability
-
-Mỗi component SHOULD có lifecycle:
-
-```yaml
-experimental
-stable
-deprecated
-disabled
-```
-
-Ý nghĩa:
-
-### experimental
-
-Có thể thay đổi breaking.
-
-### stable
-
-Dùng bình thường.
-
-### deprecated
-
-Vẫn tồn tại nhưng không nên thêm vào project mới.
-
-### disabled
-
-Không được build/install.
-
----
-
-# 14. Source Manifest
-
-`sources.yaml` quản lý upstream.
-
-Ví dụ:
-
-```yaml
-version: 1
-
-sources:
-
-  mattpocock:
-    type: github
-    repository: mattpocock/skills
-    ref: main
-
-    components:
-      - type: skill
-        name: research
-
-      - type: skill
-        name: domain-modeling
-
-      - type: skill
-        name: codebase-design
-
-      - type: skill
-        name: improve-codebase-architecture
-
-      - type: skill
-        name: writing-for-agents
-
-      - type: skill
-        name: handoff
-
-  vercel:
-    type: github
-    repository: vercel-labs/agent-skills
-    ref: main
-
-    components:
-      - type: skill
-        name: vercel-composition-patterns
-
-      - type: skill
-        name: vercel-react-best-practices
-
-  clerk:
-    type: github
-    repository: clerk/skills
-    ref: main
-
-    components:
-      - type: skill
-        name: clerk-backend-api
-      - type: skill
-        name: clerk-cli
-      - type: skill
-        name: clerk-custom-ui
-      - type: skill
-        name: clerk-orgs
-      - type: skill
-        name: clerk-react-patterns
-      - type: skill
-        name: clerk-setup
-      - type: skill
-        name: clerk-testing
-      - type: skill
-        name: clerk-webhooks
-```
-
----
-
-# 15. Lock File
-
-`sources.lock.json` đảm bảo reproducibility.
-
-Ví dụ:
-
-```json
-{
-  "version": 1,
-  "sources": {
-    "mattpocock": {
-      "repository": "mattpocock/skills",
-      "requestedRef": "main",
-      "resolvedCommit": "abc123",
-      "syncedAt": "2026-09-20T00:00:00Z"
-    },
-    "vercel": {
-      "repository": "vercel-labs/agent-skills",
-      "requestedRef": "main",
-      "resolvedCommit": "def456",
-      "syncedAt": "2026-09-20T00:00:00Z"
-    }
-  }
-}
-```
-
-Lock file MUST:
-
-- được commit;
-- chỉ thay đổi khi vendor sync được approve;
-- lưu resolved Git commit;
-- không chỉ lưu branch name.
-
----
-
-# 16. Vendor Storage
-
-Vendor directory chỉ chứa components được chọn.
-
-Ví dụ upstream:
-
-```text
-mattpocock/skills
-├── skill-a
-├── skill-b
-├── domain-modeling
-├── research
-└── 50 others
-```
-
-Registry:
-
-```text
-vendor/mattpocock/
-├── domain-modeling/
-└── research/
-```
-
-Không mirror toàn repository nếu không cần.
-
----
-
-# 17. Vendor Update Flow
-
-Update MUST theo quy trình:
-
-```text
-fetch
-  ↓
-resolve latest commit
-  ↓
-compare lock
-  ↓
-detect changed selected components
-  ↓
-download temporary snapshot
-  ↓
-validate
-  ↓
-diff
-  ↓
-update vendor/
-  ↓
-update lock
-  ↓
-create PR
-```
-
-Không được:
-
-```text
-cron
-→ overwrite main
-```
-
----
-
-# 18. Vendor Cache
-
-Temporary repositories không lưu trong source tree.
-
-Cache:
-
-```text
-~/.cache/agent-registry/
-```
-
-Ví dụ:
-
-```text
-~/.cache/agent-registry/
-└── sources/
-    └── github.com/
-        └── mattpocock/
-            └── skills/
-```
-
-Cache MUST gitignored.
-
----
-
-# 19. Overlay System
-
-Không chỉnh vendor directly.
-
-Nếu cần customize:
-
-```text
-overlays/<source>/<component>/
-```
-
-Overlay có thể:
-
-```yaml
-replace
-merge
-append
-delete
-```
-
-MVP chỉ cần hỗ trợ:
-
-```text
-replace files
-```
-
-Ví dụ:
-
-```text
-vendor/mattpocock/domain-modeling/SKILL.md
-```
-
-và:
-
-```text
-overlays/mattpocock/domain-modeling/SKILL.md
-```
-
-Build result dùng overlay version.
-
-Phase sau có thể hỗ trợ patch:
-
-```text
-patches/
-```
-
----
-
-# 20. First-party Skills
-
-Canonical structure:
-
-```text
-first-party/skills/<category>/<skill>/
-│
-├── SKILL.md
-├── references/
-├── scripts/
-├── templates/
-└── assets/
-```
-
-Minimum:
-
-```text
-SKILL.md
-```
-
-Example:
+`skills/architecture-review/SKILL.md`:
 
 ```markdown
 ---
-name: scalable-folder-design
-description: Design scalable repository and application folder structures.
+name: architecture-review
+description: Review module boundaries and dependency direction before a structural change.
 ---
 
-# Scalable Folder Design
+# Architecture Review
 
-...
+Inspect the relevant modules and their consumers. Identify boundary violations,
+explain the trade-offs, and recommend the smallest coherent improvement.
+Use references and scripts from this directory only when relevant to the review.
 ```
 
----
+The entry point is required. Local frontmatter `name` matches the local ID. Vendor names are preserved and their mapping is tracked separately. Skills should define when to use them, expected inputs, workflow, and useful output. Agents reuse skills instead of copying their instructions.
 
-# 21. Skill Design Guidelines
+### Agent
 
-Một skill SHOULD:
-
-- giải quyết một capability rõ ràng;
-- có description cụ thể;
-- tránh quá rộng;
-- không chứa project-specific secrets;
-- không hardcode absolute paths;
-- không phụ thuộc implicit global state;
-- có references nếu knowledge dài;
-- có scripts nếu workflow deterministic;
-- mô tả rõ when-to-use;
-- mô tả rõ when-not-to-use.
-
----
-
-# 22. First-party Agents
-
-Canonical representation không nên phụ thuộc hoàn toàn vào Claude.
-
-```text
-first-party/agents/architect/
-├── agent.yaml
-└── prompt.md
-```
-
-Ví dụ `agent.yaml`:
+`agents/architect/agent.yaml`:
 
 ```yaml
 version: 1
-
 name: architect
-description: Reviews and designs software architecture.
-
-category: architecture
-
+description: Reviews module boundaries and software architecture.
+prompt: prompt.md
 skills:
-  - domain-modeling
   - architecture-review
-  - api-design
-  - architecture-decision-records
-
-capabilities:
-  filesystem: read
-  shell: limited
-  web: optional
-
-runtime:
-  isolation: preferred
 ```
 
-Prompt:
+`prompt` is required and resolves within the agent directory. Skill dependencies are required dependencies. Runtime-specific model and tool settings belong in adapters; a future capability contract must be defined before adding such fields to canonical agents.
 
-```text
-prompt.md
-```
+### Plugin
 
-chứa behavior/instructions.
-
----
-
-# 23. Agent Dependency Resolution
-
-Agent có thể depend vào skills:
-
-```text
-architect
-   │
-   ├── domain-modeling
-   ├── api-design
-   ├── architecture-review
-   └── adr
-```
-
-Resolver MUST verify:
-
-- skill tồn tại;
-- skill không disabled;
-- không có unknown dependency.
-
----
-
-# 24. Plugins
-
-Plugin là logical distribution bundle.
-
-Ví dụ:
+`plugins/architecture/plugin.yaml`:
 
 ```yaml
-# plugins/architecture.yaml
-
 version: 1
-
 name: architecture
 description: Architecture design and review toolkit.
-
+plugins: []
 skills:
-  - domain-modeling
-  - codebase-design
-  - improve-codebase-architecture
   - architecture-review
-  - architecture-decision-records
-  - api-design
-
 agents:
   - architect
-  - architecture-reviewer
 ```
 
----
-
-# 25. Initial Plugins
-
-MVP SHOULD có:
-
-```text
-core
-architecture
-frontend
-backend
-security
-browser
-agentic-engineering
-clerk
-```
-
-Possible future:
-
-```text
-product
-research
-devops
-cloudflare
-database
-testing
-gis
-documentation
-```
-
----
-
-# 26. Core Plugin
-
-`core` phải rất nhỏ.
-
-Ví dụ:
+The local-only example is the first implementation slice. Once imported and locked, a vendor skill can be added to the same `skills` list:
 
 ```yaml
 skills:
-  - research
-  - writing-for-agents
-  - handoff
-  - codebase-onboarding
+  - architecture-review
+  - vendor:mattpocock/domain-modeling
 ```
 
-Không được biến `core` thành:
+`plugins` contains local plugin dependencies. Skills and agents referenced by the plugin are required. Nested plugin content does not redefine components. Hooks, prompts, rules, and MCP fields are deferred rather than accepted and silently ignored.
 
-```text
-everything
-```
+### Profile
 
-Target:
-
-```text
-~5–10 capabilities
-```
-
----
-
-# 27. Profiles
-
-Profile compose plugins/components cho một loại project.
-
-Ví dụ:
+`profiles/minimal.yaml`:
 
 ```yaml
-# profiles/nextjs.yaml
-
 version: 1
-
-name: nextjs
-
+name: minimal
+extends: []
 plugins:
-  - core
   - architecture
-  - frontend
-  - security
-
-skills:
-  - clerk-setup
-  - clerk-react-patterns
-
-agents:
-  - architect
-  - frontend-reviewer
+skills: []
+agents: []
 ```
 
----
+Profile inheritance is additive and deduplicated. Multiple parents do not override component definitions. MVP exclusions are project-level only.
 
-# 28. Profile Inheritance
+### Project intent
 
-Profile MUST hỗ trợ inheritance.
-
-Ví dụ:
-
-```yaml
-# profiles/cloudflare-nextjs.yaml
-
-extends:
-  - nextjs
-  - cloudflare
-```
-
-Resolver cần:
-
-```text
-extends
-→ plugins
-→ explicit skills
-→ explicit agents
-```
-
----
-
-# 29. Resolution Rules
-
-Resolution SHOULD follow:
-
-```text
-profile parents
-        ↓
-plugins
-        ↓
-plugin dependencies
-        ↓
-agents
-        ↓
-agent skill dependencies
-        ↓
-explicit project additions
-        ↓
-project excludes
-```
-
-Sau đó:
-
-```text
-deduplicate
-→ validate
-→ install
-```
-
----
-
-# 30. Project Manifest
-
-Project không commit generated absolute symlinks.
-
-Project commit:
-
-```text
-.agent-registry.yaml
-```
-
-Ví dụ:
+Consumers commit `.agent-plugins.yaml`:
 
 ```yaml
 version: 1
-
-registry:
-  source: ~/workspace/personal/agent-registry
-
+collection: agent-plugins
 targets:
   - claude-code
-
 profiles:
-  - nextjs
-  - cloudflare
-
-plugins:
-  - clerk
-
+  - minimal
+plugins: []
 skills:
-  include:
-    - browser-use
-
-  exclude:
-    - industrial-brutalist-ui
-
+  include: []
+  exclude: []
 agents:
-  include:
-    - architect
-
+  include: []
+  exclude: []
 install:
   strategy: symlink
+  mode: locked
 ```
 
----
+The collection alias maps to a local checkout through machine-local CLI configuration. Absolute checkout paths MUST NOT be written into the committed manifest or project lock. A future CLI contract will define alias registration and configuration locations.
 
-# 31. Project-local Overrides
+`targets` must be nonempty. `strategy` accepts `symlink` (default) or `copy`. `mode` accepts `locked` (default) or `live`. Explicit project includes are additional roots; excludes are applied as described below.
 
-Cho phép:
+## 7. Resolution algorithm
+
+1. Parse and validate manifest versions, references, and paths.
+2. Resolve selected profiles and their transitive parents; report cycles with the full chain.
+3. Collect profile plugins and project plugins; expand plugin dependencies.
+4. Collect skills and agents from profiles, plugins, and project includes.
+5. Expand each included agent's skill dependencies, including project-added agents.
+6. Apply project exclusions, then check required dependency edges again.
+7. Fail if an excluded component is still required by a retained plugin or agent. Do not reinstall it, silently remove its consumer, or produce a broken graph. Explain which selection must change.
+8. Validate lifecycle, expected types, source locks, vendor hashes, and overlay targets.
+9. Deduplicate by canonical identity and produce stable dependency-first ordering, with lexical canonical-reference ordering for ties.
+10. Attach source and effective-content hashes and return the resolved graph.
+
+Exclusion wins over inclusion, but cannot waive required dependency validation. Excluding an optional profile-level skill is valid when no retained consumer requires it. Unknown include/exclude references are errors to catch typos. Repeated references to the same identity are deduplicated; duplicate definitions are errors.
+
+Neither filesystem enumeration nor YAML mapping order may determine output. The same canonical inputs and adapter version MUST yield the same graph and artifact bytes, apart from explicitly separated operational timestamps.
+
+## 8. Vendor management
+
+Vendor import is optional. An absent `sources.yaml` and source lock is valid for a local-only graph. Once a vendor reference is selected, its source configuration and lock are required.
+
+Illustrative `sources.yaml`:
 
 ```yaml
-skills:
-  include: []
-  exclude: []
-
-agents:
-  include: []
-  exclude: []
-```
-
-Priority:
-
-```text
-profile
-< plugin
-< project explicit include/exclude
-```
-
-Project-level exclusion thắng.
-
----
-
-# 32. Installation Strategy
-
-Supported:
-
-```yaml
-symlink
-copy
-```
-
-Default:
-
-```yaml
-symlink
-```
-
----
-
-# 33. Symlink Strategy
-
-Canonical registry:
-
-```text
-~/workspace/personal/agent-registry/
-```
-
-Project:
-
-```text
-mealops/
-└── .claude/
-    └── skills/
-        ├── domain-modeling -> registry/...
-        └── api-design -> registry/...
-```
-
-Lợi ích:
-
-```text
-single canonical copy
-central updates
-no duplication
-```
-
----
-
-# 34. Generated Files
-
-Generated files SHOULD contain header where possible:
-
-```text
-GENERATED BY agent-registry.
-DO NOT EDIT MANUALLY.
-```
-
-Generated state MUST NOT trở thành canonical data.
-
----
-
-# 35. Adapters
-
-Core registry không biết chi tiết runtime.
-
-Interface:
-
-```ts
-interface Adapter {
-  id: string
-
-  detect(): Promise<boolean>
-
-  validate(
-    graph: ResolvedGraph
-  ): Promise<ValidationResult>
-
-  build(
-    graph: ResolvedGraph
-  ): Promise<BuildResult>
-
-  install(
-    build: BuildResult,
-    target: InstallTarget
-  ): Promise<void>
-
-  uninstall(
-    target: InstallTarget
-  ): Promise<void>
-}
-```
-
----
-
-# 36. Agent Skills Adapter
-
-Responsibilities:
-
-- expose portable skills;
-- preserve valid `SKILL.md`;
-- generate/install to supported Agent Skills locations;
-- avoid Claude-specific conversion unless required.
-
-Canonical skills SHOULD remain compatible with Agent Skills format whenever possible.
-
----
-
-# 37. Claude Code Adapter
-
-Claude adapter handles:
-
-```text
-skills
-agents
-hooks
-plugin definitions
-marketplace
-settings integration
-```
-
-Target paths may include:
-
-```text
-.claude/skills/
-.claude/agents/
-.claude/settings.json
-.claude-plugin/
-```
-
----
-
-# 38. Claude Skill Generation
-
-Portable skills SHOULD be reused directly.
-
-Không duplicate content nếu không cần.
-
-Claude-specific extensions có thể được bổ sung ở adapter stage.
-
----
-
-# 39. Claude Agent Generation
-
-Canonical:
-
-```text
-first-party/agents/architect/
-├── agent.yaml
-└── prompt.md
-```
-
-Adapter generate:
-
-```text
-.claude/agents/architect.md
-```
-
----
-
-# 40. Claude Marketplace Generation
-
-Generate:
-
-```text
-.claude-plugin/marketplace.json
-```
-
-từ:
-
-```text
-plugins/*.yaml
-```
-
-Không maintain marketplace manifest bằng tay.
-
-Pipeline:
-
-```text
-plugins/*.yaml
-      ↓
-registry resolver
-      ↓
-Claude adapter
-      ↓
-marketplace.json
-```
-
----
-
-# 41. Distribution without Duplication
-
-Tránh tạo nhiều physical copies của cùng skill.
-
-Preferred:
-
-```text
-canonical skill
-     │
-     ├── referenced by registry
-     ├── referenced by plugin
-     └── installed via adapter
-```
-
-Không:
-
-```text
-first-party/skill
-dist/skill
-plugin/skill
-copy-of-skill
-```
-
-trừ khi runtime bắt buộc.
-
----
-
-# 42. Internal Build Graph
-
-Resolver tạo graph:
-
-```text
-ResolvedGraph
-├── sources
-├── skills
-├── agents
-├── hooks
-├── plugins
-├── profiles
-└── dependencies
-```
-
-Example:
-
-```text
-profile: nextjs
-   │
-   ├─ plugin: core
-   │    ├─ research
-   │    └─ handoff
-   │
-   ├─ plugin: architecture
-   │    ├─ domain-modeling
-   │    └─ architect
-   │          └─ api-design
-   │
-   └─ plugin: frontend
-        └─ react-best-practices
-```
-
----
-
-# 43. Dependency Graph Rules
-
-Resolver MUST detect:
-
-- missing references;
-- cyclic profile inheritance;
-- cyclic plugin dependencies;
-- duplicate IDs;
-- conflicting component ownership;
-- invalid paths.
-
-Build fails on these conditions.
-
----
-
-# 44. CLI
-
-Binary:
-
-```text
-agent-registry
-```
-
-Optional short alias:
-
-```text
-areg
-```
-
----
-
-# 45. CLI Command Structure
-
-Target command set:
-
-```text
-agent-registry
-│
-├── init
-├── list
-├── search
-├── info
-│
-├── source
-│   ├── list
-│   ├── add
-│   ├── remove
-│   ├── check
-│   └── sync
-│
-├── skill
-│   ├── list
-│   ├── create
-│   └── info
-│
-├── agent
-│   ├── list
-│   ├── create
-│   └── info
-│
-├── plugin
-│   ├── list
-│   └── info
-│
-├── profile
-│   ├── list
-│   └── resolve
-│
-├── apply
-├── sync
-├── build
-├── validate
-├── diff
-├── audit
-├── doctor
-└── clean
-```
-
----
-
-# 46. `init`
-
-Initialize project.
-
-```bash
-agent-registry init
-```
-
-Interactive:
-
-```text
-Select targets:
-[x] Claude Code
-[ ] Codex
-[ ] OpenCode
-
-Select profiles:
-[x] nextjs
-[x] cloudflare
-
-Install strategy:
-[x] symlink
-[ ] copy
-```
-
-Creates:
-
-```text
-.agent-registry.yaml
-```
-
-then runs apply.
-
----
-
-# 47. `apply`
-
-Resolve project manifest and install required components.
-
-```bash
-agent-registry apply
-```
-
-Optional:
-
-```bash
-agent-registry apply nextjs
-```
-
-Flow:
-
-```text
-read project manifest
-→ resolve graph
-→ validate
-→ adapter build
-→ diff existing state
-→ install
-```
-
----
-
-# 48. `sync`
-
-Synchronize generated/project installation with registry.
-
-```bash
-agent-registry sync
-```
-
-Must:
-
-- add missing components;
-- update changed links;
-- remove no-longer-selected managed components;
-- preserve unmanaged user files.
-
----
-
-# 49. Managed State
-
-Project SHOULD store:
-
-```text
-.agent-registry.lock.json
-```
-
-Example:
-
-```json
-{
-  "registryCommit": "abc123",
-  "targets": {
-    "claude-code": {
-      "skills": [
-        "domain-modeling",
-        "api-design"
-      ],
-      "agents": [
-        "architect"
-      ]
-    }
-  }
-}
-```
-
-Purpose:
-
-- track installed components;
-- safe removal;
-- detect drift;
-- reproducibility.
-
----
-
-# 50. `source check`
-
-Check upstream without modifying registry.
-
-```bash
-agent-registry source check
-```
-
-Output:
-
-```text
-SOURCE       CURRENT   LATEST    STATUS
-mattpocock   abc123    def456    update
-vercel       111aaa    111aaa    current
-clerk        aaa999    bbb999    update
-```
-
----
-
-# 51. `source sync`
-
-Example:
-
-```bash
-agent-registry source sync mattpocock
-```
-
-Behavior:
-
-```text
-fetch
-resolve
-diff
-validate
-update vendor snapshot
-update lock
-```
-
-Default MUST NOT silently commit.
-
----
-
-# 52. `diff`
-
-Examples:
-
-```bash
-agent-registry diff mattpocock
-```
-
-Output SHOULD show:
-
-```text
-domain-modeling
-  SKILL.md
-    + 12 lines
-    - 5 lines
-
-research
-  unchanged
-```
-
-Optional:
-
-```bash
-agent-registry diff --semantic
-```
-
-future feature.
-
----
-
-# 53. `validate`
-
-```bash
-agent-registry validate
-```
-
-Validate:
-
-```text
-registry schema
-source schema
-SKILL.md
-agent definitions
-plugin references
-profile references
-dependency graph
-duplicate names
-missing files
-unsafe paths
-```
-
-Exit:
-
-```text
-0 valid
-1 invalid
-```
-
-CI-compatible.
-
----
-
-# 54. `audit`
-
-Security-oriented validation:
-
-```bash
-agent-registry audit
-```
-
-Checks SHOULD include:
-
-- unexpected executable files;
-- shell scripts;
-- network commands;
-- destructive shell commands;
-- credential references;
-- suspicious instructions;
-- absolute paths;
-- path traversal;
-- hidden files;
-- oversized artifacts.
-
-Audit SHOULD report, not automatically delete.
-
----
-
-# 55. `doctor`
-
-Environment diagnostics:
-
-```bash
-agent-registry doctor
-```
-
-Checks:
-
-```text
-git
-node
-pnpm
-Claude Code
-filesystem symlink support
-registry path
-project manifest
-broken links
-lock consistency
-adapter availability
-```
-
----
-
-# 56. Technology Stack
-
-Recommended:
-
-```text
-Runtime       Node.js
-Language      TypeScript
-Package mgr   pnpm
-CLI           oclif
-Validation    Zod
-YAML          yaml
-Process       execa
-Git           git CLI via execa
-Testing       Vitest
-Formatting    Biome
-```
-
-Ink MAY be added for richer interactive CLI.
-
-Do not make Ink required for core command execution.
-
-Commands MUST work non-interactively in CI.
-
----
-
-# 57. Internal Modules
-
-Suggested architecture:
-
-```text
-src/
-├── domain/
-├── application/
-├── infrastructure/
-└── cli/
-```
-
-Alternative expanded:
-
-```text
-src/
-├── core/
-├── registry/
-├── source/
-├── resolver/
-├── sync/
-├── build/
-├── adapters/
-├── installer/
-├── validator/
-├── audit/
-└── cli/
-```
-
-Prefer domain boundaries over generic:
-
-```text
-utils/
-helpers/
-common/
-```
-
----
-
-# 58. Core Services
-
-## RegistryLoader
-
-Responsibilities:
-
-```text
-load registry
-load manifests
-schema validation
-```
-
----
-
-## SourceResolver
-
-Responsibilities:
-
-```text
-resolve Git source
-branch → commit
-repository authentication
-```
-
----
-
-## VendorSynchronizer
-
-Responsibilities:
-
-```text
-fetch upstream
-extract selected components
-compare snapshots
-update vendor/
-```
-
----
-
-## DependencyResolver
-
-Responsibilities:
-
-```text
-profile resolution
-plugin expansion
-agent dependencies
-deduplication
-cycle detection
-```
-
----
-
-## OverlayEngine
-
-Responsibilities:
-
-```text
-vendor + overlays
-→ effective component
-```
-
----
-
-## AdapterManager
-
-Responsibilities:
-
-```text
-find adapter
-build runtime-specific artifact
-```
-
----
-
-## Installer
-
-Responsibilities:
-
-```text
-symlink
-copy
-remove managed files
-repair installation
-```
-
----
-
-## LockManager
-
-Responsibilities:
-
-```text
-sources.lock.json
-project lock
-atomic updates
-```
-
----
-
-# 59. Filesystem Safety
-
-Any write operation MUST:
-
-1. resolve target path;
-2. ensure target belongs to allowed root;
-3. refuse path traversal;
-4. avoid following unexpected external symlinks;
-5. use atomic write where reasonable.
-
-Never blindly:
-
-```text
-rm -rf generatedPath
-```
-
-without validating ownership.
-
----
-
-# 60. Managed File Ownership
-
-Registry MUST know which files it owns.
-
-Never delete files not recorded in project lock.
-
-Example:
-
-```text
-.claude/skills/my-personal-project-skill
-```
-
-nếu không do registry tạo thì:
-
-```text
-agent-registry sync
-```
-
-không được xóa.
-
----
-
-# 61. Security Model
-
-Third-party skills phải được coi tương tự dependency code.
-
-Vendor updates MAY contain:
-
-- shell commands;
-- prompt injection-like instructions;
-- network actions;
-- credential access;
-- destructive workflows.
-
-Vì vậy:
-
-```text
-vendor update
-≠ trusted automatically
-```
-
----
-
-# 62. Trust Levels
-
-Source có thể có:
-
-```yaml
-trust: trusted
-trust: reviewed
-trust: untrusted
-```
-
-Example:
-
-```yaml
+version: 1
 sources:
-  vercel:
-    trust: trusted
-
-  random-github-repo:
-    trust: untrusted
+  mattpocock:
+    repository: https://github.com/mattpocock/skills.git
+    ref: main
+    components:
+      domain-modeling:
+        type: skill
+        path: domain-modeling
 ```
 
-Trust SHOULD affect audit policy, không bypass validation hoàn toàn.
+The upstream repository/ref/path must be checked during onboarding; this example is not a claim about current upstream layout. Selection is explicit. Discovery of new upstream components does not import them automatically.
 
----
+`sources.lock.json` records schema version, source alias, repository, requested ref, full resolved commit, selected component original paths, file inventory and cryptographic hashes. It is committed together with the selected vendor snapshot. Branch names and shortened commit IDs are insufficient pins. Retain required license and attribution material.
 
-# 63. Update Automation
+Lifecycle:
 
-GitHub Actions:
-
-```text
-vendor-check.yml
-```
-
-Schedule:
-
-```text
-daily or weekly
-```
-
-Process:
-
-```text
-source check
-   ↓
-updates?
-   ↓
-generate update branch
-   ↓
-sync
-   ↓
-validate
-   ↓
-audit
-   ↓
-open PR
-```
-
----
-
-# 64. Update PR
-
-Example:
-
-```text
-chore(vendor): update mattpocock skills
-```
-
-Description:
-
-```text
-Source:
-mattpocock/skills
-
-Previous:
-abc123
-
-New:
-def456
-
-Changed:
-- domain-modeling
-- research
-
-Added:
-- none
-
-Removed:
-- none
-
-Validation:
-✓ schemas
-✓ references
-✓ skill format
-
-Audit:
-⚠ domain-modeling introduced new shell script
-```
-
----
-
-# 65. Discover New Vendor Skills
-
-Updater SHOULD also detect:
-
-```text
-new skills available upstream
-```
-
-nhưng không tự import.
-
-Output:
-
-```text
-New upstream skills:
-
-mattpocock:
-  + debugging-workflows
-  + package-design
-
-Not imported.
-```
-
-Future command:
-
-```bash
-agent-registry source discover mattpocock
-```
-
----
-
-# 66. Adding a Vendor Skill
-
-Target UX:
-
-```bash
-agent-registry source add-skill \
-  mattpocock \
-  debugging-workflows
-```
-
-Result:
-
-1. update `sources.yaml`;
-2. import snapshot;
-3. validate;
-4. update registry;
-5. update lock.
-
----
-
-# 67. Creating a First-party Skill
-
-```bash
-agent-registry skill create architecture-review
-```
-
-Interactive:
-
-```text
-Category: architecture
-Description:
-Stability: experimental
-```
-
-Creates:
-
-```text
-first-party/skills/architecture/architecture-review/
-├── SKILL.md
-├── references/
-└── scripts/
-```
-
-and updates:
-
-```text
-registry.yaml
-```
-
----
-
-# 68. Creating an Agent
-
-```bash
-agent-registry agent create architect
-```
-
-Creates:
-
-```text
-first-party/agents/architect/
-├── agent.yaml
-└── prompt.md
-```
-
-Interactive selection:
-
-```text
-Select skills:
-[x] domain-modeling
-[x] architecture-review
-[x] api-design
-```
-
----
-
-# 69. Search
-
-```bash
-agent-registry search architecture
-```
-
-Result:
-
-```text
-SKILL   domain-modeling
-SKILL   architecture-review
-AGENT   architect
-PLUGIN  architecture
-PROFILE fullstack
-```
-
----
-
-# 70. Info
-
-```bash
-agent-registry info domain-modeling
-```
-
-Output:
-
-```text
-ID: domain-modeling
-Type: skill
-Owner: vendor
-Source: mattpocock/skills
-Category: architecture
-Stability: stable
-Used by:
-  plugin/architecture
-  agent/architect
-  profile/fullstack
-```
-
----
-
-# 71. Context Budget Awareness
-
-Registry SHOULD avoid enabling excessive skills globally.
-
-Rules:
-
-```text
-global installation
-→ minimal
-
-project installation
-→ preferred
-
-manual-only skill
-→ supported
-```
-
-Profiles phải curate carefully.
-
-Target:
-
-```text
-project sees only relevant skills
-```
-
-not:
-
-```text
-project sees registry/*
-```
-
----
-
-# 72. Naming Conventions
-
-Directories:
-
-```text
-kebab-case
-```
-
-Skills:
-
-```text
-domain-modeling
-architecture-review
-```
-
-Agents:
-
-```text
-architect
-code-reviewer
-researcher
-```
-
-Plugins:
-
-```text
-architecture
-frontend
-security
-```
-
-Profiles:
-
-```text
-nextjs
-cloudflare
-fullstack
-```
-
-Sources:
-
-```text
-mattpocock
-vercel
-clerk
-ecc
-```
-
----
-
-# 73. Category Taxonomy
-
-Initial categories:
-
-```text
-core
-architecture
-frontend
-backend
-database
-security
-testing
-devops
-cloud
-product
-research
-documentation
-agentic
-browser
-auth
-design
-```
-
-Avoid tạo category quá cụ thể sớm.
-
----
-
-# 74. Versioning
-
-Registry uses SemVer:
-
-```text
-MAJOR.MINOR.PATCH
-```
-
-### MAJOR
-
-Breaking manifest/schema/CLI changes.
-
-### MINOR
-
-New compatible functionality/components.
-
-### PATCH
-
-Fixes/vendor updates/non-breaking metadata changes.
-
----
-
-# 75. Component Versioning
-
-MVP không cần independent SemVer cho mỗi skill.
-
-Component identity được xác định bằng:
-
-```text
-registry commit
-+
-source commit
-```
-
-Future MAY add:
-
-```yaml
-version: 1.2.0
-```
-
-per component.
-
----
-
-# 76. Git Strategy
-
-Recommended:
-
-```text
-main
-```
-
-protected.
-
-Changes via:
-
-```text
-feature/*
-vendor/*
-chore/*
-```
-
-Vendor automation always uses PR.
-
----
-
-# 77. CI
-
-Every PR MUST run:
-
-```text
-pnpm lint
-pnpm typecheck
-pnpm test
-agent-registry validate
-agent-registry audit
-agent-registry build
-```
-
-Build SHOULD be deterministic.
-
----
-
-# 78. Build Determinism
-
-Given:
-
-```text
-same registry commit
-same lock file
-same adapter version
-```
-
-output SHOULD be equivalent.
-
-Generated timestamps SHOULD NOT appear unless required.
-
----
-
-# 79. Testing Strategy
-
-## Unit Tests
-
-Cover:
-
-```text
-manifest parsing
-dependency resolver
-cycle detection
-overlay resolution
-path validation
-lock handling
-```
-
----
-
-## Integration Tests
-
-Cover:
-
-```text
-vendor sync
-Claude adapter
-symlink installation
-project sync
-profile resolution
-```
-
----
-
-## Fixtures
-
-Example:
-
-```text
-tests/fixtures/
-├── registry-basic/
-├── vendor-repo/
-├── project-empty/
-├── project-existing-skills/
-└── invalid-cycle/
-```
-
----
-
-# 80. Acceptance Test — Main Scenario
-
-Given registry:
-
-```text
-profile nextjs
-  → core
-  → architecture
-  → frontend
-```
-
-When:
-
-```bash
-cd mealops
-agent-registry init
-agent-registry apply
-```
-
-Then:
-
-```text
-.agent-registry.yaml
-.agent-registry.lock.json
-
-.claude/
-├── skills/
-│   ├── research
-│   ├── domain-modeling
-│   └── vercel-react-best-practices
-│
-└── agents/
-    └── architect.md
-```
-
-must be created correctly.
-
----
-
-# 81. Acceptance Test — Central Update
-
-Given:
-
-```text
-MealOps
-LifeOps
-GTEL Maps
-```
-
-all symlink:
-
-```text
-domain-modeling
-```
-
-to canonical registry.
-
-After vendor update:
-
-```bash
-agent-registry source sync mattpocock
-```
-
-and registry change is approved.
-
-Projects SHOULD receive the new canonical skill without copying it into each project again.
-
-Project manifest remains unchanged.
-
----
-
-# 82. Acceptance Test — Project Isolation
-
-Given:
-
-```text
-MealOps profile:
-nextjs
-```
-
-and:
-
-```text
-GTEL Maps profile:
-gis
-```
-
-MealOps MUST NOT receive GIS-only components.
-
-GTEL Maps MUST NOT automatically receive Clerk-only components.
-
----
-
-# 83. Acceptance Test — Vendor Safety
-
-When upstream adds:
-
-```text
-scripts/delete-home.sh
-```
-
-audit MUST flag the executable/script addition.
-
-Update must remain reviewable before merge.
-
----
-
-# 84. MVP Scope
-
-MVP MUST implement only:
-
-### Registry
-
-- `registry.yaml`
-- `sources.yaml`
-- `sources.lock.json`
-
-### Components
-
-- first-party skills
-- vendor skills
-- first-party agents
-
-### Composition
-
-- plugins
-- profiles
-
-### Operations
-
-- source check
-- source sync
-- validate
-- list
-- info
-- init
-- apply
-- sync
-
-### Targets
-
-- Agent Skills compatible output
-- Claude Code
-
-### Installation
-
-- symlink
-- copy fallback
-
----
-
-# 85. MVP Explicitly Deferred
-
-Do NOT implement initially:
-
-```text
-web dashboard
-remote registry server
-component marketplace search
-semantic search
-automatic AI review
-component ratings
-usage telemetry
-complex patch language
-MCP management
-multi-user permissions
-cloud synchronization
-```
-
----
-
-# 86. Phase 1 — Registry Foundation
-
-Deliver:
-
-```text
-repository structure
-schemas
-registry loader
-source manifest
-lock file
-first-party skill support
-vendor import
-validation
-```
-
-Success:
-
-```bash
-agent-registry validate
-```
-
-works.
-
----
-
-# 87. Phase 2 — Vendor Management
-
-Deliver:
-
-```text
-source check
-source sync
-vendor snapshots
-diff
-Git commit resolution
-GitHub Action update check
-```
-
-Success:
-
-One command updates selected vendor skills safely.
-
----
-
-# 88. Phase 3 — Composition
-
-Deliver:
-
-```text
-plugins
-profiles
-dependency graph
-inheritance
-include/exclude
-```
-
-Success:
-
-```bash
-agent-registry profile resolve nextjs
-```
-
-returns deterministic component graph.
-
----
-
-# 89. Phase 4 — Claude Code
-
-Deliver:
-
-```text
-Claude adapter
-skill installation
-agent generation
-plugin generation
-marketplace generation
-```
-
-Success:
-
-A generated plugin/profile works in Claude Code.
-
----
-
-# 90. Phase 5 — Project Management
-
-Deliver:
-
 ```text
-.agent-registry.yaml
-project lock
-init
-apply
-sync
-doctor
+Fetch candidate → Resolve commit → Extract selected files in staging
+→ Diff → Validate → Audit → Update candidate snapshot and lock
+→ Review change/PR → Accept into canonical branch
 ```
 
-Success:
+Snapshots may change through this workflow; manual customization inside `vendor/` is prohibited. Updating a lock alone must not legitimize altered snapshot bytes. Candidate content, lock, license information, and overlay compatibility are reviewed together. Upstream scripts are never executed during discovery/import/validation.
 
-A new project can bootstrap in one command.
+Temporary clones and downloads live in an OS-appropriate external cache, not the canonical source tree. Cache eviction cannot change locked identity. Local-only operation requires no fetch.
 
----
+## 9. Overlay contract
 
-# 91. Phase 6 — Automation
+MVP supports replacement of existing files only:
 
-Deliver:
-
-```text
-scheduled vendor check
-automatic update PR
-audit report
-release workflow
-```
-
-Success:
-
-Registry requires minimal manual vendor maintenance.
-
----
-
-# 92. Phase 7 — Multi-Agent
-
-Add adapters:
-
-```text
-Codex
-OpenCode
-Cursor
-Gemini CLI
-```
-
-Only after canonical domain model stabilizes.
-
----
-
-# 93. Future Feature — Collections
-
-Could introduce:
-
-```text
-collections/
-```
-
-Difference:
-
-```text
-plugin     runtime/distribution concern
-profile    project composition
-collection human-curated discovery group
-```
-
-Example:
-
-```text
-collections/
-├── recommended.yaml
-├── experimental.yaml
-└── favorites.yaml
-```
-
-Not required for MVP.
-
----
-
-# 94. Future Feature — Quality Metadata
-
-Component metadata:
-
-```yaml
-quality:
-  reviewed: true
-  tested: true
-  securityReviewed: true
-
-compatibility:
-  claude-code: full
-  codex: partial
-  opencode: full
-```
-
----
-
-# 95. Future Feature — Provenance
-
-Every vendor component SHOULD eventually expose:
-
-```yaml
-provenance:
-  repository: mattpocock/skills
-  commit: abc123
-  originalPath: skills/domain-modeling
-  importedAt: 2026-09-20
-```
-
-Could be stored in registry metadata instead of modifying upstream `SKILL.md`.
-
----
-
-# 96. Future Feature — Registry Website
-
-Potential static catalog:
-
-```text
-agent-registry.dev
-```
-
-Pages:
-
-```text
-Skills
-Agents
-Plugins
-Profiles
-Sources
-Updates
-```
-
-Can be generated directly from manifests.
-
-No database required.
-
----
-
-# 97. Future Feature — AI Review
-
-Vendor PR could invoke agent reviewers:
-
 ```text
-security-reviewer
-skill-reviewer
-compatibility-reviewer
+vendor/mattpocock/domain-modeling/SKILL.md
+overlays/mattpocock/domain-modeling/SKILL.md
 ```
 
-Outputs:
+For each file in the vendor snapshot, use the overlay file at the same relative path if present; otherwise retain the vendor file. This is file replacement, not replacement of the entire component directory. Files with no matching vendor path, missing targets, directory/file conflicts, traversal, and symlink escapes are errors.
 
-```text
-Behavior changes
-New tools requested
-New shell commands
-Potential risks
-Breaking changes
-```
-
-Human remains final approver.
-
----
-
-# 98. ADRs Required During Implementation
-
-Create ADRs for:
-
-```text
-ADR-001 Canonical registry model
-ADR-002 Vendor snapshot strategy
-ADR-003 Symlink vs copy installation
-ADR-004 Canonical agent representation
-ADR-005 Adapter architecture
-ADR-006 Plugin/profile separation
-ADR-007 Lock-file strategy
-ADR-008 Generated artifact policy
-```
-
----
-
-# 99. Definition of Done — MVP
-
-MVP is complete when all conditions below are true.
-
-- [ ] Registry supports first-party skills.
-- [ ] Registry supports first-party agents.
-- [ ] Registry can import selected vendor skills.
-- [ ] Vendor sources are commit-locked.
-- [ ] Vendor update can be diffed before applying.
-- [ ] Vendor files are not manually modified.
-- [ ] Plugins compose skills and agents.
-- [ ] Profiles compose plugins/components.
-- [ ] Profile inheritance works.
-- [ ] Dependency cycles are detected.
-- [ ] Claude Code adapter works.
-- [ ] Agent Skills compatible skills remain portable.
-- [ ] Project manifest exists.
-- [ ] Project lock exists.
-- [ ] Symlink installation works.
-- [ ] Copy fallback works.
-- [ ] Sync does not delete unmanaged files.
-- [ ] `validate` is CI-compatible.
-- [ ] Scheduled vendor update check exists.
-- [ ] Vendor changes can create reviewable PRs.
-- [ ] README documents end-user workflow.
-
----
-
-# 100. Target End-user Workflow
-
-## Bootstrap registry
-
-```bash
-git clone <agent-registry>
-cd agent-registry
-
-pnpm install
-pnpm build
-```
-
----
-
-## Add first-party skill
-
-```bash
-agent-registry skill create architecture-review
-```
-
-Develop:
-
-```text
-first-party/skills/architecture/architecture-review/SKILL.md
-```
-
-Validate:
-
-```bash
-agent-registry validate
-```
-
----
-
-## Add vendor skill
-
-```bash
-agent-registry source add-skill \
-  mattpocock \
-  domain-modeling
-```
-
----
+Merge, append, delete, patch, and adding new files are deferred. A workflow that needs independently owned content should become an explicit local component with its own ID and preserved attribution where applicable.
 
-## Check vendor updates
+Build effective content into `dist/`; never copy replacements into `vendor/`. Record both snapshot and overlay hashes in resolved provenance. Vendor updates revalidate overlays even when an overridden file hides the upstream change in effective output.
 
-```bash
-agent-registry source check
-```
+## 10. Adapters and output
 
----
+Adapters consume `ResolvedGraph`, validate supported capabilities, and build artifacts. They do not fetch vendors or independently reinterpret manifests. Filesystem installation is owned by the shared installer; adapters supply output plans and target-specific validation.
 
-## Update vendor
-
-```bash
-agent-registry source sync mattpocock
-```
+MVP targets:
 
-Review:
+- `agent-skills`: portable skill artifacts. Selecting unsupported agents must produce a clear error rather than silently discard them.
+- `claude-code`: skills and canonical agent conversion, plus generated plugin/marketplace artifacts once target contracts are verified.
 
-```bash
-agent-registry diff mattpocock
-```
+Runtime paths and formats are verified against target documentation during adapter implementation and captured in fixtures. Typical planned Claude output includes `.claude/skills/` and `.claude/agents/`; plugin distribution metadata is generated from `plugins/<id>/plugin.yaml`. Direct project installation and plugin distribution are alternative delivery paths; avoid installing the same component twice.
 
----
+`.claude-plugin/marketplace.json` is handwritten bootstrap metadata. Today its `plugins` array is empty and there is no root `.claude-plugin/plugin.json`, because the repository publishes no plugins yet. Roadmap N0 populates the marketplace by hand, listing one entry per directory under `plugins/<id>/`, each with its own `.claude-plugin/plugin.json`. That handwritten metadata is a temporary exception to the rule against a second handwritten source.
 
-## Create project
+At M3 the Claude Code adapter generates this metadata from `plugins/<id>/plugin.yaml`, after which the handwritten files become generated output and must not be edited to change behavior. The models already agree on one point that earlier drafts did not: the marketplace declares many plugins under `plugins/<id>/`, never the whole repository as a single plugin with `source: "."`.
 
-```bash
-cd mealops
+Runtime-specific settings, hook execution, and unsupported capabilities MUST not be silently enabled. Future Codex, OpenCode, Cursor, and Gemini CLI adapters reuse the same domain and resolution contracts.
 
-agent-registry init
-```
+## 11. Locks, installation, and synchronization
 
-Select:
+`sources.lock.json` pins upstream content. `.agent-plugins.lock.json` records the consumer's resolved state: schema version, collection revision/content digest, project intent digest, selected canonical references, vendor and overlay hashes, adapter versions, target artifact hashes, install strategy/mode, and managed relative paths. Local absolute cache locations belong in uncommitted machine state.
 
-```text
-Claude Code
-nextjs
-cloudflare
-clerk
-```
+### Locked mode
 
-Then:
+Build or locate an immutable artifact identified by content and adapter version. Symlinks point to that artifact, not a mutable checkout. Copy mode copies the same artifact. Ordinary sync uses the existing lock and does not adopt newer content. Missing or inconsistent locked inputs produce an actionable error. An explicit update operation resolves new content and writes a new lock.
 
-```bash
-agent-registry apply
-```
+The first apply creates the lock. Changed project intent requires an explicit re-resolution; planned `apply --update` and `sync --update` are the operations that authorize it. A Git revision alone is insufficient for a dirty local tree; record the exact content digest or reject creation of a reproducible locked artifact.
 
----
+### Live mode
 
-## Daily usage
+An explicit local-development choice. Symlinks point to a stable generated artifact location for the selected graph. Rebuilding it changes linked consumers; pulling source alone does not rebuild it. The project lock records the last synchronized state and cannot guarantee unchanged live bytes. `doctor` reports drift. Copy installations adopt rebuilt content only on sync.
 
-Normally no action required.
+This separates central editing convenience from frozen installation guarantees without presenting a mutable symlink as reproducible.
 
-When project config changes:
+### Filesystem safety
 
-```bash
-agent-registry sync
-```
+Before writing, compute and display a plan when requested. Verify paths, collisions, write capability, and existing managed state. Stage complete outputs before replacement; retain sufficient prior state for recovery. Write the lock only after successful installation. On failure, restore prior managed state or report exact partial state with a recovery plan.
 
-When diagnosing:
+Never overwrite unmanaged files. Never delete an entire runtime directory. Remove only obsolete paths recorded as managed, after checking that they still match the expected prior file/hash/link. Modified managed content causes a conflict requiring an explicit resolution. Uninstall obeys the same ownership checks. Protect against traversal, symlink escapes, case collisions, broken links, and concurrent writes.
 
-```bash
-agent-registry doctor
-```
+If symlinks are unavailable, report the limitation and offer explicit copy mode; do not silently change strategy. Do not commit machine-specific symlinks. Ignore only generated paths owned by this tool, preserving existing user configuration.
 
----
+## 12. CLI and implementation boundaries
 
-# 101. Final Architecture
+Planned command surface, not currently asserted to exist:
 
 ```text
-                         ┌──────────────────┐
-                         │ Upstream Vendors │
-                         └────────┬─────────┘
-                                  │
-                                  ▼
-                         ┌──────────────────┐
-                         │     Sources      │
-                         │ sources.yaml     │
-                         └────────┬─────────┘
-                                  │
-                        fetch / diff / lock
-                                  │
-                                  ▼
-                         ┌──────────────────┐
-                         │      Vendor      │
-                         │ immutable snaps  │
-                         └────────┬─────────┘
-                                  │
-                              overlays
-                                  │
-                                  ▼
-┌──────────────────┐     ┌──────────────────┐
-│   First-party    │────▶│     Registry     │
-│ skills / agents  │     │ registry.yaml    │
-└──────────────────┘     └────────┬─────────┘
-                                  │
-                     dependency resolution
-                                  │
-                 ┌────────────────┼────────────────┐
-                 ▼                ▼                ▼
-              Skills            Agents          Hooks
-                 │                │                │
-                 └────────────────┼────────────────┘
-                                  ▼
-                              Plugins
-                                  │
-                                  ▼
-                              Profiles
-                                  │
-                                  ▼
-                           Resolved Graph
-                                  │
-                      ┌───────────┼───────────┐
-                      ▼           ▼           ▼
-                  Claude       Agent Skills   Future
-                  Adapter       Adapter       Adapters
-                      │           │
-                      └─────┬─────┘
-                            ▼
-                         Projects
+agent-plugins validate
+agent-plugins init
+agent-plugins apply [--update] [--dry-run]
+agent-plugins sync [--update] [--dry-run]
+agent-plugins doctor
+agent-plugins plugin list|info|create
+agent-plugins skill list|info|create
+agent-plugins agent list|info|create
+agent-plugins profile list|info|resolve
+agent-plugins vendor list|check|diff|sync
 ```
-
----
-
-# 102. Architecture Rules
-
-These rules are considered architectural invariants.
-
-1. **Registry is the single source of truth.**
-2. **Vendor content is never manually edited.**
-3. **Customization goes through overlays or first-party components.**
-4. **Generated artifacts are never canonical.**
-5. **Skills represent reusable capabilities.**
-6. **Agents represent specialized workers.**
-7. **Plugins represent installable capability bundles.**
-8. **Profiles represent project compositions.**
-9. **Adapters contain platform-specific behavior.**
-10. **Projects never depend directly on third-party vendor repositories.**
-11. **Vendor upgrades are reviewed before becoming canonical.**
-12. **Project installation must not require all registry skills to be globally loaded.**
-13. **Project manifests are portable; machine-specific absolute symlinks are generated locally.**
-14. **Unmanaged project files must never be deleted by registry synchronization.**
-15. **The canonical model must remain platform-neutral wherever practical.**
 
----
+`init` authors project intent; `apply` installs it; `sync` reconciles managed output; `validate` checks canonical contracts; `doctor` diagnoses the local environment and installation. Vendor sync stages selected upstream changes for review and must not silently advance the accepted branch. Project sync does not perform vendor updates.
 
-# 103. Implementation Priority
+Commands require non-interactive operation, meaningful nonzero failure status, actionable diagnostics, and no hidden mutation in list/info/check/diff/doctor. Detailed arguments, machine-readable output, and exit codes are finalized in the future CLI contract before implementation.
 
-Build in this exact order:
+Expected stack: Node.js, strict TypeScript, pnpm, oclif, Zod, YAML parsing, execa, Vitest, and Biome. Exact compatible versions and executable scripts are chosen and pinned at bootstrap, not assumed by this specification.
 
-```text
-1. Schema + manifests
-2. Registry loader
-3. Vendor import
-4. Lock management
-5. Validation
-6. Dependency resolver
-7. Plugins
-8. Profiles
-9. Agent Skills adapter
-10. Claude Code adapter
-11. Project manifest
-12. Symlink installer
-13. Project sync
-14. Vendor update automation
-15. Audit
-16. Additional adapters
-```
-
-Do **not** start with:
+Dependency direction:
 
 ```text
-UI
-marketplace website
-AI recommendations
-complex TUI
-multi-agent adapters
+CLI → Application use cases → Domain
+Infrastructure and adapters → Domain contracts
 ```
-
-before the registry core is stable.
-
----
-
-# 104. MVP Architecture Summary
-
-The smallest production-worthy version is:
 
-```text
-agent-registry
-│
-├── registry.yaml
-├── sources.yaml
-├── sources.lock.json
-│
-├── first-party/
-│   ├── skills/
-│   └── agents/
-│
-├── vendor/
-│
-├── plugins/
-├── profiles/
-│
-├── adapters/
-│   ├── agent-skills/
-│   └── claude-code/
-│
-└── CLI
-    ├── validate
-    ├── list
-    ├── source check
-    ├── source sync
-    ├── init
-    ├── apply
-    └── sync
-```
+Domain resolution is pure where possible. External data is validated at boundaries. Shell calls use explicit argument arrays. No runtime-specific code or business rules in CLI command classes.
 
-Everything else should evolve around this core rather than change it.
+## 13. Quality and acceptance
 
----
+Verification must cover:
 
-# 105. Long-term Direction
+- Local-only plugin → agent → skill resolution with no vendor files or network.
+- Bare local references, qualified vendor references, missing references, wrong types, and duplicate definitions.
+- Profile and plugin cycles, diamonds, deduplication, stable ordering, and project-added agent dependencies.
+- Exclusions that remove optional roots and exclusions that break required edges.
+- Selected vendor imports, commit/hash validation, provenance, license retention, and changed upstream paths.
+- Overlay replacement while preserving untouched resources; no mutation of vendor bytes.
+- Repeat builds producing the same artifact hashes.
+- Symlink and copy installs, Windows path/case behavior, unmanaged file preservation, and interrupted writes.
+- Locked sync remaining stable after source changes; explicit update advancing locks; live mode reporting drift.
+- Adapter output against verified target fixtures and unsupported-capability errors.
 
-The intended evolution is:
+CI should run implemented lint, typecheck, tests, build, and canonical validation commands. No command or check is marked successful without execution. Static inspection of vendor instructions is useful review support, not a guarantee of safety.
 
-```text
-Skill Collection
-       ↓
-Agent Registry
-       ↓
-Agent Package Manager
-       ↓
-Personal Agent Development Platform
-```
+MVP acceptance: author a local plugin without vendors; install it into a test consumer; optionally extend it with one pinned vendor skill and replacement overlay; reproduce the locked result; update intentionally; preserve all unmanaged files.
 
-The registry should eventually allow a project to express only its intent:
+## 14. Delivery and documentation
 
-```yaml
-profiles:
-  - nextjs
-  - cloudflare
+Follow [roadmap.md](roadmap.md) for milestones and [todo.md](todo.md) for executable work. [README.md](../README.md) is the overview; [AGENTS.md](../AGENTS.md) is the contributor operating guide, reachable as `CLAUDE.md` through a symlink. [usage.md](usage.md) describes the intended consumer experience.
 
-plugins:
-  - clerk
-  - architecture
-```
+The written documentation set is exactly six files: `README.md`, `AGENTS.md`, `docs/specs.md`, `docs/roadmap.md`, `docs/todo.md`, and `docs/usage.md`. Sequencing lives in the roadmap and execution status in the backlog; there is no separate implementation-plan document. All documentation is written in English.
 
-while the registry handles:
+The detailed documents below **do not exist yet**. `docs/architecture/`, `docs/contracts/`, `docs/engineering/`, and `docs/operations/` are empty directories. Do not cite them as sources or treat them as dependencies. Write them only as implementation needs them:
 
-```text
-discovery
-dependency resolution
-versioning
-provenance
-security
-installation
-updates
-runtime compatibility
-```
+1. `docs/architecture/architecture.md` and `domain-model.md`.
+2. `docs/contracts/manifest-spec.md` and `docs/architecture/dependency-resolution.md`.
+3. `docs/operations/vendor-management.md` and `docs/architecture/adapter-design.md`.
+4. `docs/contracts/cli-spec.md` and `docs/architecture/project-structure.md`.
+5. `docs/engineering/testing-strategy.md` and `security-model.md`.
+6. ADRs for root ownership, plugin composition, snapshots, overlays, adapter boundaries, and locked/live installation.
 
-That abstraction is the primary architectural goal of the project.
+When migrating an existing checkout, move owned component directories to root, remove legacy ownership prefixes from local references, qualify every vendor reference, normalize plugin/profile paths to this contract, and regenerate indexes/locks/output using reviewed tooling. Detect collisions before moving. Preserve content and provenance; do not perform blind text replacement inside vendor snapshots.

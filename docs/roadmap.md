@@ -1,624 +1,180 @@
 # Roadmap
 
-> Repository: `agent-plugins`  
-> Focus: First-party agent plugins, reusable skills, agents, hooks, vendor integrations, and overlays.
+Version: 0.3.0 · Updated: 2026-09-20 · Status: N0 next; M0–M8 planned
 
----
+The product is a collection of owned agent plugins. Local skills and agents provide the foundation; vendor imports extend working local workflows.
 
-## Vision
+Delivery runs on **two tracks**:
 
-Xây dựng `agent-plugins` thành bộ plugin cá nhân có cấu trúc rõ ràng, dễ tái sử dụng, dễ mở rộng và dễ phân phối cho nhiều project.
+- **Native track (N0)** — package the collection with the mechanisms Claude Code already provides: a marketplace, plugin directories, plugin dependencies, and `claude plugin validate`. No first-party CLI. **This is the next track to build.**
+- **Platform track (M0–M8)** — the runtime-neutral model, first-party resolver, profiles, overlays, locks, and adapters described in [specs.md](specs.md). **Deferred**; see the activation conditions below.
 
-Trọng tâm:
+This roadmap records target capabilities and exit criteria. It does not claim implementation progress: the repository currently contains documentation only, with no plugins, skills, agents, or vendor snapshots. [specs.md](specs.md) defines the contracts; [todo.md](todo.md) tracks tasks.
 
-```text
-First-party Plugins
-        ↓
-Skills / Agents / Hooks
-        ↓
-Optional Vendor Components
-        ↓
-Overlays
-        ↓
-Profiles / Adapters / Distribution
-```
+## Architecture baseline
 
-Vendor integrations là phần mở rộng, không phải trung tâm của hệ thống.
+Canonical first-party skills live at `skills/<id>/SKILL.md`. Third-party content lives in `vendor/<source>/<id>/` as a byte-preserving pinned snapshot.
 
----
+`plugins/<id>/` has two documented phases, and they are not in conflict:
 
-# Phase 0 — Foundation
+- **N0 (native):** `plugins/<id>/` is packaging only — a `.claude-plugin/plugin.json` plus `skills/` entries that are symlinks into the canonical homes, and agents as real `.md` files in the plugin that owns them. A symlink is not a copy: each component still has exactly one canonical home.
+- **M3 onward (platform):** `plugins/<id>/plugin.yaml` becomes the canonical input, and the Claude Code adapter *generates* the native packaging above. See [specs.md](specs.md) §10 for the handover.
 
-## Goal
+N0 must verify and record Claude Code's actual symlink behaviour for plugin `skills/` and `agents/` entries, including the cases where symlinks are *not* followed. That finding belongs in the N0 exit evidence; `docs/architecture/project-structure.md` will record it once written.
 
-Chốt nền tảng kiến trúc và conventions trước khi phát triển nhiều plugin.
+The platform track's `plugin.yaml` / `agent.yaml` / `profiles/<id>.yaml` / `registry.yaml` conventions are not in use yet. Local component references are bare IDs; third-party references are qualified, such as `vendor:mattpocock/domain-modeling`.
 
-## Deliverables
+## N0 — Native marketplace
 
-- [ ] Repository structure
-- [ ] Naming conventions
-- [ ] Plugin model
-- [ ] Skill model
-- [ ] Agent model
-- [ ] Vendor model
-- [ ] Overlay model
-- [ ] Manifest schemas
-- [ ] Validation rules
-- [ ] Initial documentation
+**Depends on:** nothing. This is the next work.
 
-## Core docs
+**Goal:** make the collection usable across projects today, without building a platform first.
 
-- [x] `specs.md`
-- [ ] `architecture.md`
-- [ ] `domain-model.md`
-- [ ] `manifest-spec.md`
-- [ ] `plugin-authoring.md`
-- [ ] `vendor-management.md`
+Deliver:
 
-## Exit criteria
+- Root marketplace manifest declaring the plugins that actually have content. Start with `core` and `architecture`; add the remaining candidates only when a real workflow needs them.
+- One first-party skill (`architecture-review`) and one agent (`architect`).
+- A first vendor import from `mattpocock/skills` at a pinned commit, with licence, provenance at `vendor/mattpocock/PROVENANCE.md`, and per-file checksums at `vendor/mattpocock/SHA256SUMS`; skill bytes unmodified.
+- Plugin composition by symlink, so each component has exactly one canonical home.
+- `core` as the base plugin; the others declare it as a dependency so installing any of them pulls it in.
 
-Có thể tạo một plugin first-party hoàn chỉnh bằng tay theo cùng một convention.
+**Exit:** the marketplace and every published plugin manifest validate; installing `architecture` into a clean consumer resolves its skills plus the `architect` agent and auto-installs `core`; `sha256sum -c vendor/mattpocock/SHA256SUMS` passes; Claude Code's symlink-resolution behaviour for plugin `skills/` and `agents/` entries is verified and recorded.
 
----
+**Not in N0:** profiles, overlays, project locks, a first-party CLI, additional runtimes.
 
-# Phase 1 — First-party Plugin System
+## Platform track — activation conditions
 
-## Goal
+M0–M5 below are deferred, not cancelled. Start M0 when at least one of these becomes true, and say which one:
 
-Xây được framework ổn định để tự viết plugin.
+- A second runtime is needed in production, and hand-maintaining `.codex-plugin/` or `.cursor-plugin/` alongside `.claude-plugin/` has become error-prone.
+- A consumer needs reproducible installs pinned to a content digest, which plugin versions alone cannot express.
+- A vendor component must be customized without forking it, which requires overlays.
+- Plugin membership needs computing from declared intent rather than maintaining symlinks by hand.
 
-## Scope
+Until then, prefer adding skills over adding infrastructure.
 
-Plugin có thể chứa:
+## M0 — Foundation and contracts
 
-```text
-plugin/
-├── skills/
-├── agents/
-├── hooks/
-├── prompts/
-└── references/
-```
+**Goal:** make the architecture implementable without prematurely building vendor infrastructure.
 
-## Deliverables
+Deliver:
 
-- [ ] Plugin manifest
-- [ ] Plugin loader
-- [ ] Plugin validation
-- [ ] Skill discovery
-- [ ] Agent discovery
-- [ ] Hook discovery
-- [ ] Plugin dependency support
-- [ ] Plugin metadata
+- Repository skeleton with root-owned components and clearly separated generated output.
+- Pinned TypeScript/Node.js/pnpm toolchain and meaningful verification scripts.
+- Architecture, domain model, manifest, and resolution contracts.
+- Schemas for local registry entries, skills, agents, plugins, profiles, and project intent.
+- ADRs for ownership layout and plugin/component composition where needed.
 
-## Initial plugins
+**Exit:** a documented local-only fixture parses and validates; schema errors identify the file and field. Empty or absent vendor configuration is accepted.
 
-Nên bắt đầu với một số plugin thực tế:
+## M1 — Local plugin vertical slice
+
+**Depends on:** M0.
+
+Deliver the first useful plugin:
 
 ```text
-core
-architecture
-research
-frontend
-backend
-security
-agentic-engineering
+plugins/architecture/plugin.yaml
+  → skills/architecture-review/SKILL.md
+  → agents/architect/agent.yaml + prompt.md
+      → architecture-review
 ```
 
-## Exit criteria
+Implement registry loading, local reference resolution, agent-to-skill dependencies, plugin dependencies, and a validation command. Add focused authoring templates after proving the source format.
 
-Có ít nhất 3 plugin first-party hoạt động ổn định.
+**Exit:** the architecture plugin validates and resolves entirely offline, with no vendor manifest, import, or overlay required. Missing references, duplicate definitions, incorrect types, and cycles have useful errors.
 
----
+## M2 — Composition and profiles
 
-# Phase 2 — Skill Authoring
+**Depends on:** M1.
 
-## Goal
+Deliver profile inheritance, project selection, explicit includes/excludes, stable dependency ordering, lifecycle validation, and resolved provenance. Start with `profiles/minimal.yaml`; add presets only when real consumers need them.
 
-Chuẩn hóa cách tự viết skill.
+**Exit:** identical inputs produce identical graphs. Project-added agents bring their skills. Excluding a required dependency fails clearly. Diamonds deduplicate and cycles report their chain.
 
-## Deliverables
+## M3 — Runtime output and safe project installation
 
-- [ ] Skill template
-- [ ] Skill metadata
-- [ ] Skill validation
-- [ ] Skill references convention
-- [ ] Skill scripts convention
-- [ ] Skill examples
-- [ ] Skill quality checklist
+**Depends on:** M2.
 
-## Suggested first-party skills
+Deliver portable skill artifacts and a Claude Code adapter based on verified target contracts. Implement the shared installer, source-content hashes, project locks, machine-local collection alias mapping, symlink/copy strategies, locked mode, and explicit live mode.
 
-```text
-architecture-review
-scalable-folder-design
-technology-evaluation
-library-comparison
-repo-onboarding
-codebase-review
-requirements-analysis
-technical-research
-```
+Expose the core `init`, `apply`, `sync`, and `doctor` flows with non-interactive operation and previewable write plans. Generate plugin distribution metadata from canonical manifests rather than maintaining a second handwritten source.
 
-## Exit criteria
+**Exit:** a local plugin installs into a fixture consumer. Locked sync remains stable after canonical source changes; explicit update advances it. Live mode reports drift. Unmanaged files and modified managed files are protected. Interrupted operations leave recoverable state.
 
-Có thể tạo skill mới nhanh mà không phải tự nghĩ lại cấu trúc.
+This is the first end-to-end local-only release checkpoint.
 
----
+## M4 — Curated vendor extension
 
-# Phase 3 — Agent System
+**Depends on:** M3; source contracts may be designed earlier.
 
-## Goal
+Deliver explicit upstream selection, commit pinning, source locks, selected snapshots, provenance, license retention, staging, and vendor list/check/diff/sync operations. Start with one verified source and one useful skill.
 
-Tạo các specialized agents sử dụng lại skill.
+Candidates include Vercel, Clerk, ECC, Browser Use, Taste Skill, and Awesome Copilot; they are evaluation candidates, not mandatory imports or verified compatibility claims.
 
-## Initial agents
+N0 imports `mattpocock/skills` by hand at a pinned commit, recording provenance in `vendor/mattpocock/PROVENANCE.md` and checksums in `vendor/mattpocock/SHA256SUMS`. M4 does not repeat that import; it replaces the manual procedure with tooling and must reproduce the N0 snapshot byte for byte.
 
-```text
-architect
-researcher
-code-reviewer
-frontend-reviewer
-security-reviewer
-product-analyst
-```
+**Exit:** one plugin can opt into a pinned qualified vendor skill. Its snapshot and lock reproduce exact selected content. Upstream scripts are not executed; unselected content is not imported. Vendor updates cannot silently advance the accepted collection.
 
-## Deliverables
+## M5 — Replacement overlays and complete MVP
 
-- [ ] Canonical agent format
-- [ ] Agent manifest
-- [ ] Agent prompt convention
-- [ ] Agent → Skill dependencies
-- [ ] Agent validation
-- [ ] Claude Code agent generation
+**Depends on:** M4.
 
-## Exit criteria
+Deliver matching-file replacements under `overlays/<source>/<id>/`, overlay validation, effective-content staging, and combined vendor/overlay provenance. Revalidate overlays during every vendor update.
 
-Agent có thể compose nhiều skill mà không duplicate instructions.
+**Exit:** the same vendor reference resolves to overlaid content while untouched resources and vendor snapshot bytes remain unchanged. Missing targets and unsupported operations fail. The extended plugin installs safely and reproducibly through the M3 pipeline.
 
----
+MVP is complete only when M0–M5 exit criteria pass together. Hooks/prompts execution, advanced overlays, and additional adapters are outside this gate.
 
-# Phase 4 — Vendor Integration
+## M6 — Reviewable updates and operational quality
 
-## Goal
+**Depends on:** M5.
 
-Cho phép curate third-party skills mà không làm vendor trở thành source of truth.
+Deliver scheduled vendor checks, staged update branches/PRs, affected-component diffs, provenance reports, and validation/audit results. New upstream capabilities are discovery candidates only. Do not auto-merge vendor updates.
 
-## Initial vendors
+Add operational runbooks, recovery guidance, release packaging, and CI coverage across supported environments. Security and filesystem tests begin in earlier milestones; this phase automates and expands them.
 
-```text
-mattpocock/skills
-vercel-labs/agent-skills
-clerk/skills
-affaan-m/ECC
-browser-use/browser-use
-Leonxlnx/taste-skill
-github/awesome-copilot
-```
+**Exit:** an upstream change can produce a reviewable candidate update without changing accepted snapshots or installed locked projects. Recovery and rollback procedures have been exercised.
 
-## Deliverables
+## M7 — Expand owned workflows and authoring experience
 
-- [ ] `sources.yaml`
-- [ ] `sources.lock.json`
-- [ ] Vendor importer
-- [ ] Selective component import
-- [ ] Git commit pinning
-- [ ] Vendor update detection
-- [ ] Vendor diff
-- [ ] Vendor provenance metadata
+**Depends on:** N0. Once the native marketplace supports authoring and installation, this work is active and does not wait for the platform track. The tooling items below (search, scaffolding, dependency visualization) do depend on M3.
 
-## Exit criteria
+Grow `core`, `research`, `frontend`, `backend`, `security`, and `agentic-engineering` only around actual use. Candidate skills include `scalable-folder-design`, `technical-research`, `technology-evaluation`, and `repo-onboarding`; candidate agents include `researcher` and `code-reviewer`.
 
-Một vendor component có thể được import, pin và update có kiểm soát.
+Add search, richer component information, scaffolding, dependency visualization, and interactive conveniences after non-interactive commands work. Keep `core` small and every plugin useful independently of a large vendor catalog.
 
----
+**Exit:** new owned plugins reuse canonical components, carry focused examples, and have validated consumer scenarios.
 
-# Phase 5 — Overlay System
+## M8 — Additional contracts and runtimes
 
-## Goal
+**Depends on:** demonstrated needs and stable core contracts.
 
-Cho phép customize vendor content mà không chỉnh trực tiếp vendor snapshot.
+- Define hooks and prompts behavior before activating reserved directories.
+- Evaluate Codex, OpenCode, Cursor, and Gemini CLI adapters with explicit capability matrices.
+- Define rules and MCP support only when needed.
+- Evaluate overlay additions, merge, append, delete, and patch as separate contract changes.
+- Consider a generated catalog or collections only when they solve an observed discovery problem.
 
-## Deliverables
+**Exit:** each extension has a documented contract, migration implications, and target-specific tests. Existing local-only flows remain unchanged unless a deliberate versioned contract change is made.
 
-- [ ] Overlay directory convention
-- [ ] Overlay metadata
-- [ ] File replacement
-- [ ] Overlay validation
-- [ ] Overlay build resolution
-- [ ] Conflict detection
+## Milestone summary
 
-## Future
+| Milestone | Outcome | Dependency |
+| --- | --- | --- |
+| N0 | Native marketplace, first plugins, pinned vendor snapshot | None |
+| M0 | Foundation and contracts | None |
+| M1 | Local plugin resolves | M0 |
+| M2 | Profiles and project composition | M1 |
+| M3 | Local plugin installs safely | M2 |
+| M4 | Optional pinned vendor skill | M3 |
+| M5 | Vendor overlay; complete MVP | M4 |
+| M6 | Reviewable update automation | M5 |
+| M7 | More owned workflows and authoring tools | N0; tooling items M3 |
+| M8 | Additional capabilities and runtimes | Stable relevant contracts |
 
-Có thể bổ sung:
+## Deferred direction
 
-```text
-merge
-append
-patch
-delete
-```
+Public SaaS, accounts, ratings, telemetry, a remote database-backed registry, a marketplace website, and a general semver dependency solver are not current objectives. Autonomous vendor merging is not part of the update model.
 
-MVP chỉ cần:
-
-```text
-replace
-```
-
-## Exit criteria
-
-Vendor update không overwrite customization của first-party.
-
----
-
-# Phase 6 — Plugin Composition
-
-## Goal
-
-First-party plugin có thể reuse vendor components và first-party components.
-
-Ví dụ:
-
-```yaml
-name: architecture
-
-skills:
-  - first-party:architecture-review
-  - vendor:mattpocock/domain-modeling
-  - vendor:ecc/api-design
-
-agents:
-  - first-party:architect
-```
-
-## Deliverables
-
-- [ ] Component reference syntax
-- [ ] Dependency resolver
-- [ ] Deduplication
-- [ ] Cycle detection
-- [ ] Missing dependency detection
-- [ ] Disabled component handling
-
-## Exit criteria
-
-Plugin graph resolve deterministic.
-
----
-
-# Phase 7 — Profiles
-
-## Goal
-
-Compose plugins theo loại project.
-
-## Initial profiles
-
-```text
-minimal
-nextjs
-cloudflare
-fullstack
-backend
-frontend
-research
-product
-```
-
-Ví dụ:
-
-```yaml
-name: nextjs
-
-plugins:
-  - core
-  - architecture
-  - frontend
-
-vendor:
-  - clerk
-```
-
-## Deliverables
-
-- [ ] Profile manifest
-- [ ] Profile inheritance
-- [ ] Include/exclude
-- [ ] Profile resolver
-- [ ] Profile validation
-
-## Exit criteria
-
-Project chỉ cần chọn profile thay vì từng skill.
-
----
-
-# Phase 8 — Claude Code Adapter
-
-## Goal
-
-Biến canonical source thành cấu trúc dùng được trực tiếp trong Claude Code.
-
-## Deliverables
-
-- [ ] Skill adapter
-- [ ] Agent adapter
-- [ ] Hook adapter
-- [ ] Plugin packaging
-- [ ] Marketplace generation
-- [ ] Project install
-- [ ] Project sync
-
-## Target output
-
-```text
-.claude/
-├── skills/
-├── agents/
-└── settings.json
-```
-
-và khi cần:
-
-```text
-.claude-plugin/
-└── marketplace.json
-```
-
-## Exit criteria
-
-Project mới có thể dùng plugin collection qua một workflow đơn giản.
-
----
-
-# Phase 9 — CLI
-
-## Goal
-
-Ẩn các thao tác thủ công phía sau CLI.
-
-## Planned commands
-
-```text
-agent-plugins init
-agent-plugins apply
-agent-plugins sync
-agent-plugins validate
-agent-plugins doctor
-
-agent-plugins plugin list
-agent-plugins plugin create
-agent-plugins plugin info
-
-agent-plugins skill create
-agent-plugins agent create
-
-agent-plugins vendor list
-agent-plugins vendor check
-agent-plugins vendor sync
-agent-plugins vendor diff
-
-agent-plugins profile list
-agent-plugins profile resolve
-```
-
-## Exit criteria
-
-Các workflow chính không còn yêu cầu thao tác file thủ công.
-
----
-
-# Phase 10 — Project Integration
-
-## Goal
-
-Mỗi project chỉ khai báo những gì cần dùng.
-
-Project manifest:
-
-```text
-.agent-plugins.yaml
-```
-
-Ví dụ:
-
-```yaml
-profiles:
-  - nextjs
-  - cloudflare
-
-plugins:
-  - architecture
-  - clerk
-
-skills:
-  exclude:
-    - industrial-brutalist-ui
-```
-
-## Deliverables
-
-- [ ] Project manifest
-- [ ] Project lock
-- [ ] Symlink installation
-- [ ] Copy fallback
-- [ ] Drift detection
-- [ ] Safe cleanup
-- [ ] Preserve unmanaged files
-
-## Exit criteria
-
-Một registry có thể phục vụ nhiều project mà không duplicate toàn bộ skill.
-
----
-
-# Phase 11 — Vendor Automation
-
-## Goal
-
-Biến vendor update thành workflow tương tự Dependabot.
-
-```text
-Check
-→ Detect
-→ Diff
-→ Validate
-→ Audit
-→ PR
-→ Review
-→ Merge
-```
-
-## Deliverables
-
-- [ ] Scheduled vendor checks
-- [ ] Automatic update branches
-- [ ] Update PR generation
-- [ ] Validation report
-- [ ] Security audit report
-- [ ] New upstream skill discovery
-
-## Exit criteria
-
-Không cần vào từng vendor repo để kiểm tra thủ công.
-
----
-
-# Phase 12 — Quality & Security
-
-## Goal
-
-Đảm bảo plugin collection đủ an toàn để sử dụng lâu dài.
-
-## Deliverables
-
-- [ ] Security audit
-- [ ] Path traversal detection
-- [ ] Executable detection
-- [ ] Shell command review
-- [ ] Broken reference detection
-- [ ] Dead component detection
-- [ ] Component provenance
-- [ ] Plugin health checks
-
----
-
-# Phase 13 — Multi-Agent Adapters
-
-Chỉ làm sau khi canonical model ổn định.
-
-Potential targets:
-
-```text
-Claude Code
-Codex
-OpenCode
-Cursor
-Gemini CLI
-```
-
-Canonical plugin không được thay đổi chỉ để phù hợp một runtime.
-
----
-
-# Phase 14 — Developer Experience
-
-## Potential features
-
-- [ ] Interactive CLI
-- [ ] Ink TUI
-- [ ] Plugin scaffolding
-- [ ] Skill scaffolding
-- [ ] Agent scaffolding
-- [ ] Search
-- [ ] Dependency visualization
-- [ ] Plugin graph
-- [ ] Update dashboard
-- [ ] Compatibility matrix
-
----
-
-# Phase 15 — Personal Plugin Ecosystem
-
-Long-term target:
-
-```text
-agent-plugins
-      │
-      ├── first-party plugins
-      ├── first-party skills
-      ├── first-party agents
-      │
-      ├── curated vendor extensions
-      ├── overlays
-      │
-      ├── profiles
-      └── runtime adapters
-```
-
-Project experience:
-
-```bash
-agent-plugins init
-agent-plugins apply
-```
-
-Sau đó developer chỉ cần tập trung vào plugin/capability, không phải quản lý distribution thủ công.
-
----
-
-# Milestone Summary
-
-```text
-M0  Foundation
-M1  Plugin System
-M2  Skill Authoring
-M3  Agent System
-M4  Vendor Integration
-M5  Overlay System
-M6  Composition Resolver
-M7  Profiles
-M8  Claude Adapter
-M9  CLI
-M10 Project Integration
-M11 Vendor Automation
-M12 Quality & Security
-M13 Multi-Agent
-M14 Developer Experience
-```
-
----
-
-# MVP Boundary
-
-MVP nên dừng tại:
-
-```text
-Foundation
-+
-First-party Plugins
-+
-Skills
-+
-Agents
-+
-Vendor Import
-+
-Overlay Replace
-+
-Plugin Resolver
-+
-Claude Code Adapter
-+
-Basic CLI
-```
-
-Không cần ngay:
-
-```text
-TUI
-website
-multi-agent adapters
-AI recommendations
-remote registry
-complex patch engine
+The immediate next action is **not** M0. It is N0, followed by growing the collection: add first-party skills where a real workflow demands one, and split a plugin only when a project genuinely needs a subset of it. Open the platform track only when one of the activation conditions above is met.
