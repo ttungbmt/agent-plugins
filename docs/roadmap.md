@@ -20,7 +20,7 @@ Canonical first-party skills live at `skills/<id>/SKILL.md`. Third-party content
 - **N0 (native):** `plugins/<id>/` is packaging only — a `.claude-plugin/plugin.json` plus `skills/` entries that are symlinks into the canonical homes, and agents as real `.md` files in the plugin that owns them. A symlink is not a copy: each component still has exactly one canonical home.
 - **M3 onward (platform):** `plugins/<id>/plugin.yaml` becomes the canonical input, and the Claude Code adapter *generates* the native packaging above. See [specs.md](specs.md) §10 for the handover.
 
-N0 must verify and record Claude Code's actual symlink behaviour for plugin `skills/` and `agents/` entries, including the cases where symlinks are *not* followed. That finding belongs in the N0 exit evidence; `docs/architecture/project-structure.md` will record it once written.
+Claude Code's symlink behaviour for plugin `skills/` and `agents/` entries has been verified against 2.1.278 on 2026-09-20 and is recorded in [specs.md](specs.md) §3, *Verified Claude Code packaging behavior*. In short: symlinked skill **directories** are dereferenced at install and load correctly, including when they point outside the plugin; symlinked agent **files** are silently dropped. Agents therefore live as real files in their plugin, and the two bullets above are a target constraint rather than a stylistic choice. Re-verify when the target version changes.
 
 The platform track's `plugin.yaml` / `agent.yaml` / `profiles/<id>.yaml` / `registry.yaml` conventions are not in use yet. Local component references are bare IDs; third-party references are qualified, such as `vendor:mattpocock/domain-modeling`.
 
@@ -33,12 +33,15 @@ The platform track's `plugin.yaml` / `agent.yaml` / `profiles/<id>.yaml` / `regi
 Deliver:
 
 - Root marketplace manifest declaring the plugins that actually have content. Start with `core` and `architecture`; add the remaining candidates only when a real workflow needs them.
-- One first-party skill (`architecture-review`) and one agent (`architect`).
+- Two first-party skills, one per plugin so neither is published empty: `codebase-onboarding` in `core` and `architecture-review` in `architecture`. One agent, `architect`, in `architecture`.
 - A first vendor import from `mattpocock/skills` at a pinned commit, with licence, provenance at `vendor/mattpocock/PROVENANCE.md`, and per-file checksums at `vendor/mattpocock/SHA256SUMS`; skill bytes unmodified.
-- Plugin composition by symlink, so each component has exactly one canonical home.
-- `core` as the base plugin; the others declare it as a dependency so installing any of them pulls it in.
+- Skill composition by symlink, so each skill has exactly one canonical home. Agents are real `.md` files in their owning plugin; symlinking them does not work.
+- Authoring validation that a component's directory or file name matches its frontmatter `name`, since the target takes identity from the path and reports no mismatch.
+- `core` as the base plugin, carrying its own skill rather than being an empty bundle; the others declare it as a dependency so installing any of them pulls it in. Dependency auto-install is verified — see [specs.md](specs.md) §3.
 
-**Exit:** the marketplace and every published plugin manifest validate; installing `architecture` into a clean consumer resolves its skills plus the `architect` agent and auto-installs `core`; `sha256sum -c vendor/mattpocock/SHA256SUMS` passes; Claude Code's symlink-resolution behaviour for plugin `skills/` and `agents/` entries is verified and recorded.
+**Exit:** the marketplace and every published plugin manifest validate under `claude plugin validate` (non-strict — `--strict` fails on any unread symlink, so each canonical home is validated separately); installing `architecture` into a clean consumer resolves its skills plus the `architect` agent and auto-installs its declared dependencies; `claude plugin details architecture` lists every component that was meant to ship, which is the only way a dropped agent surfaces; `sha256sum -c vendor/mattpocock/SHA256SUMS` passes.
+
+**Verified, no longer an open risk:** plugin `dependencies` auto-install, and symlink resolution for skill directories. **Still unverified:** whether installing from a published GitHub repository dereferences symlinks the same way a local-path marketplace does. Git stores these entries as real symlinks (mode 120000), so a clone reproduces them; confirm the clone-then-copy step once the repository is published.
 
 **Not in N0:** profiles, overlays, project locks, a first-party CLI, additional runtimes.
 
@@ -62,7 +65,7 @@ Deliver:
 - Repository skeleton with root-owned components and clearly separated generated output.
 - Pinned TypeScript/Node.js/pnpm toolchain and meaningful verification scripts.
 - Architecture, domain model, manifest, and resolution contracts.
-- Schemas for local registry entries, skills, agents, plugins, profiles, and project intent.
+- Schemas for skills, agents, plugins, profiles, and project intent, including the `category` and `stability` fields each component declares. The registry index is generated from these, not authored.
 - ADRs for ownership layout and plugin/component composition where needed.
 
 **Exit:** a documented local-only fixture parses and validates; schema errors identify the file and field. Empty or absent vendor configuration is accepted.
@@ -80,7 +83,7 @@ plugins/architecture/plugin.yaml
       → architecture-review
 ```
 
-Implement registry loading, local reference resolution, agent-to-skill dependencies, plugin dependencies, and a validation command. Add focused authoring templates after proving the source format.
+Implement registry generation and loading, local reference resolution, agent-to-skill dependencies, plugin dependencies, and a validation command. Add focused authoring templates after proving the source format.
 
 **Exit:** the architecture plugin validates and resolves entirely offline, with no vendor manifest, import, or overlay required. Missing references, duplicate definitions, incorrect types, and cycles have useful errors.
 
@@ -140,7 +143,7 @@ Add operational runbooks, recovery guidance, release packaging, and CI coverage 
 
 **Depends on:** N0. Once the native marketplace supports authoring and installation, this work is active and does not wait for the platform track. The tooling items below (search, scaffolding, dependency visualization) do depend on M3.
 
-Grow `core`, `research`, `frontend`, `backend`, `security`, and `agentic-engineering` only around actual use. Candidate skills include `scalable-folder-design`, `technical-research`, `technology-evaluation`, and `repo-onboarding`; candidate agents include `researcher` and `code-reviewer`.
+Grow `core`, `research`, `frontend`, `backend`, `security`, and `agentic-engineering` only around actual use. Candidate skills include `scalable-folder-design`, `technical-research`, and `technology-evaluation` (`codebase-onboarding` ships in N0); candidate agents include `researcher` and `code-reviewer`.
 
 Add search, richer component information, scaffolding, dependency visualization, and interactive conveniences after non-interactive commands work. Keep `core` small and every plugin useful independently of a large vendor catalog.
 

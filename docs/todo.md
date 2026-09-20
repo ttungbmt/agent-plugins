@@ -12,31 +12,63 @@ skills, agents, vendor snapshots, schemas, or source code. Mark an item done onl
 No first-party tooling. Uses the mechanisms Claude Code already provides: a marketplace, plugin
 directories, plugin dependencies, and `claude plugin validate`.
 
-- [ ] Verify Claude Code's current plugin and marketplace contract against its documentation;
-      record the version and date checked, and the exact fields each manifest accepts.
-- [ ] Verify how Claude Code resolves symlinked entries under a plugin's `skills/` and `agents/`,
-      including the cases where symlinks are *not* followed. Record the finding — the whole N0
-      composition model depends on it.
-- [ ] Write the first first-party skill `skills/architecture-review/SKILL.md` with frontmatter
-      `name` matching the directory ID.
-- [ ] Write the first agent `agents/architect/` reusing `architecture-review` rather than
-      restating its instructions.
-- [ ] Create `plugins/core/` and `plugins/architecture/`, each with
-      `.claude-plugin/plugin.json` and `skills/` entries symlinked into the canonical homes.
-      No copied components.
+- [x] Verify Claude Code's current plugin and marketplace contract. Checked against **2.1.278 on
+      2026-09-20**. Accepted fields recorded in [specs.md](specs.md) §3. Note: `marketplace.json`
+      has no schema on json.schemastore.org — only `plugin.json` does
+      (`claude-code-plugin-manifest.json`).
+- [x] Verify how Claude Code resolves symlinked entries under a plugin's `skills/` and `agents/`.
+      Done by probe install into a clean consumer; result in [specs.md](specs.md) §3, *Verified
+      Claude Code packaging behavior*. **Symlinked skill directories work** (dereferenced at
+      install, including targets outside the plugin). **Symlinked agent files are silently
+      dropped.** Component identity comes from the path, not frontmatter `name`.
+- [ ] Re-verify symlink dereferencing for an install from the **published GitHub** repository, not
+      only from a local-path marketplace. Git stores the entries as real symlinks, so a clone
+      reproduces them; the clone-then-copy step is the part still unconfirmed.
+- [ ] Write `skills/architecture-review/SKILL.md` with frontmatter `name` matching the directory ID.
+- [ ] Write `skills/codebase-onboarding/SKILL.md` so `core` ships real content rather than being an
+      empty bundle. `core` must not appear in the marketplace before it does.
+- [ ] Write the first agent as `plugins/<owner>/agents/architect.md`, declaring
+      `skills: [architecture-review]` rather than restating those instructions. Root
+      `agents/architect/` stays empty until the platform track opens — see
+      [specs.md](specs.md) §6.
+- [ ] Create the plugin directories, each with `.claude-plugin/plugin.json` and `skills/` entries
+      symlinked into the canonical homes. No copied skills.
+- [ ] Place each agent as a real `.md` file at `plugins/<owner>/agents/<id>.md` with `name`,
+      `description` and `skills:` frontmatter. Do not symlink it — the target drops symlinked
+      agent files without warning.
+- [ ] Document that contributors on Windows need `core.symlinks=true` or Developer Mode, and add a
+      check that each composed `skills/` entry is still a symlink rather than a plain text file.
+- [ ] Add an authoring check that every component's directory or file name matches its frontmatter
+      `name`, and that `claude plugin details <plugin>` lists every component meant to ship. A
+      dropped agent has no other symptom.
 - [ ] Declare `core` as a dependency of `architecture` so installing `architecture` pulls it in.
 - [ ] Import one vendor skill from `mattpocock/skills` at a pinned full commit. Keep the upstream
       bytes unmodified. Write `vendor/mattpocock/PROVENANCE.md` (repository, full commit,
       original paths, licence) and `vendor/mattpocock/SHA256SUMS`.
 - [ ] Retain the upstream licence and attribution material alongside the snapshot.
+- [ ] Review the imported vendor instruction text before wiring it in, and record the result:
+      read every instruction file in full; no directive that rewrites repository files, exfiltrates
+      data, or calls out to a network endpoint; no reference to credentials; licence present and
+      compatible. This is the interim control until `docs/engineering/security-model.md` exists at
+      M6 — untrusted instruction text arrives at N0, six milestones earlier.
+- [ ] Decide and record how a vendor skill is exposed through a plugin in N0: the symlink name
+      becomes the installed skill ID, so it can silently diverge from the upstream frontmatter
+      `name` that [specs.md](specs.md) §6 says to preserve. Check for collisions with local skill
+      IDs by hand — N0 has no adapter to detect them.
 - [ ] Populate `.claude-plugin/marketplace.json` with one entry per plugin that has real content.
       Do not list a plugin before it exists.
 - [ ] Document the installation steps that actually work in [usage.md](usage.md), and remove the
       "not implemented" banner from the sections that become true.
 
-**Done when:** the marketplace and every published plugin manifest validate; installing
-`architecture` into a clean consumer resolves its skills plus the `architect` agent and
-auto-installs `core`; `sha256sum -c vendor/mattpocock/SHA256SUMS` passes.
+- [x] Removed the declared `$schema` from `.claude-plugin/marketplace.json`: the URL
+      `json.schemastore.org/claude-code-marketplace.json` does not exist. Only `plugin.json` has a
+      registered schema (`claude-code-plugin-manifest.json`); add that one when plugins are written.
+
+**Done when:** the marketplace and every published plugin manifest pass `claude plugin validate`
+(non-strict; `--strict` fails on any unread symlink, so validate each canonical home separately);
+installing `architecture` into a clean consumer resolves its skills plus the `architect` agent and
+auto-installs its dependencies; `claude plugin details architecture` lists every component that was
+meant to ship; `sha256sum -c vendor/mattpocock/SHA256SUMS` passes.
 
 ## M0 · Foundation and contracts
 
@@ -46,8 +78,10 @@ auto-installs `core`; `sha256sum -c vendor/mattpocock/SHA256SUMS` passes.
       `typecheck`, `test`, `build`, and `validate` scripts that actually run.
 - [ ] Write `docs/architecture/architecture.md` and `docs/architecture/domain-model.md`.
 - [ ] Write `docs/contracts/manifest-spec.md` and `docs/architecture/dependency-resolution.md`.
-- [ ] Add JSON Schemas under `schemas/` for registry entries, skills, agents, plugins, profiles,
-      and project intent. Every manifest carries `version: 1`; unknown fields are rejected.
+- [ ] Add JSON Schemas under `schemas/` for skills, agents, plugins, profiles, and project intent,
+      including each component's own `category` and `stability`. Every manifest carries
+      `version: 1`; unknown fields are rejected. No schema for a handwritten registry — it is
+      generated.
 - [ ] Add ADRs under `docs/adr/` for root ownership layout and plugin composition.
 - [ ] Add a local-only fixture under `tests/fixtures/` that parses and validates with no vendor
       configuration present.
@@ -59,8 +93,9 @@ absent vendor configuration is accepted rather than treated as an error.
 
 **Depends on:** M0.
 
-- [ ] Implement `registry.yaml` loading as an index only — never a second source of component
-      content.
+- [ ] Generate `registry.yaml` into `dist/` by enumerating the canonical homes, reading `category`
+      and `stability` from each component. Resolution consumes the generated index, never the
+      filesystem directly, so ordering stays independent of directory enumeration.
 - [ ] Implement bare-ID resolution for local components. An unqualified name must never fall back
       to a vendor search.
 - [ ] Resolve agent-to-skill dependencies and plugin-to-plugin dependencies into a graph.
@@ -176,7 +211,7 @@ snapshots or installed locked projects; recovery and rollback have been exercise
 - [ ] Grow the candidate plugins only around actual use: `core`, `architecture`, `research`,
       `frontend`, `backend`, `security`, `agentic-engineering`. Keep `core` small.
 - [ ] Candidate skills as real workflows demand them: `scalable-folder-design`,
-      `technical-research`, `technology-evaluation`, `repo-onboarding`.
+      `technical-research`, `technology-evaluation`. (`codebase-onboarding` ships in N0.)
 - [ ] Candidate agents: `researcher`, `code-reviewer`.
 - [ ] Add `plugin|skill|agent|profile list|info|create` and scaffolding templates after the
       non-interactive core commands work.

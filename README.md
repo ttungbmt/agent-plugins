@@ -29,13 +29,12 @@ agent-plugins/
 ├── src/           # Core, application, infrastructure, CLI
 ├── tests/
 ├── docs/          # Specification, roadmap, backlog, usage guide, plus planned detailed docs
-├── dist/          # Generated output
+├── dist/          # Generated output, including registry.yaml
 ├── .claude/       # This repository's own Claude Code settings, not adapter output
 ├── .claude-plugin/  # Bootstrap distribution metadata; generated at M3
 ├── .github/workflows/
 ├── .mcp.json      # Reserved placeholder; contract deferred
 ├── LICENSE
-├── registry.yaml
 ├── sources.yaml
 └── sources.lock.json
 ```
@@ -89,7 +88,9 @@ agents:
   - architect
 ```
 
-Register these assets in `registry.yaml`. Full index and skill examples appear in [docs/specs.md](docs/specs.md).
+The two-file agent above is the platform-track form. In N0 an agent is instead a single `plugins/<owner>/agents/<id>.md` carrying the same `name`, `description` and `skills:` fields, because Claude Code silently drops symlinked agent files — see [docs/specs.md](docs/specs.md) §3.
+
+Declare each component's `category` and `stability` on the component itself; the `registry.yaml` index is generated from the canonical homes, not written by hand. Full index and skill examples appear in [docs/specs.md](docs/specs.md).
 
 ## Extend with vendor content
 

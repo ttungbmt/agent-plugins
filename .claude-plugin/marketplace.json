@@ -1,12 +1,9 @@
 {
-  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "agent-plugins",
   "description": "A plugin-first collection of agent skills and workers, composed from first-party components and curated, pinned vendor snapshots.",
   "owner": {
     "name": "Truong Thanh Tung",
     "url": "https://github.com/ttungbmt"
   },
-  "plugins": [
-   
-  ]
+  "plugins": []
 }

@@ -6,7 +6,7 @@ Operating guide for contributors and coding agents working on `agent-plugins`.
 
 `agent-plugins` is a plugin-first repository. Owned/local components are the default; vendor dependencies and overlays are optional extensions. Implement the requested workflow without turning the collection into a registry-centered framework.
 
-Read [README.md](README.md) for orientation, [specs.md](docs/specs.md) for design contracts, [roadmap.md](docs/roadmap.md) for sequencing, [todo.md](docs/todo.md) for current work, and [usage.md](docs/usage.md) for the intended consumer experience. Those six files — including this one — are the whole documentation set, and they are written in English. This set defines intended behavior, not a claim that tooling already exists: the repository currently contains no plugins, skills, agents, vendor snapshots, or source code.
+Read [README.md](README.md) for orientation, [specs.md](docs/specs.md) for design contracts, [roadmap.md](docs/roadmap.md) for sequencing, [todo.md](docs/todo.md) for current work, and [usage.md](docs/usage.md) for the intended consumer experience. Those six files — including this one — are the current documentation set, and they are written in English. ADRs under `docs/adr/` and the detailed documents listed in `docs/specs.md` §14 are deliberate additions to that set, not exceptions to it; no seventh narrative overview may be added without removing one. This set defines intended behavior, not a claim that tooling already exists: the repository currently contains no plugins, skills, agents, vendor snapshots, or source code.
 
 Follow explicit task instructions and applicable repository instructions. An `AGENTS.md` deeper in the tree governs its own subtree and overrides this file there. Use specifications, code, and tests as evidence; surface meaningful conflicts instead of silently changing a contract.
 
@@ -46,7 +46,7 @@ Overlays retain the vendor identity. They are not a general customization layer 
 
 - Local-only authoring and resolution must work without vendors or network access.
 - Skills provide capabilities; agents reuse those skills; plugins compose them; profiles express project intent.
-- `registry.yaml` is an index, not a parallel source of component content.
+- `registry.yaml` is a generated index built from the canonical homes, not a handwritten file and not a parallel source of component content. Author `category` and `stability` on the component itself.
 - Canonical models remain runtime-neutral. Adapters consume resolved graphs and handle target formats.
 - Use `CLI → application → domain`; keep business rules out of command classes.
 - Domain resolution should be deterministic and pure where practical.

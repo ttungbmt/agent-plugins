@@ -29,7 +29,7 @@ Non-goals for MVP: public marketplace service, database backend, accounts, telem
 1. Plugins are the main authoring and distribution unit.
 2. Local ownership is the default. Local references have no ownership prefix.
 3. `vendor/` contains selected third-party snapshots. `overlays/` customizes only those snapshots.
-4. Canonical sources and generated output are separate. Never edit `dist/` to change source behavior.
+4. Canonical sources and generated output are separate. Never edit `dist/` to change source behavior. `registry.yaml` is generated output.
 5. Vendor snapshots remain byte-preserving imports, except for explicitly declared file selection. Metadata and normalization live outside upstream files.
 6. Core models do not encode runtime-specific paths, model names, or tool identifiers.
 7. Resolution is deterministic, explicit, type-checked, and cycle-safe.
@@ -70,7 +70,6 @@ agent-plugins/
 │           └── SKILL.md
 ├── profiles/
 │   └── minimal.yaml
-├── registry.yaml
 ├── sources.yaml
 ├── sources.lock.json
 ├── adapters/
@@ -96,7 +95,7 @@ agent-plugins/
 │   ├── engineering/
 │   ├── operations/
 │   └── adr/
-├── dist/
+├── dist/                     # generated output, including registry.yaml
 ├── .claude-plugin/           # bootstrap distribution metadata; generated at M3
 ├── .claude/                  # this repository's own Claude Code settings, not adapter output
 ├── .mcp.json                 # reserved placeholder; contract deferred to M8
@@ -108,11 +107,48 @@ agent-plugins/
 
 Directories shown are planned responsibilities, not evidence that files already exist. Optional skill resource directories are created only when needed.
 
-This specification, the roadmap, and the backlog live under `docs/`, not at the repository root. `AGENTS.md` is the contributor operating guide; `CLAUDE.md` is a committed repository-relative symlink to it, not machine-specific state. `rules/` and `.mcp.json` are reserved placeholders whose contracts are deferred to M8; they do not grant rules or MCP support today. Root `.claude/` holds this repository's own Claude Code settings for developing the collection. Do not confuse it with the `.claude/` tree an adapter installs into a consuming project (§10); the collection is not its own install target.
+This specification, the roadmap, and the backlog live under `docs/`, not at the repository root. `AGENTS.md` is the contributor operating guide; `CLAUDE.md` is a committed repository-relative symlink to it, not machine-specific state. `rules/` and `.mcp.json` are reserved placeholders whose contracts are deferred to M8; they do not grant rules or MCP support today. Root `.mcp.json` and root `.claude/` are this repository's own MCP configuration and Claude Code settings for developing the collection; neither is a component contract, and neither is adapter output. Do not confuse it with the `.claude/` tree an adapter installs into a consuming project (§10); the collection is not its own install target.
 
 `plugins/<id>/plugin.yaml` composes canonical components by reference. Do not duplicate reusable skills or agents inside plugin directories. Use `skills/<id>/` without category nesting; categories are metadata. `profiles/<id>.yaml` is the single profile convention.
 
-`plugins/<id>/` has two phases, and the difference is deliberate rather than a contradiction. Until M3, the native track (roadmap N0) packages a plugin directly as `plugins/<id>/.claude-plugin/plugin.json` plus `skills/` entries that are symlinks into `skills/<id>/`, and agents as files in the plugin that owns them. A symlink into the canonical home is not a duplicated component; the prohibition above is on *copies*. From M3 the Claude Code adapter generates that native packaging from `plugins/<id>/plugin.yaml`, which becomes the canonical input (§10).
+`plugins/<id>/` has two phases, and the difference is deliberate rather than a contradiction. Until M3, the native track (roadmap N0) packages a plugin directly as `plugins/<id>/.claude-plugin/plugin.json` plus `skills/` entries that are symlinks into `skills/<id>/`, and agents as real `.md` files in the plugin that owns them, because the target silently drops symlinked agent files (see *Verified Claude Code packaging behavior* below). A symlink into the canonical home is not a duplicated component; the prohibition above is on *copies*. The agent file is the one exception, and during N0 it is the agent's canonical home: root `agents/<id>/` stays empty until the platform track opens. From M3 the Claude Code adapter generates that native packaging from `plugins/<id>/plugin.yaml`, which becomes the canonical input (§10).
+
+### Verified Claude Code packaging behavior
+
+Checked against Claude Code 2.1.278 on 2026-09-20 by installing a probe marketplace into a
+clean consumer and reading back the component inventory. This is the evidence the N0
+composition model depends on; re-verify it when the target version changes.
+
+| Mechanism | Result |
+| --- | --- |
+| Skill directory symlinked to a canonical home outside any plugin | Dereferenced into a real directory at install; the skill loads |
+| Skill directory symlinked to a sibling plugin in the same marketplace | Dereferenced into a real directory at install; the skill loads |
+| Skill directory symlinked inside its own plugin | Preserved as a relative symlink; the skill loads |
+| **Agent `.md` file symlinked anywhere** | **Silently dropped. The file is copied into the cache, but no agent is registered, and nothing warns.** |
+| `plugin.json` `skills` entry containing `..` | Rejected at validation as a path traversal attempt |
+| `plugin.json` `dependencies` | Installing a plugin auto-installs its declared dependencies; `claude plugin prune` removes orphans |
+
+Two consequences bind N0:
+
+1. Skills compose by symlink, so `skills/<id>/` stays the single canonical home. Agents cannot:
+   `agents/<id>` must be a real file inside the plugin that owns it (§6). That asymmetry is a
+   target limitation, not a design preference, and it fails silently — an agent that stops
+   appearing in `claude plugin details` is the only symptom.
+2. A component's installed identity comes from its **directory or file name**, not from its
+   frontmatter `name`. A symlink therefore renames the component it points at, and a mismatch
+   between the two is not reported. Authoring validation MUST check that they agree, because
+   the target will not.
+
+Because skills still compose by symlink, a checkout matters: Git stores these entries as real
+symlinks (mode 120000), but a Windows clone without `core.symlinks=true` or Developer Mode
+materializes them as plain text files holding the target path. The plugin then publishes a
+malformed skill with no error. Contributors on Windows MUST enable symlink support, and CI MUST
+assert that each composed entry is still a link rather than a regular file.
+
+`claude plugin validate` passes a plugin tree containing symlinks but warns that it did not
+read them; `--strict` turns that warning into a failure. An N0 exit criterion that requires
+`--strict` to pass is therefore unsatisfiable while symlinks compose plugins. Require
+non-strict validation of the plugin tree plus separate validation of each canonical home.
 
 `adapters/` owns adapter implementations and runtime templates. `src/` owns core, application, infrastructure, and CLI code; do not create a second adapter implementation tree under it. `schemas/` owns manifest validation contracts. `dist/` contains disposable build output.
 
@@ -164,7 +200,7 @@ Local IDs and vendor source aliases use lowercase kebab-case: `[a-z0-9]+(?:-[a-z
 
 Bare references MUST resolve to local components only. Never fall back to a vendor search. `local:` and other ownership prefixes are not part of the reference grammar. Only vendor components use `vendor:<source>/<component>`.
 
-All entries in `registry.yaml.components` have unique canonical references across component types; the consuming field additionally checks the expected type. Profiles use their own name space because `extends` and `profiles` exclusively refer to profiles. Vendor component IDs are unique within a source alias. Two sources may provide the same short name because their qualified references differ.
+All entries in the generated `components` index have unique canonical references across component types; the consuming field additionally checks the expected type. Profiles use their own name space because `extends` and `profiles` exclusively refer to profiles. A vendor reference used as a mapping key contains `:` and `/` and MUST be quoted in YAML; the schema rejects an unquoted form rather than relying on parser-specific behavior. Vendor component IDs are unique within a source alias. Two sources may provide the same short name because their qualified references differ.
 
 The source path, component type, manifest name, and registry entry MUST agree. Paths are relative to the repository, stay inside the expected ownership directory, and may not contain traversal or absolute paths. Symlink resolution must also stay within allowed roots.
 
@@ -176,7 +212,10 @@ Canonical configuration uses YAML. Locks use JSON. Every manifest has `version: 
 
 ### Registry index
 
-`registry.yaml` is an internal index, not the product or a second source of component content.
+`registry.yaml` is a **generated** index built into `dist/`, not a handwritten file and not a second source
+of component content. Every field in it is derived: `type` and `path` from the component's canonical
+location, `category` and `stability` from the component's own manifest or frontmatter. Editing it changes
+nothing, exactly as with any other generated artifact (§2.4). The shape below is what the generator emits.
 
 ```yaml
 version: 1
@@ -202,7 +241,9 @@ components:
     stability: experimental
 ```
 
-Ownership is derived from the reference and validated against the path. Do not maintain a redundant, independently editable ownership field. Stability defaults to `experimental`; `stable` is supported, `deprecated` emits a warning, and `disabled` prevents use. Runtime loaders resolve explicit index entries rather than relying on filesystem order. Authoring validation reports unindexed components.
+Ownership is derived from the reference and validated against the path. Do not maintain a redundant, independently editable ownership field. `category` and `stability` are authored once, on the component itself: a skill declares them in its `SKILL.md` frontmatter, an agent and a plugin in their manifests. Stability defaults to `experimental`; `stable` is supported, `deprecated` emits a warning, and `disabled` prevents use.
+
+Because the index is generated by enumerating canonical homes, a component cannot be missing from it, and the index cannot drift from the tree — the failure mode a handwritten index would have needed authoring validation to catch. Profiles are discovered the same way, from `profiles/<id>.yaml`, which is why they need no index entry. Resolution still consumes the generated index rather than walking the filesystem directly, so ordering stays deterministic and independent of directory enumeration (§7).
 
 ### Skill
 
@@ -236,7 +277,7 @@ skills:
   - architecture-review
 ```
 
-`prompt` is required and resolves within the agent directory. Skill dependencies are required dependencies. Runtime-specific model and tool settings belong in adapters; a future capability contract must be defined before adding such fields to canonical agents.
+`prompt` is required and resolves within the agent directory. This two-file form belongs to the platform track, where a runtime-neutral model earns its keep. During N0 an agent is instead a single `plugins/<owner>/agents/<id>.md` with `name`, `description` and `skills:` frontmatter — the form the target already accepts — and root `agents/<id>/` is not yet populated. M3's Claude Code adapter generates that file from `agent.yaml` + `prompt.md`, at which point the canonical home moves to `agents/<id>/` and the generated file must not be edited to change behavior. Skill dependencies are required dependencies. Runtime-specific model and tool settings belong in adapters; a future capability contract must be defined before adding such fields to canonical agents.
 
 ### Plugin
 
@@ -319,7 +360,7 @@ The collection alias maps to a local checkout through machine-local CLI configur
 9. Deduplicate by canonical identity and produce stable dependency-first ordering, with lexical canonical-reference ordering for ties.
 10. Attach source and effective-content hashes and return the resolved graph.
 
-Exclusion wins over inclusion, but cannot waive required dependency validation. Excluding an optional profile-level skill is valid when no retained consumer requires it. Unknown include/exclude references are errors to catch typos. Repeated references to the same identity are deduplicated; duplicate definitions are errors.
+Excluding a component also drops anything that was pulled in only to satisfy it: after exclusions are applied, re-run expansion from the retained roots rather than subtracting from the pre-exclusion closure. Excluding an agent therefore removes a skill no other retained root requires, and keeps one that another root still does. Exclusion wins over inclusion, but cannot waive required dependency validation. Excluding an optional profile-level skill is valid when no retained consumer requires it. Unknown include/exclude references are errors to catch typos. Repeated references to the same identity are deduplicated; duplicate definitions are errors.
 
 Neither filesystem enumeration nor YAML mapping order may determine output. The same canonical inputs and adapter version MUST yield the same graph and artifact bytes, apart from explicitly separated operational timestamps.
 
@@ -387,7 +428,7 @@ Runtime paths and formats are verified against target documentation during adapt
 
 At M3 the Claude Code adapter generates this metadata from `plugins/<id>/plugin.yaml`, after which the handwritten files become generated output and must not be edited to change behavior. The models already agree on one point that earlier drafts did not: the marketplace declares many plugins under `plugins/<id>/`, never the whole repository as a single plugin with `source: "."`.
 
-Runtime-specific settings, hook execution, and unsupported capabilities MUST not be silently enabled. Future Codex, OpenCode, Cursor, and Gemini CLI adapters reuse the same domain and resolution contracts.
+The Claude Code target silently ignores `hooks`, `mcpServers`, and `permissionMode` in a plugin's agent files. The adapter MUST reject those fields rather than emit output the target will discard without telling anyone. Runtime-specific settings, hook execution, and unsupported capabilities MUST not be silently enabled. Future Codex, OpenCode, Cursor, and Gemini CLI adapters reuse the same domain and resolution contracts.
 
 ## 11. Locks, installation, and synchronization
 
@@ -468,7 +509,7 @@ MVP acceptance: author a local plugin without vendors; install it into a test co
 
 Follow [roadmap.md](roadmap.md) for milestones and [todo.md](todo.md) for executable work. [README.md](../README.md) is the overview; [AGENTS.md](../AGENTS.md) is the contributor operating guide, reachable as `CLAUDE.md` through a symlink. [usage.md](usage.md) describes the intended consumer experience.
 
-The written documentation set is exactly six files: `README.md`, `AGENTS.md`, `docs/specs.md`, `docs/roadmap.md`, `docs/todo.md`, and `docs/usage.md`. Sequencing lives in the roadmap and execution status in the backlog; there is no separate implementation-plan document. All documentation is written in English.
+The written documentation set is currently six files, and no seventh narrative document may be added without removing one; ADRs under `docs/adr/` and the detailed documents listed below are deliberate additions to that set rather than exceptions to it. The six are: `README.md`, `AGENTS.md`, `docs/specs.md`, `docs/roadmap.md`, `docs/todo.md`, and `docs/usage.md`. Sequencing lives in the roadmap and execution status in the backlog; there is no separate implementation-plan document. All documentation is written in English.
 
 The detailed documents below **do not exist yet**. `docs/architecture/`, `docs/contracts/`, `docs/engineering/`, and `docs/operations/` are empty directories. Do not cite them as sources or treat them as dependencies. Write them only as implementation needs them:
 

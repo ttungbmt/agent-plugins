@@ -1,10 +1,11 @@
 # Usage Guide
 
 > **Status: intended usage, not yet available.** The marketplace manifest currently publishes no
-> plugins, the repository contains no skills or agents, and the `agent-plugins` CLI does not
-> exist. Sections 2–14 describe what roadmap milestone N0 will make true using Claude Code's
-> native plugin mechanisms. Sections 15–21 describe the first-party CLI, which belongs to the
-> deferred platform track (M2–M3). See [roadmap.md](roadmap.md) for sequencing and
+> plugins and the repository contains no skills or agents. The numbered sections describe what
+> roadmap milestone N0 will make true using Claude Code's native plugin mechanisms. Everything
+> belonging to the deferred platform track — profiles, the first-party CLI, and overlays — is
+> collected in [Appendix A](#appendix-a--platform-track) rather than interleaved here, because
+> none of it is reachable until M2–M5. See [roadmap.md](roadmap.md) for sequencing and
 > [specs.md](specs.md) for the contracts every example here must satisfy.
 
 `agent-plugins` is organized as **several plugins grouped by domain**. Instead of installing every
@@ -46,6 +47,7 @@ upstream vendor repository directly.
 
 # 1. Prerequisites
 
+
 Confirm Claude Code is installed and working:
 
 ```bash
@@ -64,7 +66,10 @@ marketplace and plugin installation.
 
 ---
 
+---
+
 # 2. Add the Marketplace
+
 
 A one-time step per environment.
 
@@ -102,7 +107,10 @@ claude plugin marketplace list
 
 ---
 
+---
+
 # 3. Local Development Marketplace
+
 
 While developing `agent-plugins`, there is no need to push to GitHub to test.
 
@@ -117,7 +125,10 @@ development and testing.
 
 ---
 
+---
+
 # 4. Browse Available Plugins
+
 
 Open the plugin UI:
 
@@ -136,7 +147,10 @@ description, skills, agents, version, and marketplace source.
 
 ---
 
+---
+
 # 5. Install a Plugin
+
 
 Syntax:
 
@@ -154,7 +168,10 @@ Claude Code installs marketplace plugins using the `plugin-name@marketplace-name
 
 ---
 
+---
+
 # 6. Recommended Plugin Strategy
+
 
 Do not install every plugin into every project.
 
@@ -180,7 +197,10 @@ security
 
 ---
 
+---
+
 # 7. Plugin Overview
+
 
 The capabilities listed under each plugin are the intended content. Only what exists in the
 repository is actually installable.
@@ -268,7 +288,10 @@ Suits a repository developed primarily with Claude Code, Codex, OpenCode, or sim
 
 ---
 
+---
+
 # 8. Example: Next.js Project
+
 
 Recommended:
 
@@ -295,7 +318,10 @@ collection.
 
 ---
 
+---
+
 # 9. Example: Research Repository
+
 
 ```text
 core
@@ -313,7 +339,10 @@ Install:
 
 ---
 
+---
+
 # 10. Example: Architecture-heavy Project
+
 
 For a platform or large system:
 
@@ -327,7 +356,10 @@ For a platform or large system:
 
 ---
 
+---
+
 # 11. Installation Scope
+
 
 Claude Code supports several installation scopes.
 
@@ -354,7 +386,10 @@ testing a plugin, experimenting, or temporarily enabling a capability.
 
 ---
 
+---
+
 # 12. Recommended Scope Strategy
+
 
 ```text
 User
@@ -372,7 +407,10 @@ collection exists to avoid.
 
 ---
 
+---
+
 # 13. Using Skills
+
 
 Claude Code discovers a plugin's skills automatically. You do not have to name a skill on every
 request.
@@ -391,7 +429,10 @@ Use the domain modeling skill to analyze this domain.
 
 ---
 
+---
+
 # 14. Using Agents
+
 
 A plugin can provide specialized agents. For example, `architecture` provides:
 
@@ -410,219 +451,10 @@ own prompt.
 
 ---
 
-# 15. Profiles
-
-> Platform track (M2). Not available yet.
-
-A **profile** is a higher-level abstraction provided by `agent-plugins`. A profile is not a Claude
-Code plugin; it is a composition of plugins.
-
-```text
-Profile
-   │
-   ├── Plugin
-   ├── Plugin
-   └── Plugin
-```
-
-`profiles/nextjs.yaml`:
-
-```yaml
-version: 1
-name: nextjs
-extends: []
-plugins:
-  - core
-  - architecture
-  - frontend
-  - security
-skills: []
-agents: []
-```
-
-`profiles/fullstack.yaml`:
-
-```yaml
-version: 1
-name: fullstack
-extends:
-  - nextjs
-plugins:
-  - backend
-skills: []
-agents: []
-```
-
-Every manifest carries `version: 1`, meaning the schema version. Unknown fields are rejected.
-Profile inheritance through `extends` is additive and deduplicated; a parent profile is never
-overridden.
-
 ---
 
-# 16. Using Profiles with the `agent-plugins` CLI
+# 15. Updating the Marketplace Catalog
 
-> Platform track (M3). Not available yet.
-
-Instead of installing plugins one at a time, a project selects a profile in its manifest and
-applies it:
-
-```bash
-agent-plugins apply
-```
-
-Resolution expands:
-
-```text
-nextjs
-  ↓
-core
-architecture
-frontend
-security
-```
-
-There is no positional profile argument. Profile selection lives in the project manifest, so the
-selection is committed and reviewable rather than typed at a prompt.
-
----
-
-# 17. Initialize a New Project
-
-> Platform track (M3). Not available yet.
-
-All commands are non-interactive; selections are passed as flags.
-
-```bash
-cd my-project
-
-agent-plugins init \
-  --collection agent-plugins \
-  --target claude-code \
-  --profile nextjs \
-  --plugin backend
-```
-
-This writes `.agent-plugins.yaml`:
-
-```yaml
-version: 1
-collection: agent-plugins
-targets:
-  - claude-code
-profiles:
-  - nextjs
-plugins:
-  - backend
-skills:
-  include: []
-  exclude: []
-agents:
-  include: []
-  exclude: []
-install:
-  strategy: symlink
-  mode: locked
-```
-
-`collection` is an alias that maps to a local checkout through machine-local CLI configuration.
-Absolute checkout paths must never be written into the committed manifest or lock. `strategy`
-accepts `symlink` (default) or `copy`; `mode` accepts `locked` (default) or `live`.
-
----
-
-# 18. Apply Project Configuration
-
-> Platform track (M3). Not available yet.
-
-After editing the manifest:
-
-```bash
-agent-plugins apply --dry-run
-agent-plugins apply
-```
-
-Flow:
-
-```text
-.agent-plugins.yaml
-        ↓
-profile resolution
-        ↓
-plugin resolution
-        ↓
-skill / agent resolution
-        ↓
-Claude Code adapter
-        ↓
-project configuration
-```
-
-The first `apply` writes `.agent-plugins.lock.json`, and only after the installation succeeds.
-
----
-
-# 19. Synchronize a Project
-
-> Platform track (M3). Not available yet.
-
-```bash
-agent-plugins sync
-```
-
-Sync will:
-
-```text
-add missing managed components
-update changed managed components
-remove components no longer selected
-preserve unmanaged files
-```
-
-In locked mode, ordinary sync honours the existing lock and does not adopt newer content.
-`agent-plugins sync --update` explicitly re-resolves inputs and advances the lock.
-
-Example:
-
-```text
-.claude/skills/
-├── architecture-review     managed
-├── domain-modeling         managed
-└── project-custom-skill    unmanaged
-```
-
-`sync` must never remove `project-custom-skill`. Only paths recorded as managed are cleaned up,
-and only after checking that they still match the expected file, hash, or link.
-
----
-
-# 20. Inspect the Current Project
-
-> Platform track (M3). Not available yet.
-
-```bash
-agent-plugins doctor
-```
-
-Checks the registry, marketplace, profiles, installed plugins, skills, agents, broken symlinks,
-the project manifest, lock state, drift in live mode, and Claude Code availability. `doctor`
-never mutates anything.
-
----
-
-# 21. Validate
-
-> Platform track (M1). Not available yet.
-
-```bash
-agent-plugins validate
-```
-
-Worth running after adding a skill or agent, or editing a plugin, profile, vendor selection, or
-overlay.
-
----
-
-# 22. Updating the Marketplace Catalog
 
 If the marketplace repository has newer content:
 
@@ -635,7 +467,10 @@ installed.
 
 ---
 
-# 23. Updating Plugins
+---
+
+# 16. Updating Plugins
+
 
 After the marketplace is refreshed, update installed plugins through Claude Code's plugin
 management workflow:
@@ -649,7 +484,10 @@ update is the same thing as a plugin update.
 
 ---
 
-# 24. Disable a Plugin Temporarily
+---
+
+# 17. Disable a Plugin Temporarily
+
 
 To keep a plugin installed but inactive:
 
@@ -667,7 +505,10 @@ Claude Code treats enable/disable separately from uninstall.
 
 ---
 
-# 25. Uninstall a Plugin
+---
+
+# 18. Uninstall a Plugin
+
 
 ```text
 /plugin uninstall architecture@agent-plugins
@@ -677,7 +518,10 @@ The plugin is then no longer loaded at that scope.
 
 ---
 
-# 26. Vendor Components
+---
+
+# 19. Vendor Components
+
 
 Consumers do not install upstream skill repositories individually. `agent-plugins` imports
 selected components centrally, at pinned commits, with provenance and checksums.
@@ -701,42 +545,10 @@ must be selected, verified, and licence-checked explicitly before it appears her
 
 ---
 
-# 27. Overlays
-
-> Platform track (M5). Not available yet.
-
-If a vendor skill needs customization, the snapshot is not edited:
-
-```text
-vendor/mattpocock/domain-modeling/SKILL.md
-```
-
-The customization lives at the matching relative path:
-
-```text
-overlays/mattpocock/domain-modeling/SKILL.md
-```
-
-The build produces:
-
-```text
-vendor
-+
-overlay
-=
-effective component
-```
-
-The MVP overlay contract is **file replacement only**. An overlay file replaces the vendor file at
-the same relative path; untouched vendor files are retained. Adding files, deleting files, merge,
-append, and patch semantics are deferred to M8. The component keeps its `vendor:` reference — an
-overlay never creates a new component identity.
-
-Plugin consumers do not need to know any of this.
-
 ---
 
-# 28. Recommended Workflow
+# 20. Recommended Workflow
+
 
 Day to day, with the native marketplace:
 
@@ -752,21 +564,12 @@ Update the marketplace periodically
 Update selected plugins when needed
 ```
 
-Later, with the `agent-plugins` CLI:
-
-```text
-agent-plugins init
-        ↓
-agent-plugins apply
-        ↓
-work
-        ↓
-agent-plugins sync
-```
+The platform-track equivalent, once it exists, is in [Appendix A](#appendix-a--platform-track).
 
 ---
 
-# 29. Recommended Project Configurations
+# 21. Recommended Project Configurations
+
 
 | Project kind | Plugins |
 | --- | --- |
@@ -779,7 +582,10 @@ agent-plugins sync
 
 ---
 
-# 30. What Not to Do
+---
+
+# 22. What Not to Do
+
 
 - Do not install every plugin globally.
 - Do not install upstream vendor repositories into each project.
@@ -811,7 +617,10 @@ Project
 
 ---
 
-# 31. Troubleshooting
+---
+
+# 23. Troubleshooting
+
 
 ## Marketplace not found
 
@@ -849,11 +658,17 @@ plugins/<id>/
 └── agents/
 ```
 
-A broken symlink, or a Claude Code version that does not follow symlinks for that entry type, is
-the usual cause. Once the platform track exists, check the installed output under the consumer's
+Verified against Claude Code 2.1.278: a symlinked **skill directory** is dereferenced at install
+and works, but a symlinked **agent file is silently dropped** — no error, and `claude plugin
+validate` still passes. If an agent is missing, check that it is a real file in the plugin rather
+than a link. Run `claude plugin details <plugin>` to see the inventory the target actually built;
+that is the only place a dropped component shows up. Note also that a component's installed ID
+comes from its directory or file name, not its frontmatter `name`. Once the platform track exists, check the installed output under the consumer's
 `.claude/skills/` and `.claude/agents/` and run `agent-plugins doctor`.
 
 ## A vendor capability is outdated
+
+> Platform track (M4). Not available yet.
 
 Do not update it in the project. Update it centrally:
 
@@ -868,7 +683,10 @@ silently. Then rebuild and release.
 
 ---
 
-# 32. Upgrade Philosophy
+---
+
+# 24. Upgrade Philosophy
+
 
 ```text
 centralized maintenance
@@ -904,7 +722,10 @@ Project C
 
 ---
 
-# 33. Quick Start
+---
+
+# 25. Quick Start
+
 
 Once N0 is delivered, for an existing Claude Code project:
 
@@ -923,18 +744,79 @@ Only the capabilities relevant to that project are enabled.
 
 ---
 
-# 34. Summary
+---
 
-```text
-Add the marketplace once
-        ↓
-Choose plugins by domain
-        ↓
-Choose the right scope
-        ↓
-Use skills and agents normally
-        ↓
-Update centrally
+# Appendix A — Platform track
+
+> **None of this exists yet.** It is collected here so the numbered sections above describe only
+> what the native marketplace can actually do. Open the platform track only when one of the
+> activation conditions in [roadmap.md](roadmap.md) is met.
+
+## Profiles (M2)
+
+A **profile** is not a Claude Code plugin; it is a composition of plugins, so a project can select
+one name instead of listing five. `profiles/nextjs.yaml`:
+
+```yaml
+version: 1
+name: nextjs
+extends: []
+plugins:
+  - core
+  - architecture
+  - frontend
+  - security
+skills: []
+agents: []
 ```
 
-> **Projects select capabilities; they do not manage vendor skills individually.**
+A profile may extend another; inheritance is additive and deduplicated, and a parent is never
+overridden. Every manifest carries `version: 1`, meaning the schema version, and unknown fields are
+rejected.
+
+## The `agent-plugins` CLI (M1–M3)
+
+Profile selection lives in the project manifest rather than in a positional argument, so the
+selection stays committed and reviewable:
+
+```bash
+agent-plugins init --collection agent-plugins --target claude-code --profile nextjs
+agent-plugins apply --dry-run
+agent-plugins apply          # writes .agent-plugins.lock.json, only after a successful install
+agent-plugins sync           # honours the lock; --update re-resolves and advances it
+agent-plugins doctor         # never mutates anything
+agent-plugins validate       # M1
+```
+
+`init` writes `.agent-plugins.yaml`; [specs.md](specs.md) §6 gives its full shape.
+`collection` is an alias mapping to a local checkout through machine-local configuration; absolute
+paths must never reach the committed manifest or lock. `strategy` is `symlink` (default) or `copy`;
+`mode` is `locked` (default) or `live`.
+
+Sync adds missing managed components, updates changed ones, removes those no longer selected, and
+**preserves unmanaged files**. Given:
+
+```text
+.claude/skills/
+├── architecture-review     managed
+├── domain-modeling         managed
+└── project-custom-skill    unmanaged
+```
+
+`sync` must never remove `project-custom-skill`. Only recorded managed paths are cleaned up, and
+only after checking they still match the expected file, hash, or link.
+
+## Overlays (M5)
+
+A vendor snapshot is never edited. The customization lives at the matching relative path:
+
+```text
+vendor/mattpocock/domain-modeling/SKILL.md
+overlays/mattpocock/domain-modeling/SKILL.md
+```
+
+The build produces the effective component from vendor + overlay. The MVP contract is **file
+replacement only**: an overlay file replaces the vendor file at the same relative path, untouched
+vendor files are retained. Adding files, deleting files, merge, append, and patch are deferred to
+M8. The component keeps its `vendor:` reference — an overlay never creates a new identity, and
+plugin consumers never need to know any of this.
