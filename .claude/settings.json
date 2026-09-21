@@ -1,8 +1,0 @@
-{
-  "enabledPlugins": {
-    "plugin-dev@claude-plugins-official": true,
-    "claude-md-management@claude-plugins-official": true,
-    "explanatory-output-style@claude-plugins-official": true,
-    "learning-output-style@claude-plugins-official": true
-  }
-}
