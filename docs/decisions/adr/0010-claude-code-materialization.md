@@ -24,6 +24,10 @@ Một spike trên Claude Code 2.1.278 (2026-09-22) đã thử cả hai cách. Co
 | Trùng tên | Skill trùng tên ở `~/.claude/skills` khiến chỉ còn một bản, không có cảnh báo | Namespace theo plugin, nên không trùng skill; có thể trùng *tên plugin* với bản người dùng tự cài |
 | Hook | — | Thêm `hooks/hooks.json` vào plugin đã enable: session kế tiếp chạy hook ngay, không có bước duyệt (chế độ `-p`) |
 | Hai project cùng tên marketplace | — | Hai project cùng đăng ký marketplace tên `ap` (scope local, đường dẫn khác nhau). `known_marketplaces.json` dùng chung cho máy, khóa theo tên, nên chỉ giữ entry của project đăng ký sau. Project kia **mất toàn bộ plugin, không cảnh báo**. Đặt tên riêng (`ap-x`) thì cả hai chạy độc lập |
+| Ghim nguồn upstream theo SHA | — | `source: "github"` clone qua SSH, fail khi không có SSH key. `source: "url"` (HTTPS) kèm `sha` cài đúng commit (`gitCommitSha` trong `installed_plugins.json`), giữ namespace `superpowers:*`, load từ cache |
+| Đường dẫn tương đối trong `.claude/settings.json` đã commit | — | Config mới không load; `plugin install` báo "not found" tới khi chạy `marketplace add`; `marketplace add --scope project` ghi đè thành đường dẫn tuyệt đối |
+| Trùng tên plugin giữa scope | — | `superpowers@<local>` (project) + `superpowers@claude-plugins-official` (user): cả hai load, skill gộp thành một bộ; hook `SessionStart` chạy một lần, từ bản **user scope** (bản project bị che, không cảnh báo) |
+| Luồng clone mới | — | Config trống → `marketplace add --scope local` + `plugin install -s local` → skill xuất hiện. `.claude/settings.local.json` được git bỏ qua sẵn |
 | Plugin user scope và project | — | Plugin cài ở user scope được **cộng dồn** vào mọi project. `enabledPlugins: {"<plugin>@<marketplace>": false}` trong `.claude/settings.local.json` của một project tắt được plugin đó cho riêng project này |
 
 Hai quan sát áp dụng cho mọi cách tách Component:
@@ -63,7 +67,7 @@ Mô hình giống mise (`mise.toml` + `mise install`, `mise use -g`):
 | global | `~/.config/agent-plugins/agent-plugins.yaml` + lock đi kèm | `ap sync -g` | `~/.config/agent-plugins/marketplace/` | user settings (`--scope user`) |
 
 - Plugin global được **cộng dồn** vào mọi project; project không ghi đè được như mise, vì Claude Code bật đồng thời cả hai scope.
-- Project tắt một plugin global bằng `disableGlobal: [<package>]` trong `agent-plugins.yaml`. `ap sync` hiện thực nó bằng `enabledPlugins: {"<plugin>@<marketplace-global>": false}` trong `.claude/settings.local.json` của project.
+- Project tắt một plugin ở scope khác bằng `disableGlobal: [<plugin>@<marketplace>]` trong `agent-plugins.yaml`. Plugin đó có thể do `ap sync -g` cài, hoặc do người dùng tự cài. `ap sync` hiện thực nó bằng `enabledPlugins: {"<plugin>@<marketplace>": false}` trong `.claude/settings.local.json` của project.
 - `ap sync` ở project **đọc cả cấu hình global** để phát hiện xung đột (D4) và cảnh báo trùng lặp.
 
 Chi tiết cho scope project:
@@ -74,7 +78,8 @@ Chi tiết cho scope project:
   - receipt `.agent-plugins/state/claude-code.json`;
   - cache plugin trong `~/.claude/plugins`.
 - Người khác clone repo về chỉ cần chạy `ap sync` để có trạng thái giống hệt, nhờ lock.
-- Nếu đăng ký ở scope `project` (commit `.claude/settings.json`), đường dẫn marketplace phải là **tương đối**. Chế độ này là tùy chọn, không phải mặc định.
+- Chỉ dùng scope `local`. **Không** đăng ký ở scope `project` (commit `.claude/settings.json`), vì đường dẫn tương đối không dùng được (xem bằng chứng): config mới không load, còn `marketplace add` ghi đè thành đường dẫn tuyệt đối trong file đã commit.
+- `.claude/settings.local.json` được git bỏ qua sẵn. `ap init` thêm `.agent-plugins/` vào `.gitignore` của project.
 
 ### D4. Resolver coi `ecosystem` là một khối
 - Chọn **bất kỳ** Component nào của một `ecosystem` đồng nghĩa với kích hoạt **toàn bộ** Component và toàn bộ Capability mà ecosystem đó cung cấp.
@@ -106,12 +111,18 @@ Chi tiết cho scope project:
 
 ### D7. Nguồn được ghim theo commit SHA
 - Mọi plugin trong marketplace được sinh từ snapshot đã lock theo commit SHA trong `agent-plugins.lock`, kể cả ecosystem.
-- Ưu tiên entry marketplace dạng git/github ghim theo SHA, nếu Claude Code hỗ trợ ghim theo SHA. Nếu không, `ap sync` clone snapshot vào `.agent-plugins/sources/<package>@<sha>/` và dùng source dạng thư mục.
+- Plugin upstream (ecosystem) dùng entry marketplace dạng `url` qua HTTPS kèm `sha`, ví dụ `{"source":"url","url":"https://github.com/obra/superpowers.git","sha":"<commit>"}`. Claude Code cài đúng commit đó và ghi `gitCommitSha` vào `installed_plugins.json`, nên adapter dùng giá trị này để xác minh.
+- Không dùng source dạng `github`, vì nó clone qua SSH và fail trên máy không có SSH key tới GitHub.
+- Projection của `collection` cần lọc nội dung, nên `ap sync` clone snapshot đúng SHA vào `.agent-plugins/sources/<package>@<sha>/` rồi sinh plugin dạng thư mục.
 - Thư mục snapshot và projection được đặt tên theo digest/SHA và **bất biến**. Nội dung đổi thì sinh thư mục mới, không sửa tại chỗ. `plugin.json` version mang digest (ví dụ `6.3.0+<digest>`) để cache runtime không dùng bản cũ.
 
 ### D8. Quyền sở hữu và xung đột với cài đặt thủ công
 - Receipt ghi: marketplace đã đăng ký, plugin đã cài (tên, version/digest, scope), và đường dẫn snapshot. Adapter chỉ gỡ plugin có trong receipt.
-- Nếu người dùng đã tự cài một plugin cùng tên (ví dụ `superpowers@claude-plugins-official`) ở bất kỳ scope nào, phát cảnh báo `TARGET_PLUGIN_OVERLAP`. Adapter không gỡ hay tắt plugin đó. Nếu trùng lặp làm mất một đảm bảo bắt buộc (ví dụ hai phiên bản cùng một ecosystem), việc apply bị chặn.
+- Khi cùng tên plugin, bản user scope **che mất** bản project đã ghim SHA mà không có cảnh báo (xem bằng chứng). Vì vậy:
+  - Nếu một plugin cùng tên với plugin mà project sẽ cài đang được bật ở scope khác (global của `ap`, hoặc người dùng tự cài như `superpowers@claude-plugins-official`), `ap sync` **chặn apply** với `TARGET_PLUGIN_OVERLAP`.
+  - Cách giải quyết: khai báo `disableGlobal: [<plugin>@<marketplace>]` trong `agent-plugins.yaml`. `ap sync` sẽ đặt `enabledPlugins: false` cho bản kia trong `.claude/settings.local.json` của project (cơ chế đã kiểm chứng ở D3).
+  - Adapter không gỡ, không tắt plugin ở user scope; nó chỉ tắt cho riêng project.
+- `ap doctor` kiểm tra lại mỗi lần chạy, vì người dùng có thể cài thêm plugin trùng tên sau khi sync.
 
 ### D9. Store chung của Claude Code, tên marketplace duy nhất và `ap prune`
 - Cấu hình và marketplace nằm trong project, nhưng Claude Code vẫn ghi trạng thái cài đặt vào thư mục chung của máy `~/.claude/plugins/`: `known_marketplaces.json`, `installed_plugins.json` (kèm `projectPath` tuyệt đối), và `cache/`. Cũng như mise, cô lập theo project nằm ở mức **kích hoạt** (`enabledPlugins` trong settings local), không phải ở chỗ lưu trữ.
@@ -121,12 +132,6 @@ Chi tiết cho scope project:
 - Trước khi đăng ký, `ap sync` kiểm tra `known_marketplaces.json`. Nếu tên đã được dùng cho một đường dẫn khác thì fail với `MARKETPLACE_NAME_CONFLICT`, không đè lên.
 - Di chuyển hoặc đổi tên thư mục project làm đổi hash, nên `ap sync` sẽ đăng ký marketplace mới. Entry cũ trở thành rác.
 - `ap prune` dọn các marketplace `ap-*`, plugin đã cài và cache có `projectPath`/đường dẫn không còn tồn tại, giống `mise prune` / `pnpm store prune`. Nó chỉ đụng tới những gì do `agent-plugins` đăng ký.
-
-## Việc cần kiểm chứng trước khi phát hành V1
-1. Entry marketplace dạng github có ghim được theo `sha` không (quyết định nhánh nào của D7).
-2. Đường dẫn tương đối trong `extraKnownMarketplaces` khi đăng ký ở scope project (D3, chế độ tùy chọn).
-3. Hành vi khi cùng lúc có `superpowers@<local>` và `superpowers@claude-plugins-official`: trùng skill, thứ tự ưu tiên (D8).
-4. Luồng clone mới: config trống → `ap sync` → skill/plugin xuất hiện trong `system/init`.
 
 ## Hệ quả
 
@@ -161,4 +166,4 @@ Chi tiết cho scope project:
 | Lai: ecosystem qua plugin, collection copy vào `.claude/skills/` và commit | Chỉ có lợi khi skill phải chạy mà không có `ap` (clone không cài tool, Claude Code web/CI). V1 luôn yêu cầu `ap sync`, nên một cơ chế duy nhất gọn hơn: một đường cài, một receipt, một cách đánh giá Policy. Xem xét lại nếu cần hỗ trợ môi trường không có `ap` |
 | Tách lẻ Component của cả ecosystem thành projection | Gãy tham chiếu `superpowers:*`, hoặc buộc phải rewrite nội dung upstream |
 | Cài plugin từ marketplace chính thức của upstream | Không ghim được theo lock, và không lọc được collection |
-| Đăng ký marketplace ở scope project với đường dẫn tuyệt đối (hành vi mặc định của CLI) | Không chia sẻ được qua git |
+| Đăng ký marketplace ở scope project (commit `.claude/settings.json`) | Đường dẫn tuyệt đối thì không chia sẻ được qua git. Đường dẫn tương đối thì config mới không load, và `marketplace add` ghi đè thành tuyệt đối (đã kiểm chứng) |
