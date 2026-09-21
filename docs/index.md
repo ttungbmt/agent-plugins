@@ -176,6 +176,10 @@ Initial ADRs:
 0006-dual-lock-model.md
 ```
 
+Accepted ADRs:
+
+- [`0010-claude-code-materialization.md`](./decisions/adr/0010-claude-code-materialization.md) — V1 materializes into Claude Code through a per-project generated local marketplace; ecosystems installed whole, collections filtered to standalone components.
+
 ADRs are written alongside the main documentation rather than at the end of the documentation process.
 
 ## Minimum Documentation Before Implementation
