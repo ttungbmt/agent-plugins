@@ -46,7 +46,7 @@ Todo
 1. [`problem.md`](./00-product/problem.md)  
    Defines the problems this project exists to solve.
 
-2. [`problem.vi.md`](./00-product/problem.vi.md)  
+2. [`problem.vi.md`](./00-product/.vi/problem.vi.md)  
    Vietnamese translation of the problem statement.
 
 3. [`vision.md`](./00-product/vision.md)  

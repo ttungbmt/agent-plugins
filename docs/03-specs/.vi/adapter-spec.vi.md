@@ -10,9 +10,9 @@ Source Adapter chuẩn hóa các dữ kiện upstream thành inventory Provider,
 
 Các hợp đồng liên quan:
 
-- [Kiến trúc](../02-architecture/architecture.vi.md): ranh giới giữa các subsystem.
-- [Nguồn sự thật](../02-architecture/source-of-truth.vi.md): trạng thái có thẩm quyền (authoritative) và được dẫn xuất (derived).
-- [Resolution](../02-architecture/resolution-spec.vi.md): lựa chọn và dependency closure.
+- [Kiến trúc](../../02-architecture/.vi/architecture.vi.md): ranh giới giữa các subsystem.
+- [Nguồn sự thật](../../02-architecture/.vi/source-of-truth.vi.md): trạng thái có thẩm quyền (authoritative) và được dẫn xuất (derived).
+- [Resolution](../../02-architecture/.vi/resolution-spec.vi.md): lựa chọn và dependency closure.
 - [Catalog](./catalog-spec.vi.md): các định danh được tuyển chọn (curated) và implementation mapping.
 - [Manifest](./manifest-spec.vi.md): ý định (intent) của bên sử dụng và việc chọn target.
 - [Lockfile](./lockfile-spec.vi.md): các tham chiếu bất biến (immutable) và dual lock.
