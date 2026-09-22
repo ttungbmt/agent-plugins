@@ -387,15 +387,19 @@ Exact encoding may evolve before stable V1, but semantic identity must remain un
 
 ---
 
-# 13. Provider Manifest
+# 13. Publisher Manifest
 
-A Provider manifest defines a recognized upstream or first-party source.
+A Publisher manifest identifies a party that publishes content: an upstream
+project, or a first-party owner.
+
+A Publisher carries **identity and trust only**. It does not carry fetch
+coordinates — see §17.
 
 Example:
 
 ```yaml
 apiVersion: agent-plugins.dev/v1alpha1
-kind: Provider
+kind: Publisher
 
 metadata:
   id: superpowers
@@ -403,79 +407,59 @@ metadata:
   description: Workflow-oriented engineering skills.
 
 spec:
-  ownership: third-party
-
-  trust:
-    baseline: curated
-
-  source:
-    type: git
-    repository: obra/superpowers
-
-  discovery:
-    adapter: superpowers
-
-  links:
-    homepage: null
-    documentation: null
+  homepage: https://github.com/obra/superpowers
+  repository: https://github.com/obra/superpowers
+  trust: curated
 ```
+
+ADR 0011 retired the name `Provider` for this entity. The term "provider" is
+not used anywhere in this project; in archived documents it meant Publisher.
 
 ---
 
-# 14. Provider Required Fields
+# 14. Publisher Required Fields
 
-A Provider must define:
+A Publisher must define:
 
 ```text
 metadata.id
 metadata.name
-
-spec.ownership
-spec.source
-spec.discovery
+spec
 ```
 
-Trust metadata may be required or defaulted depending on Policy design.
+No field under `spec` is required, because no field under `spec` is read by
+the resolver yet. The Publisher is loaded, existence-checked, and otherwise
+inert. Fields are added to the schema when a consumer reads them, not before.
 
 ---
 
-# 15. Provider Ownership
+# 15. Publisher Ownership
 
-Allowed values:
+Ownership distinguishes:
 
 ```text
 first-party
 third-party
 ```
 
-Example:
+Ownership must not be inferred solely from source location, and it is a
+different concept from trust (§16).
 
-```yaml
-ownership: third-party
-```
-
-For the native `agent-plugins` Provider:
-
-```yaml
-ownership: first-party
-```
-
-Ownership must not be inferred solely from source location.
+**Not yet in the schema.** `spec.ownership` is deferred until a Policy gate
+reads it, per ADR 0011 D6. Until then, ownership is expressed by the
+`first-party` value of `spec.trust`.
 
 ---
 
-# 16. Provider Trust Baseline
+# 16. Publisher Trust Baseline
 
-A Provider may define a default trust classification.
-
-Example:
+A Publisher may declare a baseline trust classification:
 
 ```yaml
-trust:
-  baseline: curated
+trust: curated
 ```
 
-Recommended values:
+Allowed values:
 
 ```text
 first-party
@@ -485,101 +469,86 @@ community
 untrusted
 ```
 
-This is baseline catalog metadata.
-
-A Policy may still impose stricter rules.
-
----
-
-# 17. Provider Source
-
-The `source` field identifies the external origin.
-
-Example:
-
-```yaml
-source:
-  type: git
-  repository: obra/superpowers
-```
-
-Possible source types may include:
-
-```text
-git
-github
-filesystem
-claude-marketplace
-native
-```
-
-The final set should remain adapter-driven.
+This is baseline catalog metadata and must come from explicit curation, never
+from popularity (§147). A Policy may still impose stricter rules. No Policy
+gate reads it yet.
 
 ---
 
-# 18. Provider Discovery
+# 17. Publisher Source — moved to Package
 
-The Provider specifies how upstream metadata should be discovered.
-
-Example:
+A Publisher has **no** `spec.source`. Fetch coordinates live on the Package:
 
 ```yaml
-discovery:
-  adapter: superpowers
+# catalog/packages/<id>.yaml
+spec:
+  source:
+    type: git
+    url: https://github.com/obra/superpowers.git
+    ref: <40-hex commit SHA>
 ```
 
-or:
+Reason (ADR 0011 D5): one Publisher may ship from several repositories. A
+single `repository:` per Publisher would force one Publisher per repository,
+collapsing the entity into a fetch coordinate and destroying the distinction
+between *who publishes* and *where the bytes are*. Trust must also stay stable
+across repository moves.
 
-```yaml
-discovery:
-  adapter: agent-skills
-```
-
-Source discovery configuration must not contain semantic Capability mappings.
+See §24 for the Package source shape.
 
 ---
 
-# 19. Provider Links
+# 18. Publisher Discovery — moved to Package
 
-Optional informational metadata may include:
+A Publisher has **no** `spec.discovery`. Discovery is declared per Package:
 
 ```yaml
-links:
-  homepage: ...
-  documentation: ...
-  repository: ...
+# catalog/packages/<id>.yaml
+spec:
+  discovery:
+    manifest: .claude-plugin/plugin.json
 ```
 
-Links are informational and should not define canonical source identity if that identity already exists under `source`.
+The upstream plugin manifest is read instead of globbing the tree, because a
+repository may carry more Components than it ships: `mattpocock/skills`
+contains 38 `SKILL.md` files but ships 25.
+
+Discovery configuration must not contain semantic Capability mappings.
 
 ---
 
-# 20. Native Provider
+# 19. Publisher Links
 
-Recommended native Provider:
+Optional informational metadata:
+
+```yaml
+spec:
+  homepage: https://www.aihero.dev
+  repository: https://github.com/mattpocock/skills
+```
+
+Links are informational. `spec.repository` must never define canonical fetch
+identity — that identity lives in `Package.spec.source` (§24).
+
+---
+
+# 20. Native Publisher
+
+Recommended native Publisher:
 
 ```yaml
 apiVersion: agent-plugins.dev/v1alpha1
-kind: Provider
+kind: Publisher
 
 metadata:
   id: agent-plugins
   name: Agent Plugins
 
 spec:
-  ownership: first-party
-
-  trust:
-    baseline: first-party
-
-  source:
-    type: native
-
-  discovery:
-    adapter: filesystem
+  trust: first-party
 ```
 
-Native source remains located under:
+Native content remains located under:
 
 ```text
 plugins/native/
@@ -589,7 +558,8 @@ plugins/native/
 
 # 21. Package Manifest
 
-A Package manifest defines an installable or distributable unit.
+A Package manifest defines an installable or distributable unit belonging to
+exactly one Publisher.
 
 Example:
 
@@ -598,26 +568,32 @@ apiVersion: agent-plugins.dev/v1alpha1
 kind: Package
 
 metadata:
-  id: superpowers
-  name: Superpowers
+  id: mattpocock-skills
+  name: Matt Pocock Skills
 
 spec:
-  provider: superpowers
+  publisher: mattpocock
+
+  materialization: collection
 
   source:
-    path: .
+    type: git
+    url: https://github.com/mattpocock/skills.git
+    ref: c55ee46073ed923f86ce59a5eb3b6d895095d1b7
 
   discovery:
-    include:
-      - skills/**
-      - agents/**
+    manifest: .claude-plugin/plugin.json
 
   targets:
     - claude-code
 
-  version:
-    strategy: distribution-lock
+  components:
+    tdd:
+      requires: [codebase-design]
 ```
+
+`materialization` is defined by ADR 0010 D2. `components.<name>.requires` is
+declared by a curator, never inferred from Component bodies.
 
 ---
 
@@ -629,66 +605,62 @@ A Package must define:
 metadata.id
 metadata.name
 
-spec.provider
+spec.publisher
+spec.materialization
 spec.source
+spec.discovery
 ```
-
-Target and discovery metadata may be optional depending on Provider defaults.
 
 ---
 
-# 23. Provider Reference
+# 23. Publisher Reference
 
-Every Package must reference exactly one Provider.
+Every Package must reference exactly one Publisher.
 
 Example:
 
 ```yaml
-provider: superpowers
+publisher: superpowers
 ```
 
 The reference must resolve to:
 
 ```text
-catalog/providers/superpowers.yaml
+catalog/publishers/superpowers.yaml
 ```
 
-Unknown Provider references fail Catalog validation.
+Unknown Publisher references fail Catalog validation with
+`UNKNOWN_PUBLISHER`. A Publisher that no Package references is reported as
+`UNUSED_PUBLISHER`.
 
 ---
 
 # 24. Package Source
 
-Package source describes where the Package exists relative to the Provider source.
-
-Examples:
-
-```yaml
-source:
-  path: .
-```
-
-or:
+Package source is the complete, absolute fetch coordinate — not a path
+relative to anything on the Publisher.
 
 ```yaml
 source:
-  path: plugins/frontend-design
+  type: git
+  url: https://github.com/mattpocock/skills.git
+  ref: c55ee46073ed923f86ce59a5eb3b6d895095d1b7
 ```
 
-or conceptually:
+`type` is the access mechanism. It is an **enum field, not an entity**: there
+is no catalog file for `git`, and it is never called a provider (ADR 0011 D4).
+Backends are implemented in code; `git` is the only value in V1.
 
-```yaml
-source:
-  marketplacePackage: frontend-design
-```
-
-The Package schema should support source-specific configuration without leaking it into core semantic models.
+`ref` must be an immutable 40-character commit SHA. `main`, `latest`, and
+`HEAD` are forbidden (security-model.md:831-835) and rejected both by the
+schema and at fetch time. ADR 0010 D7 also rejects a `github` source type,
+which clones over SSH and fails without a key.
 
 ---
 
 # 25. Package Discovery
 
-Package-level discovery may refine Provider-level discovery.
+Package-level discovery refines what the Package manifest declares (§18).
 
 Example:
 

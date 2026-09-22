@@ -25,7 +25,7 @@ For detailed semantics and relationships, see `domain-model.md`.
 The canonical model is:
 
 ```text
-Provider
+Publisher
    ↓
 Package
    ↓
@@ -47,7 +47,7 @@ Target Adapter
 Short form:
 
 ```text
-Source
+Publisher
   ↓
 Capability
   ↓
@@ -60,9 +60,9 @@ Distribution
 
 ---
 
-# 2. Provider
+# 2. Publisher
 
-A **Provider** is the upstream source, publisher, or owner that supplies one or more Packages.
+A **Publisher** is the upstream project, owner, or first-party party that publishes one or more Packages.
 
 Examples:
 
@@ -75,17 +75,29 @@ wshobson
 agent-plugins
 ```
 
-Use Provider when answering:
+Use Publisher when answering:
 
-> Where does this tooling come from?
+> Who publishes this tooling?
 
-Do not use Provider to mean a runtime target.
+A Publisher carries identity and trust only. It does not carry fetch
+coordinates: one Publisher may ship from several repositories, so the
+repository, ref, and access mechanism live on `Package.spec.source`.
+
+Do not use Publisher to mean a runtime target, a repository, or an access
+mechanism.
+
+**The term "provider" is not used in this project.** It was retired by
+ADR 0011 because in most ecosystems it means a backend or driver (Terraform,
+OAuth, cloud providers), which made `provider: superpowers` unreadable. In
+archived documents it meant Publisher; the access mechanism it might be
+mistaken for is the `Package.spec.source.type` enum, which is a field, not an
+entity, and is never called a provider.
 
 ---
 
 # 3. Package
 
-A **Package** is the installable or distributable unit supplied by a Provider.
+A **Package** is the installable or distributable unit supplied by a Publisher.
 
 Examples:
 

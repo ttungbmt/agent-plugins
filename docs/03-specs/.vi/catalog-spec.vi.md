@@ -387,15 +387,18 @@ Cách encode chính xác có thể thay đổi trước khi có V1 ổn định,
 
 ---
 
-# 13. Provider Manifest
+# 13. Publisher Manifest
 
-Một Provider manifest định nghĩa một nguồn upstream hoặc first-party được công nhận.
+Một Publisher manifest định danh bên xuất bản nội dung: một dự án upstream,
+hoặc một chủ sở hữu first-party.
+
+Publisher chỉ mang **danh tính và trust**. Nó không mang toạ độ fetch — xem §17.
 
 Ví dụ:
 
 ```yaml
 apiVersion: agent-plugins.dev/v1alpha1
-kind: Provider
+kind: Publisher
 
 metadata:
   id: superpowers
@@ -403,79 +406,60 @@ metadata:
   description: Workflow-oriented engineering skills.
 
 spec:
-  ownership: third-party
-
-  trust:
-    baseline: curated
-
-  source:
-    type: git
-    repository: obra/superpowers
-
-  discovery:
-    adapter: superpowers
-
-  links:
-    homepage: null
-    documentation: null
+  homepage: https://github.com/obra/superpowers
+  repository: https://github.com/obra/superpowers
+  trust: curated
 ```
+
+ADR 0011 đã khai tử tên `Provider` cho entity này. Từ "provider" không được
+dùng ở bất kỳ đâu trong dự án; trong các tài liệu đã archive nó mang nghĩa
+Publisher.
 
 ---
 
-# 14. Các field bắt buộc của Provider
+# 14. Các field bắt buộc của Publisher
 
-Một Provider phải định nghĩa:
+Một Publisher phải định nghĩa:
 
 ```text
 metadata.id
 metadata.name
-
-spec.ownership
-spec.source
-spec.discovery
+spec
 ```
 
-Trust metadata có thể là bắt buộc hoặc có giá trị mặc định, tùy thuộc vào thiết kế Policy.
+Không field nào dưới `spec` là bắt buộc, vì chưa field nào dưới `spec` được
+resolver đọc. Publisher được load, kiểm tra tồn tại, ngoài ra là trơ. Field
+chỉ được thêm vào schema khi đã có consumer đọc nó, không thêm trước.
 
 ---
 
-# 15. Provider Ownership
+# 15. Ownership của Publisher
 
-Các giá trị được phép:
+Ownership phân biệt:
 
 ```text
 first-party
 third-party
 ```
 
-Ví dụ:
+Ownership không được suy ra chỉ từ vị trí nguồn, và nó là một khái niệm khác
+với trust (§16).
 
-```yaml
-ownership: third-party
-```
-
-Với Provider gốc (native) `agent-plugins`:
-
-```yaml
-ownership: first-party
-```
-
-Ownership không được suy ra chỉ dựa trên vị trí của source.
+**Chưa có trong schema.** `spec.ownership` được hoãn cho tới khi có một Policy
+gate đọc nó, theo ADR 0011 D6. Trong lúc đó, ownership được thể hiện qua giá
+trị `first-party` của `spec.trust`.
 
 ---
 
-# 16. Trust Baseline của Provider
+# 16. Trust Baseline của Publisher
 
-Một Provider có thể định nghĩa một phân loại trust mặc định.
-
-Ví dụ:
+Một Publisher có thể khai báo trust baseline:
 
 ```yaml
-trust:
-  baseline: curated
+trust: curated
 ```
 
-Các giá trị khuyến nghị:
+Các giá trị cho phép:
 
 ```text
 first-party
@@ -485,101 +469,86 @@ community
 untrusted
 ```
 
-Đây là metadata catalog ở mức cơ sở (baseline).
-
-Một Policy vẫn có thể áp đặt các quy tắc chặt chẽ hơn.
-
----
-
-# 17. Source của Provider
-
-Field `source` xác định nguồn gốc bên ngoài.
-
-Ví dụ:
-
-```yaml
-source:
-  type: git
-  repository: obra/superpowers
-```
-
-Các loại source có thể bao gồm:
-
-```text
-git
-github
-filesystem
-claude-marketplace
-native
-```
-
-Tập giá trị cuối cùng nên tiếp tục được quyết định bởi adapter (adapter-driven).
+Đây là metadata catalog nền, và phải đến từ curate tường minh, không bao giờ
+từ độ phổ biến (§147). Policy vẫn có thể áp luật chặt hơn. Chưa Policy gate
+nào đọc nó.
 
 ---
 
-# 18. Discovery của Provider
+# 17. Source của Publisher — đã chuyển xuống Package
 
-Provider chỉ định cách metadata upstream được khám phá (discover).
-
-Ví dụ:
+Publisher **không có** `spec.source`. Toạ độ fetch nằm ở Package:
 
 ```yaml
-discovery:
-  adapter: superpowers
+# catalog/packages/<id>.yaml
+spec:
+  source:
+    type: git
+    url: https://github.com/obra/superpowers.git
+    ref: <commit SHA 40 ký tự hex>
 ```
 
-hoặc:
+Lý do (ADR 0011 D5): một Publisher có thể ship từ nhiều repository. Một khối
+`repository:` cho mỗi Publisher sẽ buộc phải tách một Publisher cho mỗi
+repository, làm entity tụt xuống thành toạ độ fetch và phá mất phân biệt giữa
+*ai xuất bản* và *bytes nằm ở đâu*. Trust cũng phải ổn định khi repository
+được di chuyển.
 
-```yaml
-discovery:
-  adapter: agent-skills
-```
-
-Cấu hình source discovery không được chứa các ánh xạ Capability ngữ nghĩa.
+Xem §24 cho hình dạng của Package source.
 
 ---
 
-# 19. Link của Provider
+# 18. Discovery của Publisher — đã chuyển xuống Package
 
-Metadata mang tính thông tin, không bắt buộc, có thể bao gồm:
+Publisher **không có** `spec.discovery`. Discovery được khai báo theo từng Package:
 
 ```yaml
-links:
-  homepage: ...
-  documentation: ...
-  repository: ...
+# catalog/packages/<id>.yaml
+spec:
+  discovery:
+    manifest: .claude-plugin/plugin.json
 ```
 
-Link chỉ mang tính thông tin và không nên định nghĩa danh tính source chuẩn nếu danh tính đó đã tồn tại trong `source`.
+Plugin manifest của upstream được đọc thay vì glob cả cây, vì một repository
+có thể chứa nhiều Component hơn số nó thực sự ship: `mattpocock/skills` có 38
+tệp `SKILL.md` nhưng chỉ ship 25.
+
+Cấu hình discovery không được chứa mapping Capability mang tính ngữ nghĩa.
 
 ---
 
-# 20. Native Provider
+# 19. Link của Publisher
 
-Native Provider khuyến nghị:
+Metadata tham khảo, tuỳ chọn:
+
+```yaml
+spec:
+  homepage: https://www.aihero.dev
+  repository: https://github.com/mattpocock/skills
+```
+
+Link chỉ mang tính tham khảo. `spec.repository` không bao giờ được định nghĩa
+danh tính fetch canonical — danh tính đó nằm ở `Package.spec.source` (§24).
+
+---
+
+# 20. Native Publisher
+
+Publisher native được khuyến nghị:
 
 ```yaml
 apiVersion: agent-plugins.dev/v1alpha1
-kind: Provider
+kind: Publisher
 
 metadata:
   id: agent-plugins
   name: Agent Plugins
 
 spec:
-  ownership: first-party
-
-  trust:
-    baseline: first-party
-
-  source:
-    type: native
-
-  discovery:
-    adapter: filesystem
+  trust: first-party
 ```
 
-Native source vẫn được đặt tại:
+Nội dung native vẫn nằm tại:
 
 ```text
 plugins/native/
@@ -589,7 +558,8 @@ plugins/native/
 
 # 21. Package Manifest
 
-Một Package manifest định nghĩa một đơn vị có thể cài đặt hoặc phân phối.
+Một Package manifest định nghĩa một đơn vị cài đặt hoặc phân phối thuộc về
+đúng một Publisher.
 
 Ví dụ:
 
@@ -598,26 +568,32 @@ apiVersion: agent-plugins.dev/v1alpha1
 kind: Package
 
 metadata:
-  id: superpowers
-  name: Superpowers
+  id: mattpocock-skills
+  name: Matt Pocock Skills
 
 spec:
-  provider: superpowers
+  publisher: mattpocock
+
+  materialization: collection
 
   source:
-    path: .
+    type: git
+    url: https://github.com/mattpocock/skills.git
+    ref: c55ee46073ed923f86ce59a5eb3b6d895095d1b7
 
   discovery:
-    include:
-      - skills/**
-      - agents/**
+    manifest: .claude-plugin/plugin.json
 
   targets:
     - claude-code
 
-  version:
-    strategy: distribution-lock
+  components:
+    tdd:
+      requires: [codebase-design]
 ```
+
+`materialization` được định nghĩa ở ADR 0010 D2. `components.<name>.requires`
+do người curate khai báo, không bao giờ suy ra từ nội dung Component.
 
 ---
 
@@ -629,66 +605,61 @@ Một Package phải định nghĩa:
 metadata.id
 metadata.name
 
-spec.provider
+spec.publisher
+spec.materialization
 spec.source
+spec.discovery
 ```
-
-Metadata về target và discovery có thể không bắt buộc, tùy thuộc vào giá trị mặc định của Provider.
 
 ---
 
-# 23. Tham chiếu Provider
+# 23. Tham chiếu Publisher
 
-Mỗi Package phải tham chiếu đúng một Provider.
+Mỗi Package phải tham chiếu đúng một Publisher.
 
 Ví dụ:
 
 ```yaml
-provider: superpowers
+publisher: superpowers
 ```
 
-Tham chiếu phải resolve tới:
+Tham chiếu phải resolve được tới:
 
 ```text
-catalog/providers/superpowers.yaml
+catalog/publishers/superpowers.yaml
 ```
 
-Các tham chiếu Provider không xác định sẽ làm Catalog validation thất bại.
+Tham chiếu Publisher không tồn tại làm Catalog validation fail với
+`UNKNOWN_PUBLISHER`. Publisher không được Package nào tham chiếu sẽ bị báo
+`UNUSED_PUBLISHER`.
 
 ---
 
 # 24. Source của Package
 
-Source của Package mô tả vị trí của Package so với source của Provider.
-
-Ví dụ:
-
-```yaml
-source:
-  path: .
-```
-
-hoặc:
+Package source là toạ độ fetch đầy đủ và tuyệt đối — không phải đường dẫn
+tương đối so với bất cứ thứ gì trên Publisher.
 
 ```yaml
 source:
-  path: plugins/frontend-design
+  type: git
+  url: https://github.com/mattpocock/skills.git
+  ref: c55ee46073ed923f86ce59a5eb3b6d895095d1b7
 ```
 
-hoặc về mặt khái niệm:
+`type` là cách truy cập. Nó là một **field enum, không phải entity**: không có
+tệp catalog nào cho `git`, và nó không bao giờ được gọi là provider (ADR 0011
+D4). Backend được hiện thực trong code; `git` là giá trị duy nhất ở V1.
 
-```yaml
-source:
-  marketplacePackage: frontend-design
-```
-
-Package schema nên hỗ trợ cấu hình riêng theo từng loại source mà không để nó rò rỉ vào các mô hình ngữ nghĩa cốt lõi.
+`ref` phải là commit SHA bất biến 40 ký tự. `main`, `latest` và `HEAD` bị cấm
+(security-model.md:831-835) và bị từ chối cả ở schema lẫn lúc fetch. ADR 0010
+D7 cũng loại source type `github`, vì nó clone qua SSH và fail khi không có key.
 
 ---
 
 # 25. Discovery của Package
 
-Discovery ở cấp Package có thể tinh chỉnh discovery ở cấp Provider.
+Discovery ở cấp Package tinh chỉnh những gì Package manifest khai báo (§18).
 
 Ví dụ:
 

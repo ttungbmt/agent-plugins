@@ -1,6 +1,18 @@
 # Agent Plugins Cheatsheet
 
-**Status:** Archived — describes a retired design (the `Source` entity, `catalog/sources/`, `dist/` output). Superseded by `docs/03-specs/` and ADR 0010. Kept for history; do not treat as current.
+**Status:** Archived — describes a retired design. Superseded by `docs/01-domain/`, `docs/03-specs/` and ADR 0010. Kept for history; **do not treat as current.**
+
+Retired names still used below, and what they map to today:
+
+| In this file | Current design | Where |
+|---|---|---|
+| `Source`, `catalog/sources/` | **Publisher**, `catalog/publishers/` | `publisher.schema.json`, ADR 0011 |
+| `Profile` = runtime/env config, `spec.{runtime, preset, policy}` | **Project** — `agent-plugins.yaml` with `spec.{role, presets, policy, targets}` | `manifest-spec.md:133-151` |
+| `Preset` example `software-engineer` | that is a **Role**; presets are slash-paths like `engineering/core` | `role.schema.json`, `preset.schema.json` |
+| `profiles/` | `roles/` | ADR 0004 |
+| `dist/` output | `.agent-plugins/` generated tree | `paths.js` |
+
+In the current model the four are distinct: **Role** = who is working, **Preset** = which capabilities group together, **Project** = what this repository additionally needs, **Target** = which agent runtime it is materialized into.
 
 Quick reference for working with **agent-plugins**.
 

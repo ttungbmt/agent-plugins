@@ -25,7 +25,7 @@ sử dụng cùng một bộ từ vựng một cách nhất quán.
 Mô hình chuẩn là:
 
 ```text
-Provider
+Publisher
    ↓
 Package
    ↓
@@ -47,7 +47,7 @@ Target Adapter
 Dạng rút gọn:
 
 ```text
-Source
+Publisher
   ↓
 Capability
   ↓
@@ -60,9 +60,9 @@ Distribution
 
 ---
 
-# 2. Provider
+# 2. Publisher
 
-**Provider** là nguồn upstream, nhà phát hành hoặc chủ sở hữu cung cấp một hoặc nhiều Package.
+**Publisher** là dự án upstream, chủ sở hữu, hoặc bên first-party xuất bản một hoặc nhiều Package.
 
 Ví dụ:
 
@@ -75,11 +75,22 @@ wshobson
 agent-plugins
 ```
 
-Dùng Provider khi trả lời câu hỏi:
+Dùng Publisher khi trả lời câu hỏi:
 
-> Tooling này đến từ đâu?
+> Ai xuất bản tooling này?
 
-Không dùng Provider với nghĩa là runtime target.
+Publisher chỉ mang danh tính và trust. Nó không mang toạ độ fetch: một
+Publisher có thể ship từ nhiều repository, nên repository, ref và cách truy
+cập nằm ở `Package.spec.source`.
+
+Không dùng Publisher với nghĩa là runtime target, repository, hay cách truy cập.
+
+**Từ "provider" không được dùng trong dự án này.** ADR 0011 đã khai tử nó, vì
+trong hầu hết hệ sinh thái nó nghĩa là backend hoặc driver (Terraform, OAuth,
+cloud provider), khiến `provider: superpowers` không đọc được. Trong các tài
+liệu đã archive, nó mang nghĩa Publisher; còn cách truy cập mà nó dễ bị nhầm
+là enum `Package.spec.source.type` — một field, không phải entity, và không
+bao giờ được gọi là provider.
 
 ---
 
