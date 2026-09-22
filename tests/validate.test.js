@@ -50,6 +50,20 @@ describe('catalog validation', () => {
     assert.deepEqual(check('missing-ref').codes, ['UNKNOWN_PACKAGE'])
   })
 
+  // catalog.js:107. The Provider -> Publisher rename touched this line and the
+  // one below it with no test covering either.
+  it('rejects a Package pointing at no Publisher', () => {
+    assert.deepEqual(check('unknown-publisher').codes, ['UNKNOWN_PUBLISHER'])
+  })
+
+  // validate.js:101. A warning, not an error: an orphaned Publisher is dead
+  // catalog weight a curator should remove, not a reason to refuse to build.
+  it('warns about a Publisher no Package references', () => {
+    const {codes, warnings} = check('unused-publisher')
+    assert.deepEqual(codes, [])
+    assert.deepEqual(warnings, ['UNUSED_PUBLISHER'])
+  })
+
   // security-model.md:831-835 forbids a mutable ref as the pinned identity.
   it('rejects a mutable source ref', () => {
     assert.deepEqual(check('bad-sha').codes, ['INVALID_MANIFEST'])

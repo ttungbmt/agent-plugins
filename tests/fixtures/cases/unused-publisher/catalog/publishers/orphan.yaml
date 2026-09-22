@@ -1,0 +1,7 @@
+apiVersion: agent-plugins/v1
+kind: Publisher
+metadata:
+  id: orphan
+  name: Orphan
+spec:
+  trust: community

@@ -5,7 +5,7 @@
   "description": "",
   "type": "module",
   "scripts": {
-    "test": "node --test tests/*.test.js",
+    "test": "node --test \"tests/**/*.test.js\"",
     "validate": "node packages/cli/bin/run.js validate",
     "validate:strict": "node packages/cli/bin/run.js validate --strict",
     "check": "pnpm validate:strict && pnpm test"

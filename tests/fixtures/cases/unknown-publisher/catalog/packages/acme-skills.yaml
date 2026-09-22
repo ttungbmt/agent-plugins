@@ -1,0 +1,20 @@
+apiVersion: agent-plugins/v1
+kind: Package
+metadata:
+  id: acme-skills
+  name: Acme Skills
+spec:
+  publisher: nobody
+  materialization: collection
+  source:
+    type: git
+    url: https://github.com/acme/skills.git
+    ref: 0123456789abcdef0123456789abcdef01234567
+  discovery:
+    strategy: manifest
+    manifest: .claude-plugin/plugin.json
+  targets:
+    - claude-code
+  components:
+    tdd:
+      requires: [codebase-design]
