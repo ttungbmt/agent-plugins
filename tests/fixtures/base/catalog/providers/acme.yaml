@@ -1,0 +1,7 @@
+apiVersion: agent-plugins/v1
+kind: Provider
+metadata:
+  id: acme
+  name: Acme
+spec:
+  trust: community

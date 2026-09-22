@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agent-plugins.dev/schemas/package.schema.json",
+  "title": "Package",
+  "description": "An installable unit belonging to exactly one Provider.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"$ref": "common.schema.json#/definitions/apiVersion"},
+    "kind": {"const": "Package"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": {"$ref": "common.schema.json#/definitions/packageId"},
+        "name": {"$ref": "common.schema.json#/definitions/nonEmptyString"},
+        "description": {"$ref": "common.schema.json#/definitions/nonEmptyString"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "materialization", "source", "discovery"],
+      "properties": {
+        "provider": {"$ref": "common.schema.json#/definitions/providerId"},
+        "materialization": {
+          "description": "ADR 0010 D2 defines `ecosystem` and `collection`. Only `collection` is implemented: buildMarketplace always filters to the selected closure, so declaring `ecosystem` today would install the wrong thing silently. The enum is narrowed to the one honest value until the ecosystem path exists.",
+          "enum": ["collection"]
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "url", "ref"],
+          "properties": {
+            "type": {"enum": ["git"]},
+            "url": {"type": "string", "format": "uri"},
+            "ref": {
+              "description": "Immutable commit SHA. security-model.md:831-835 forbids `main`/`latest`/`HEAD`; source.js:23 enforces the same pattern at fetch time.",
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          }
+        },
+        "discovery": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["manifest"],
+          "properties": {
+            "manifest": {
+              "description": "Path to the upstream plugin manifest, read instead of globbing. source.js:113 throws when absent. Measured need: mattpocock/skills carries 38 SKILL.md but ships 25.",
+              "$ref": "common.schema.json#/definitions/nonEmptyString"
+            }
+          }
+        },
+        "targets": {
+          "description": "Declared target compatibility. Not read in V1 — sync.js:94 writes `claude-code` literally.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["claude-code", "codex"]}
+        },
+        "components": {
+          "description": "Curated per-Component metadata. `requires` is declared here, never inferred: scanning bodies is unsound in both directions (packages/cli/README.md:102-117). `ap audit` nominates undeclared edges for a curator.",
+          "type": "object",
+          "propertyNames": {"$ref": "common.schema.json#/definitions/componentName"},
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "requires": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {"$ref": "common.schema.json#/definitions/componentName"}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@agent-plugins/schemas",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Normative contract for serialized manifest structure (source-of-truth.md:477-500).",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./schemas/*": "./schemas/*"
+  },
+  "files": [
+    "index.js",
+    "schemas"
+  ],
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  }
+}

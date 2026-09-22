@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agent-plugins.dev/schemas/common.schema.json",
+  "title": "Shared manifest definitions",
+  "definitions": {
+    "apiVersion": {
+      "description": "Serialized schema version. `agent-plugins.dev/v1alpha1` is the value every spec document uses; `agent-plugins/v1` is what the CLI currently emits and every catalog file carries. Both are accepted until the divergence is settled by ADR; `ap validate --strict` reports the legacy value.",
+      "enum": ["agent-plugins/v1", "agent-plugins.dev/v1alpha1"]
+    },
+    "providerId": {
+      "description": "Lowercase kebab-case, globally unique within the Catalog (catalog-spec.md:286-308).",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "packageId": {
+      "description": "Lowercase kebab-case, unique within its Provider (catalog-spec.md:310-338).",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "capabilityId": {
+      "description": "Dot-separated semantic namespace, provider- and target-independent (catalog-spec.md:340-361).",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*(?:\\.[a-z0-9]+(?:-[a-z0-9]+)*)+$"
+    },
+    "presetId": {
+      "description": "Slash-separated namespace path, e.g. `engineering/core`.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*(?:/[a-z0-9]+(?:-[a-z0-9]+)*)*$"
+    },
+    "kebabId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "componentName": {
+      "description": "Upstream logical component name, not a filesystem path (catalog-spec.md:2015-2031).",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

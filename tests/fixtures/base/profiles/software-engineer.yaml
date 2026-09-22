@@ -1,0 +1,8 @@
+apiVersion: agent-plugins/v1
+kind: Profile
+metadata:
+  id: software-engineer
+spec:
+  description: Reusable role baseline.
+  presets:
+    - engineering/core

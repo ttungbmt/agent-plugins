@@ -1,0 +1,9 @@
+apiVersion: agent-plugins/v1
+kind: Provider
+metadata:
+  id: mattpocock
+  name: Matt Pocock
+spec:
+  homepage: https://www.aihero.dev
+  repository: https://github.com/mattpocock/skills
+  trust: community

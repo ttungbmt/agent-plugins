@@ -1,5 +1,7 @@
 # Source of Truth
 
+**Status:** Design note — ahead of implementation. The prose here describes intended behaviour; it is not the contract.
+
 ## Overview
 
 This document defines the source-of-truth rules for `agent-plugins`.

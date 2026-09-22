@@ -1,6 +1,6 @@
 # CLI Specification
 
-**Status:** Draft  
+**Status:** Design note — ahead of implementation. The prose here describes intended behaviour; it is not the contract.  
 **Version:** 0.1.0  
 **Last Updated:** 2026-09-21
 

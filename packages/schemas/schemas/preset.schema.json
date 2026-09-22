@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agent-plugins.dev/schemas/preset.schema.json",
+  "title": "Preset",
+  "description": "Reusable composition of Capability IDs. A Preset never chooses implementations (capability-model.md:1762-1776).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "apiVersion",
+    "kind",
+    "metadata",
+    "spec"
+  ],
+  "properties": {
+    "apiVersion": {
+      "$ref": "common.schema.json#/definitions/apiVersion"
+    },
+    "kind": {
+      "const": "Preset"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/definitions/presetId"
+        },
+        "name": {
+          "$ref": "common.schema.json#/definitions/nonEmptyString"
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "description",
+        "capabilities"
+      ],
+      "properties": {
+        "description": {
+          "$ref": "common.schema.json#/definitions/nonEmptyString"
+        },
+        "capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/definitions/capabilityId"
+          }
+        },
+        "presets": {
+          "description": "Optional nested Presets, expanded transitively by resolve.js. Every shipped Preset lists capabilities directly; a nesting-only Preset would be a deliberate schema change.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/definitions/presetId"
+          }
+        }
+      }
+    }
+  }
+}

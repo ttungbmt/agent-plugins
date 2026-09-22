@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agent-plugins.dev/schemas/policy.schema.json",
+  "title": "Policy",
+  "description": "What the current project allows. Evaluated over the whole activation surface before the marketplace is generated (ADR 0010 D5).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"$ref": "common.schema.json#/definitions/apiVersion"},
+    "kind": {"const": "Policy"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": {"$ref": "common.schema.json#/definitions/kebabId"},
+        "name": {"$ref": "common.schema.json#/definitions/nonEmptyString"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description", "componentTypes"],
+      "properties": {
+        "description": {"$ref": "common.schema.json#/definitions/nonEmptyString"},
+        "componentTypes": {
+          "description": "Every component type must carry an explicit decision — an omitted type would evaluate to undefined in pipeline.js. V1 note: source.js:129 labels every discovered component `skill`, so the agent/command/hook/mcp/lsp rules are currently unreachable.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["skill", "agent", "command", "hook", "mcp", "lsp"],
+          "properties": {
+            "skill": {"$ref": "#/definitions/decision"},
+            "agent": {"$ref": "#/definitions/decision"},
+            "command": {"$ref": "#/definitions/decision"},
+            "hook": {"$ref": "#/definitions/decision"},
+            "mcp": {"$ref": "#/definitions/decision"},
+            "lsp": {"$ref": "#/definitions/decision"}
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "decision": {"enum": ["allow", "deny"]}
+  }
+}

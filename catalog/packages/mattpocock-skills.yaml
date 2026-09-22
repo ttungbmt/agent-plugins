@@ -1,0 +1,35 @@
+apiVersion: agent-plugins/v1
+kind: Package
+metadata:
+  id: mattpocock-skills
+  name: Matt Pocock Skills
+spec:
+  provider: mattpocock
+  # `collection` = filter to the selected closure (ADR 0010 D2).
+  materialization: collection
+  source:
+    type: git
+    url: https://github.com/mattpocock/skills.git
+    # Immutable ref. security-model.md:831-835 forbids `main`/`latest`/`HEAD`.
+    ref: c55ee46073ed923f86ce59a5eb3b6d895095d1b7
+  discovery:
+    # Read the upstream plugin manifest, do NOT glob skills/**.
+    # The repo carries 38 SKILL.md but ships only 25.
+    manifest: .claude-plugin/plugin.json
+  targets:
+    - claude-code
+
+  # Curated Component metadata.
+  #
+  # `requires` is DECLARED here, not inferred at resolve time. Scanning bodies
+  # cannot decide this: measured against this package, a generic scanner both
+  # misses real edges and invents false ones —
+  #   "does the code faithfully implement the originating issue"  -> not a dep
+  #   `bug:triage` (a tracker label in a code span)                -> not a dep
+  #   'call the Skill tool with "codebase-design"'                 -> a real dep
+  # `ap audit` reports undeclared references so a curator can add them here.
+  components:
+    grill-with-docs:
+      requires: [grilling, domain-modeling]
+    tdd:
+      requires: [codebase-design]

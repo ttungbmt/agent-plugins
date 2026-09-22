@@ -1,0 +1,11 @@
+apiVersion: agent-plugins/v1
+kind: Preset
+metadata:
+  id: workflow/core
+spec:
+  description: Baseline thinking workflow — plan before building.
+  # A Preset references Capability IDs. It does not choose implementations.
+  # capability-model.md:1762-1776
+  capabilities:
+    - workflow.planning
+    - workflow.grilling

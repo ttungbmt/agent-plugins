@@ -1,0 +1,10 @@
+apiVersion: agent-plugins/v1
+kind: Capability
+metadata:
+  id: workflow.planning
+spec:
+  description: Sharpen a plan or design by adversarial interview before implementation.
+  cardinality: one
+  implementations:
+    - package: mattpocock-skills
+      component: grill-with-docs

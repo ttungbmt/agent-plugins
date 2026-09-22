@@ -1,0 +1,10 @@
+apiVersion: agent-plugins/v1
+kind: Capability
+metadata:
+  id: engineering.domain-modeling
+spec:
+  description: Resolve domain vocabulary and record decisions as ADRs.
+  cardinality: one
+  implementations:
+    - package: mattpocock-skills
+      component: domain-modeling

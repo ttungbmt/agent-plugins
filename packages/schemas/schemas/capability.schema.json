@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agent-plugins.dev/schemas/capability.schema.json",
+  "title": "Capability",
+  "description": "Provider-independent semantic intent plus its curated implementations.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"$ref": "common.schema.json#/definitions/apiVersion"},
+    "kind": {"const": "Capability"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": {"$ref": "common.schema.json#/definitions/capabilityId"},
+        "name": {"$ref": "common.schema.json#/definitions/nonEmptyString"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description", "cardinality", "implementations"],
+      "properties": {
+        "description": {"$ref": "common.schema.json#/definitions/nonEmptyString"},
+        "cardinality": {
+          "description": "Semantic, independent from the number of implementations (catalog-spec.md:831-849).",
+          "enum": ["one", "many"]
+        },
+        "implementations": {
+          "description": "Candidate universe, not a selection. May be empty for a planned Capability; `ap validate` warns. Selection belongs to the Resolver (catalog-spec.md:2127-2149).",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["package", "component"],
+            "properties": {
+              "package": {"$ref": "common.schema.json#/definitions/packageId"},
+              "component": {"$ref": "common.schema.json#/definitions/componentName"},
+              "priority": {
+                "description": "Last term of the lexicographic ranking tuple (resolution-spec.md:1451-1472). Higher wins. When every term ties, resolution fails with AMBIGUOUS_RESOLUTION rather than picking alphabetically (resolution-spec.md:1560-1589).",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,5 +1,7 @@
 # Đặc tả Adapter
 
+**Trạng thái:** Ghi chú thiết kế — đi trước hiện thực. Văn xuôi ở đây mô tả hành vi dự định, không phải hợp đồng.
+
 ## Tổng quan
 
 Tài liệu này định nghĩa các hợp đồng (contract) Source Adapter và Target Adapter cho `agent-plugins`.

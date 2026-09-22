@@ -1,5 +1,7 @@
 # Adapter Specification
 
+**Status:** Design note — ahead of implementation. The prose here describes intended behaviour; it is not the contract.
+
 ## Overview
 
 This document defines Source Adapter and Target Adapter contracts for `agent-plugins`.

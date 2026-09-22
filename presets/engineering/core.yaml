@@ -1,0 +1,10 @@
+apiVersion: agent-plugins/v1
+kind: Preset
+metadata:
+  id: engineering/core
+spec:
+  description: Baseline engineering loop — model, build test-first, review.
+  capabilities:
+    - engineering.domain-modeling
+    - engineering.testing.tdd
+    - engineering.review

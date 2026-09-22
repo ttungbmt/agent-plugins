@@ -1,0 +1,10 @@
+apiVersion: agent-plugins/v1
+kind: Capability
+metadata:
+  id: engineering.testing.tdd
+spec:
+  description: Drive implementation test-first, one red-green slice at a time.
+  cardinality: one
+  implementations:
+    - package: mattpocock-skills
+      component: tdd

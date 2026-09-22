@@ -1,5 +1,8 @@
 # Đặc tả Catalog
 
+**Trạng thái:** Ghi chú thiết kế — đi trước hiện thực. Văn xuôi ở đây mô tả hành vi dự định, không phải hợp đồng.  
+**Hợp đồng chuẩn tắc:** `packages/schemas/schemas/{provider,package,capability}.schema.json` (source-of-truth.md §16, §55)
+
 ## Tổng quan
 
 Tài liệu này định nghĩa định dạng catalog chuẩn được sử dụng bởi `agent-plugins`.

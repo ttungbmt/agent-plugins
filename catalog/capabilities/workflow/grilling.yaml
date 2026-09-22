@@ -1,0 +1,10 @@
+apiVersion: agent-plugins/v1
+kind: Capability
+metadata:
+  id: workflow.grilling
+spec:
+  description: Run a one-question-at-a-time interview primitive.
+  cardinality: one
+  implementations:
+    - package: mattpocock-skills
+      component: grilling

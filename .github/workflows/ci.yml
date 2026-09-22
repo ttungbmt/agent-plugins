@@ -1,0 +1,31 @@
+name: ci
+
+on:
+  push:
+    branches: [master, dev]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # source-of-truth.md:477-500 makes packages/schemas/ authoritative for
+      # manifest structure. This is the step that enforces it.
+      # --strict per cli-spec.md:975-987: warnings are curation gaps someone
+      # should close, so CI treats them as failures.
+      - name: Validate catalog against the schemas
+        run: pnpm validate:strict
+
+      - name: Test
+        run: pnpm test

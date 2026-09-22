@@ -1,5 +1,8 @@
 # Policy Specification
 
+**Status:** Design note — ahead of implementation. The prose here describes intended behaviour; it is not the contract.  
+**Normative contract:** `packages/schemas/schemas/policy.schema.json` (source-of-truth.md §16, §55)
+
 ## Overview
 
 This document defines the Policy model used by `agent-plugins`.

@@ -1,0 +1,10 @@
+apiVersion: agent-plugins/v1
+kind: Capability
+metadata:
+  id: engineering.testing.tdd
+spec:
+  description: Drive implementation test-first.
+  cardinality: one
+  implementations:
+    - package: nonexistent
+      component: tdd

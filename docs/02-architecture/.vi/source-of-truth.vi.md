@@ -1,5 +1,7 @@
 # Source of Truth
 
+**Trạng thái:** Ghi chú thiết kế — đi trước hiện thực. Văn xuôi ở đây mô tả hành vi dự định, không phải hợp đồng.
+
 ## Tổng quan
 
 Tài liệu này định nghĩa các quy tắc source-of-truth cho `agent-plugins`.

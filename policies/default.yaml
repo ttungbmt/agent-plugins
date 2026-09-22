@@ -1,0 +1,16 @@
+apiVersion: agent-plugins/v1
+kind: Policy
+metadata:
+  id: default
+spec:
+  description: V1 baseline — declarative Components only, no executable activation.
+  # Implements the "V1 ships no hooks/MCP" decision, so that
+  # security-model.md:1904 ("V1 MUST NOT execute arbitrary package hooks")
+  # needs no amendment.
+  componentTypes:
+    skill: allow
+    agent: allow
+    command: allow
+    hook: deny
+    mcp: deny
+    lsp: deny

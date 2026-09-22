@@ -1,5 +1,7 @@
 # Lockfile Specification
 
+**Status:** Design note — ahead of implementation. The prose here describes intended behaviour; it is not the contract.
+
 ## Overview
 
 This document defines the lockfile model used by `agent-plugins`.

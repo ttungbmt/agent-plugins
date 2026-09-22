@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agent-plugins.dev/schemas/provider.schema.json",
+  "title": "Provider",
+  "description": "A recognized upstream or first-party source. V1 note: no field under spec is read by the resolver — the Provider is loaded, existence-checked, and otherwise inert. Fields are therefore permitted but not required, and their shape follows the shipped catalog rather than catalog-spec.md:387-433.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"$ref": "common.schema.json#/definitions/apiVersion"},
+    "kind": {"const": "Provider"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": {"$ref": "common.schema.json#/definitions/providerId"},
+        "name": {"$ref": "common.schema.json#/definitions/nonEmptyString"},
+        "description": {"$ref": "common.schema.json#/definitions/nonEmptyString"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "homepage": {"type": "string", "format": "uri"},
+        "repository": {"type": "string", "format": "uri"},
+        "trust": {
+          "description": "Baseline trust classification. Must come from explicit curation, never from popularity (catalog-spec.md:3385-3400). No policy gate reads it yet.",
+          "enum": ["first-party", "official", "curated", "community", "untrusted"]
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # Đặc tả CLI
 
-**Trạng thái:** Bản nháp  
+**Trạng thái:** Ghi chú thiết kế — đi trước hiện thực. Văn xuôi ở đây mô tả hành vi dự định, không phải hợp đồng.  
 **Phiên bản:** 0.1.0  
 **Cập nhật lần cuối:** 2026-09-21
 
