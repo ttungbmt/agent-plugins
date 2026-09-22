@@ -94,11 +94,11 @@ function qualityDiagnostics(catalog) {
     }
   }
 
-  // A Provider no Package belongs to is dead catalog weight.
-  const usedProviders = new Set([...catalog.packages.values()].map((pkg) => pkg.spec.provider))
-  for (const [id, provider] of catalog.providers) {
-    if (!usedProviders.has(id)) {
-      warn('UNUSED_PROVIDER', provider, 'metadata.id', 'no Package references this Provider', id)
+  // A Publisher no Package belongs to is dead catalog weight.
+  const usedPublishers = new Set([...catalog.packages.values()].map((pkg) => pkg.spec.publisher))
+  for (const [id, publisher] of catalog.publishers) {
+    if (!usedPublishers.has(id)) {
+      warn('UNUSED_PUBLISHER', publisher, 'metadata.id', 'no Package references this Publisher', id)
     }
   }
 

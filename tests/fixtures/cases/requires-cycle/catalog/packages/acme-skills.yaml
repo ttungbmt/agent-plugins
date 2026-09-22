@@ -4,7 +4,7 @@ metadata:
   id: acme-skills
   name: Acme Skills
 spec:
-  provider: acme
+  publisher: acme
   materialization: collection
   source:
     type: git

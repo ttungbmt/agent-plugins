@@ -6,7 +6,7 @@ import {parse} from 'yaml'
 
 /** Directory -> entity kind. These six hold the authoritative domain data. */
 const SOURCES = [
-  {dir: ['catalog', 'providers'], key: 'providers', kind: 'Provider'},
+  {dir: ['catalog', 'publishers'], key: 'publishers', kind: 'Publisher'},
   {dir: ['catalog', 'packages'], key: 'packages', kind: 'Package'},
   {dir: ['catalog', 'capabilities'], key: 'capabilities', kind: 'Capability'},
   {dir: ['presets'], key: 'presets', kind: 'Preset'},
@@ -96,15 +96,15 @@ function indexKind(files, kind) {
   return {diagnostics, map}
 }
 
-/** Every reference must resolve: Capability -> Package -> Provider, and Profile -> Preset -> Capability. */
+/** Every reference must resolve: Capability -> Package -> Publisher, and Profile -> Preset -> Capability. */
 function referenceDiagnostics(catalog) {
   const diagnostics = []
   const ref = (code, entry, field, message, entity) =>
     diagnostics.push({code, entity, field, file: entry.__path, message})
 
   for (const [id, pkg] of catalog.packages) {
-    if (!catalog.providers.has(pkg.spec.provider)) {
-      ref('UNKNOWN_PROVIDER', pkg, 'spec.provider', `no Provider "${pkg.spec.provider}"`, id)
+    if (!catalog.publishers.has(pkg.spec.publisher)) {
+      ref('UNKNOWN_PUBLISHER', pkg, 'spec.publisher', `no Publisher "${pkg.spec.publisher}"`, id)
     }
   }
 

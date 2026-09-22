@@ -7,18 +7,18 @@
       "description": "Serialized schema version. `agent-plugins.dev/v1alpha1` is the value every spec document uses; `agent-plugins/v1` is what the CLI currently emits and every catalog file carries. Both are accepted until the divergence is settled by ADR; `ap validate --strict` reports the legacy value.",
       "enum": ["agent-plugins/v1", "agent-plugins.dev/v1alpha1"]
     },
-    "providerId": {
+    "publisherId": {
       "description": "Lowercase kebab-case, globally unique within the Catalog (catalog-spec.md:286-308).",
       "type": "string",
       "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
     },
     "packageId": {
-      "description": "Lowercase kebab-case, unique within its Provider (catalog-spec.md:310-338).",
+      "description": "Lowercase kebab-case, unique within its Publisher (catalog-spec.md:310-338).",
       "type": "string",
       "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
     },
     "capabilityId": {
-      "description": "Dot-separated semantic namespace, provider- and target-independent (catalog-spec.md:340-361).",
+      "description": "Dot-separated semantic namespace, publisher- and target-independent (catalog-spec.md:340-361).",
       "type": "string",
       "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*(?:\\.[a-z0-9]+(?:-[a-z0-9]+)*)+$"
     },

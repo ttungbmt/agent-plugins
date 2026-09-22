@@ -9,7 +9,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const read = (name) => JSON.parse(readFileSync(join(here, 'schemas', `${name}.schema.json`), 'utf8'))
 
 /** Entity kind -> schema file. These six are the authoritative domain data. */
-export const KINDS = ['Provider', 'Package', 'Capability', 'Preset', 'Profile', 'Policy']
+export const KINDS = ['Publisher', 'Package', 'Capability', 'Preset', 'Profile', 'Policy']
 
 const FILES = {
   Capability: 'capability',
@@ -17,7 +17,7 @@ const FILES = {
   Policy: 'policy',
   Preset: 'preset',
   Profile: 'profile',
-  Provider: 'provider',
+  Publisher: 'publisher',
 }
 
 export const schemas = Object.fromEntries(KINDS.map((kind) => [kind, read(FILES[kind])]))

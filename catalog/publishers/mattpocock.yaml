@@ -1,5 +1,5 @@
 apiVersion: agent-plugins/v1
-kind: Provider
+kind: Publisher
 metadata:
   id: mattpocock
   name: Matt Pocock

@@ -1,20 +1,20 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://agent-plugins.dev/schemas/provider.schema.json",
-  "title": "Provider",
-  "description": "A recognized upstream or first-party source. V1 note: no field under spec is read by the resolver — the Provider is loaded, existence-checked, and otherwise inert. Fields are therefore permitted but not required, and their shape follows the shipped catalog rather than catalog-spec.md:387-433.",
+  "$id": "https://agent-plugins.dev/schemas/publisher.schema.json",
+  "title": "Publisher",
+  "description": "The party that publishes content: an upstream project or a first-party owner. Identity and trust only — fetch coordinates belong to Package.spec.source, because one Publisher may ship from several repositories. V1 note: no field under spec is read by the resolver — the Publisher is loaded, existence-checked, and otherwise inert. Fields are therefore permitted but not required, and their shape follows the shipped catalog rather than catalog-spec.md:387-433, which ADR 0011 supersedes.",
   "type": "object",
   "additionalProperties": false,
   "required": ["apiVersion", "kind", "metadata", "spec"],
   "properties": {
     "apiVersion": {"$ref": "common.schema.json#/definitions/apiVersion"},
-    "kind": {"const": "Provider"},
+    "kind": {"const": "Publisher"},
     "metadata": {
       "type": "object",
       "additionalProperties": false,
       "required": ["id", "name"],
       "properties": {
-        "id": {"$ref": "common.schema.json#/definitions/providerId"},
+        "id": {"$ref": "common.schema.json#/definitions/publisherId"},
         "name": {"$ref": "common.schema.json#/definitions/nonEmptyString"},
         "description": {"$ref": "common.schema.json#/definitions/nonEmptyString"}
       }
@@ -24,7 +24,11 @@
       "additionalProperties": false,
       "properties": {
         "homepage": {"type": "string", "format": "uri"},
-        "repository": {"type": "string", "format": "uri"},
+        "repository": {
+          "description": "Informational link only. It never defines fetch identity — that lives in Package.spec.source (catalog-spec.md:553).",
+          "type": "string",
+          "format": "uri"
+        },
         "trust": {
           "description": "Baseline trust classification. Must come from explicit curation, never from popularity (catalog-spec.md:3385-3400). No policy gate reads it yet.",
           "enum": ["first-party", "official", "curated", "community", "untrusted"]

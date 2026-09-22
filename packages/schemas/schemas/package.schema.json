@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://agent-plugins.dev/schemas/package.schema.json",
   "title": "Package",
-  "description": "An installable unit belonging to exactly one Provider.",
+  "description": "An installable unit belonging to exactly one Publisher.",
   "type": "object",
   "additionalProperties": false,
   "required": ["apiVersion", "kind", "metadata", "spec"],
@@ -22,9 +22,9 @@
     "spec": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["provider", "materialization", "source", "discovery"],
+      "required": ["publisher", "materialization", "source", "discovery"],
       "properties": {
-        "provider": {"$ref": "common.schema.json#/definitions/providerId"},
+        "publisher": {"$ref": "common.schema.json#/definitions/publisherId"},
         "materialization": {
           "description": "ADR 0010 D2 defines `ecosystem` and `collection`. Only `collection` is implemented: buildMarketplace always filters to the selected closure, so declaring `ecosystem` today would install the wrong thing silently. The enum is narrowed to the one honest value until the ecosystem path exists.",
           "enum": ["collection"]

@@ -38,7 +38,7 @@ export default class Validate extends Command {
 
     this.log(`catalog   ${root}`)
     this.log(
-      `entities  ${['providers', 'packages', 'capabilities', 'presets', 'profiles', 'policies']
+      `entities  ${['publishers', 'packages', 'capabilities', 'presets', 'profiles', 'policies']
         .map((key) => `${catalog[key].size} ${key}`)
         .join(', ')}`,
     )

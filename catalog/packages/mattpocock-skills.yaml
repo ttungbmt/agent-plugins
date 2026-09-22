@@ -4,7 +4,7 @@ metadata:
   id: mattpocock-skills
   name: Matt Pocock Skills
 spec:
-  provider: mattpocock
+  publisher: mattpocock
   # `collection` = filter to the selected closure (ADR 0010 D2).
   materialization: collection
   source:
