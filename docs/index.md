@@ -127,31 +127,35 @@ Todo
 
 21. [`cli-spec.md`](./03-specs/cli-spec.md)
 
+22. [`provisioning-spec.md`](./03-specs/provisioning-spec.md)  
+    Defines server-provisioned Components (MCP): the `provisioning` facet, the canonical
+    `server` block, project bindings, secret references, and target support.
+
 ---
 
 ### 04 — Security
 
-22. [`security-model.md`](./04-security/security-model.md)
+23. [`security-model.md`](./04-security/security-model.md)
 
-23. [`trust-model.md`](./04-security/trust-model.md)
+24. [`trust-model.md`](./04-security/trust-model.md)
 
 ---
 
 ### 05 — Development
 
-24. [`testing-strategy.md`](./05-development/testing-strategy.md)
+25. [`testing-strategy.md`](./05-development/testing-strategy.md)
 
-25. [`contributing.md`](./05-development/contributing.md)
+26. [`contributing.md`](./05-development/contributing.md)
 
-26. [`release-process.md`](./05-development/release-process.md)
+27. [`release-process.md`](./05-development/release-process.md)
 
 ---
 
 ### 06 — Delivery
 
-27. [`roadmap.md`](./06-roadmap/roadmap.md)
+28. [`roadmap.md`](./06-roadmap/roadmap.md)
 
-28. [`todo.md`](./06-roadmap/todo.md)
+29. [`todo.md`](./06-roadmap/todo.md)
 
 ---
 
@@ -183,6 +187,9 @@ Accepted ADRs:
 - [`0012-role-terminology.md`](./decisions/adr/0012-role-terminology.md) — the `Profile` entity becomes `Role`, matching the word its own definition already used; `spec.profile` becomes `spec.role`.
 - [`0013-component-discovery-and-typing.md`](./decisions/adr/0013-component-discovery-and-typing.md) — discovery declares `strategy: manifest | convention`; Components carry a real `type`, so Policy's `componentTypes` stop being a false control. Closes two of ADR 0011's open questions.
 - [`0014-api-version.md`](./decisions/adr/0014-api-version.md) — `apiVersion` settles on `agent-plugins.dev/v1alpha1`; `v1` is the name reserved for the stable milestone, and `UNSUPPORTED_API_VERSION` is implemented rather than merely described.
+- [`0015-mcp-as-component.md`](./decisions/adr/0015-mcp-as-component.md) — MCP stays a Component with a `provisioning: server` facet rather than becoming an `Integration` kind; requirement edges may name a Capability or a Component, resolved in one pass.
+- [`0016-secret-by-reference.md`](./decisions/adr/0016-secret-by-reference.md) — secrets exist only as references; the adapter materializes the reference and never resolves the value, with no plaintext fallback.
+- [`0017-v1-mcp-scope.md`](./decisions/adr/0017-v1-mcp-scope.md) — the "V1 ships no hooks/MCP" decision is relaxed for `mcp` under Policy conditions; `hook: deny` is unchanged.
 
 ADRs are written alongside the main documentation rather than at the end of the documentation process.
 
