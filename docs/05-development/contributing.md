@@ -177,7 +177,7 @@ Users should be able to understand:
 ```text
 why a package exists
 where it came from
-which Profile selected it
+which Role selected it
 which policy affected it
 which adapter rendered it
 which files changed
@@ -247,7 +247,7 @@ first-party/
 vendor/
 overlays/
 
-profiles/
+roles/
 presets/
 
 docs/
@@ -569,7 +569,7 @@ skill:typescript
 agent:reviewer
 prompt:research
 preset:frontend-core
-profile:frontend
+role:frontend
 ```
 
 Do not use filesystem paths as entity identity.
@@ -1003,7 +1003,7 @@ Plugin
 
 Preset
 
-Profile
+Role
 ```
 
 Use the domain model rather than choosing based on folder convenience.
@@ -1075,9 +1075,9 @@ Avoid giant presets that attempt to represent an entire organization.
 
 ---
 
-# 40. Profiles
+# 40. Roles
 
-Profiles describe effective user/project roles or environments.
+Roles describe effective user or project working contexts.
 
 Examples:
 
@@ -1091,9 +1091,9 @@ product-manager
 second-brain
 ```
 
-Profiles MAY compose multiple Presets and packages.
+Roles MAY compose multiple Presets and packages.
 
-Avoid target-specific Profiles such as:
+Avoid target-specific Roles such as:
 
 ```text
 frontend-claude
@@ -1935,7 +1935,7 @@ Before adding a feature, confirm:
 
 [ ] Validation passes
 
-[ ] Relevant Profile/Preset integration reviewed
+[ ] Relevant Role/Preset integration reviewed
 ```
 
 ---
@@ -1956,14 +1956,14 @@ Before adding a feature, confirm:
 
 ---
 
-# 84. New Profile Checklist
+# 84. New Role Checklist
 
 ```text
 [ ] Represents a meaningful role/environment
 
 [ ] Reuses Presets where possible
 
-[ ] Avoids duplicating another Profile
+[ ] Avoids duplicating another Role
 
 [ ] Inheritance is clear
 

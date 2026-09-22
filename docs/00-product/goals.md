@@ -24,7 +24,7 @@ Users should be able to describe what they need without manually selecting every
 Preferred:
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 
 presets:
   - nextjs
@@ -51,7 +51,7 @@ The system should translate higher-level intent into concrete implementations.
 A typical project should be configurable primarily through:
 
 ```text
-profile
+role
 +
 presets
 +
@@ -107,7 +107,7 @@ User and project configuration should not be tightly coupled to individual publi
 The preferred dependency direction is:
 
 ```text
-Profile
+Role
    ↓
 Preset
    ↓
@@ -121,14 +121,14 @@ Publisher
 not:
 
 ```text
-Profile
+Role
    ↓
 Publisher-specific plugin list
 ```
 
 ## Success Criteria
 
-A capability implementation can be replaced without requiring changes to every profile or project that uses it.
+A capability implementation can be replaced without requiring changes to every role or project that uses it.
 
 ---
 
@@ -160,15 +160,15 @@ Presets should reduce repeated project configuration.
 
 ## Success Criteria
 
-Common capability groups are defined once and reused across multiple profiles and projects.
+Common capability groups are defined once and reused across multiple roles and projects.
 
 ---
 
-# 5. Provide Role-Based Profiles
+# 5. Provide Reusable Role Baselines
 
-The project should provide profiles for common working contexts.
+The project should provide roles for common working contexts.
 
-Initial profiles should include:
+Initial roles should include:
 
 ```text
 software-engineer
@@ -181,17 +181,17 @@ researcher
 second-brain
 ```
 
-Profiles should provide sensible defaults while remaining customizable.
+Roles should provide sensible defaults while remaining customizable.
 
 ## Success Criteria
 
-A new user can select a profile and receive a useful baseline without manually choosing individual capabilities.
+A new user can select a role and receive a useful baseline without manually choosing individual capabilities.
 
 ---
 
 # 6. Keep Role and Project Concerns Separate
 
-Profiles should describe relatively stable working roles.
+Roles should describe relatively stable working contexts.
 
 Projects should describe repository-specific requirements.
 
@@ -211,11 +211,11 @@ Project C
 Astro
 ```
 
-The same profile should work across multiple projects.
+The same role should work across multiple projects.
 
 ## Success Criteria
 
-Changing project stack requirements does not require redefining the user's role profile.
+Changing project stack requirements does not require redefining the user's role.
 
 ---
 
@@ -390,7 +390,7 @@ Every selected implementation can be traced through:
 
 ```text
 Project
-→ Profile
+→ Role
 → Preset
 → Capability
 → Implementation
@@ -630,7 +630,7 @@ Example:
 ```text
 catalog/
 presets/
-profiles/
+roles/
 policies/
 
         ↓
@@ -678,7 +678,7 @@ The system should validate:
 - package references,
 - capability mappings,
 - preset references,
-- profile references,
+- role references,
 - target compatibility,
 - dependency cycles,
 - conflicting implementations.
@@ -750,7 +750,7 @@ ap diff
 ap doctor
 
 ap preset ...
-ap profile ...
+ap role ...
 
 ap update
 ```
@@ -792,7 +792,7 @@ Users should be able to search across:
 ```text
 capabilities
 presets
-profiles
+roles
 publishers
 packages
 components
@@ -905,7 +905,7 @@ Package
 Component
 Capability
 Preset
-Profile
+Role
 Policy
 Project
 
@@ -948,7 +948,7 @@ Resolve:
 ```text
 Project
 +
-Profile
+Role
 +
 Presets
 +
@@ -1045,9 +1045,9 @@ across heterogeneous sources.
 
 ---
 
-# 39. V1 Profile Goals
+# 39. V1 Role Goals
 
-At minimum, V1 should provide representative profiles for different types of work:
+At minimum, V1 should provide representative roles for different types of work:
 
 ```text
 frontend-engineer
@@ -1056,7 +1056,7 @@ product-manager
 second-brain
 ```
 
-These four profiles intentionally test very different capability compositions.
+These four roles intentionally test very different capability compositions.
 
 They demonstrate that the model is not limited to software engineering alone.
 

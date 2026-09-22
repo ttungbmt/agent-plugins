@@ -325,7 +325,7 @@ the Update Engine MUST verify that the candidate satisfies:
 ```text
 manifest constraints
 project constraints
-Profile constraints
+Role constraints
 Policy
 source restrictions
 ```
@@ -694,14 +694,14 @@ Even in full update mode, configured constraints remain authoritative.
 
 ---
 
-# 30. Update and Profiles
+# 30. Update and Roles
 
-Profiles determine desired environment composition.
+Roles determine desired environment composition.
 
 Updating MUST NOT silently add packages that are not selected by:
 
 ```text
-Profile
+Role
 Preset
 project configuration
 dependencies
@@ -1337,7 +1337,7 @@ one package
 multiple packages
 one source
 one Publisher
-one Profile-derived subtree
+one Role-derived subtree
 ```
 
 V1 SHOULD prioritize:

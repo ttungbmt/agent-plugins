@@ -31,7 +31,7 @@ Capability
    ↓
 Preset
    ↓
-Profile + Project + Policy
+Role + Project + Policy
    ↓
 Resolution
    ↓
@@ -97,7 +97,7 @@ Semantic
 
 Composition
 ├── Preset
-├── Profile
+├── Role
 ├── Project
 └── Policy
 
@@ -629,7 +629,7 @@ Requirement có thể bắt nguồn từ:
 
 ```text
 Preset
-Profile
+Role
 Project
 another capability
 ```
@@ -740,13 +740,13 @@ C → A
 
 ---
 
-# 15. Profile
+# 15. Role
 
 ## Định nghĩa
 
-Một **Profile** đại diện cho một role hoặc bối cảnh làm việc có thể tái sử dụng.
+Một **Role** đại diện cho một bối cảnh làm việc có thể tái sử dụng.
 
-Một Profile trả lời câu hỏi:
+Một Role trả lời câu hỏi:
 
 > **Loại người dùng này thường cần những capability nền tảng nào?**
 
@@ -764,9 +764,9 @@ second-brain
 
 ---
 
-## Trách nhiệm của Profile
+## Trách nhiệm của Role
 
-Profile chủ yếu nên compose các preset.
+Role chủ yếu nên compose các preset.
 
 Ví dụ:
 
@@ -779,7 +779,7 @@ frontend-engineer
 └── stacks/typescript
 ```
 
-Thông thường, một Profile không nên:
+Thông thường, một Role không nên:
 
 ```text
 reference publisher-specific components
@@ -790,7 +790,7 @@ contain runtime installation logic
 
 ---
 
-# 16. Profile và Preset
+# 16. Role và Preset
 
 Sự khác biệt là:
 
@@ -798,8 +798,8 @@ Sự khác biệt là:
 Preset
 → reusable capability group
 
-Profile
-→ reusable working role composed from presets
+Role
+→ reusable working context composed from presets
 ```
 
 Ví dụ:
@@ -808,22 +808,22 @@ Ví dụ:
 Preset:
 engineering/security
 
-Profile:
+Role:
 backend-engineer
 ```
 
-Một profile sử dụng nhiều preset.
+Một role sử dụng nhiều preset.
 
 Một preset không đại diện cho một người hay một role.
 
 ---
 
-# 17. Profile và Project
+# 17. Role và Project
 
 Sự khác biệt là:
 
 ```text
-Profile
+Role
 → who / what role is working
 
 Project
@@ -833,7 +833,7 @@ Project
 Ví dụ:
 
 ```text
-Profile:
+Role:
 frontend-engineer
 
 Project A:
@@ -843,7 +843,7 @@ Project B:
 React + Vite
 ```
 
-Profile vẫn có thể tái sử dụng cho cả hai project.
+Role vẫn có thể tái sử dụng cho cả hai project.
 
 ---
 
@@ -860,7 +860,7 @@ Một Project trả lời câu hỏi:
 Một Project có thể chọn:
 
 ```text
-profile
+role
 presets
 policy
 targets
@@ -872,7 +872,7 @@ capability overrides
 ## Ví dụ Project
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 
 presets:
   - stacks/nextjs
@@ -958,9 +958,9 @@ deny
 
 ---
 
-# 21. Policy không phải là Profile
+# 21. Policy không phải là Role
 
-Một Profile trả lời câu hỏi:
+Một Role trả lời câu hỏi:
 
 ```text
 What capabilities do I normally need?
@@ -975,7 +975,7 @@ What is allowed?
 Ví dụ:
 
 ```text
-Profile:
+Role:
 backend-engineer
 
 Policy:
@@ -1023,7 +1023,7 @@ Một **Resolution** là kết quả được tính toán từ việc đánh gi�
 ```text
 Project
 +
-Profile
+Role
 +
 Presets
 +
@@ -1049,7 +1049,7 @@ Về mặt khái niệm:
 ```text
 Project
    ↓
-Profile
+Role
    ↓
 Presets
    ↓
@@ -1163,7 +1163,7 @@ Preset → Preset
 
 Preset → Capability
 
-Profile → Preset
+Role → Preset
 
 Project → Preset
 
@@ -1398,7 +1398,7 @@ Nó không nên:
 
 ```text
 choose user capabilities
-apply profile composition
+apply role composition
 decide final implementation winners
 ```
 
@@ -1524,7 +1524,7 @@ Project Manifest
 Nó bao gồm:
 
 ```text
-profile
+role
 presets
 policy
 target
@@ -1923,7 +1923,7 @@ Về mặt khái niệm:
 catalog
 distribution lock
 project manifest
-profile
+role
 presets
 policy
 target
@@ -2165,11 +2165,11 @@ Preset
 Preset
   * ─── * Preset
 
-Profile
+Role
   1 ─── * Preset
 
 Project
-  0..1 ─── 1 Profile
+  0..1 ─── 1 Role
 
 Project
   * ─── * Preset
@@ -2228,7 +2228,7 @@ Package
       │ *              │ compose
       │                │
 ┌─────┴──────┐         │
-│  Profile   │         │
+│  Role   │         │
 └─────▲──────┘         │
       │                │
       │ selected by    │
@@ -2264,7 +2264,7 @@ Package
 Hướng phụ thuộc ngữ nghĩa mong muốn là:
 
 ```text
-Profile
+Role
    ↓
 Preset
    ↓
@@ -2274,7 +2274,7 @@ Capability
 chứ không phải:
 
 ```text
-Profile
+Role
    ↓
 Package
 ```
@@ -2359,13 +2359,13 @@ Việc tái sử dụng chủ yếu nên diễn ra thông qua Preset.
 Nên dùng:
 
 ```text
-Profile
+Role
 ├── workflow/core
 ├── engineering/core
 └── frontend
 ```
 
-Tránh các chuỗi kế thừa sâu giữa các Profile.
+Tránh các chuỗi kế thừa sâu giữa các Role.
 
 ---
 
@@ -2512,7 +2512,7 @@ Thuật ngữ này nên được sử dụng nhất quán trong các diagnostic 
 # 85. Ví dụ — Frontend Engineer
 
 ```text
-Profile
+Role
 frontend-engineer
 
       ↓
@@ -2563,7 +2563,7 @@ Claude Code Adapter
 # 86. Ví dụ — Second Brain
 
 ```text
-Profile
+Role
 second-brain
 
       ↓
@@ -2706,7 +2706,7 @@ Capability Implementation
 Capability Requirement
 
 Preset
-Profile
+Role
 Project
 Policy
 
@@ -2803,7 +2803,7 @@ Chứa:
 
 ```text
 Preset
-Profile
+Role
 ```
 
 Chịu trách nhiệm cho:
@@ -2952,7 +2952,7 @@ Các invariant quan trọng nhất là:
 ```text
 1. Capability IDs are publisher-independent.
 
-2. Profiles primarily compose Presets.
+2. Roles primarily compose Presets.
 
 3. Presets primarily compose Capabilities.
 
@@ -2985,4 +2985,4 @@ Các invariant quan trọng nhất là:
 
 # 96. Domain Model trong một câu
 
-> **`agent-plugins` mô hình hóa tooling bên ngoài thành các Publisher chứa Package và Component, chuẩn hóa các Component đó thành các Capability ngữ nghĩa, compose các Capability thông qua Preset và Profile, ràng buộc chúng bằng bối cảnh Project và Policy, và resolve chúng một cách deterministic thành một môi trường runtime có thể tái tạo.**
+> **`agent-plugins` mô hình hóa tooling bên ngoài thành các Publisher chứa Package và Component, chuẩn hóa các Component đó thành các Capability ngữ nghĩa, compose các Capability thông qua Preset và Role, ràng buộc chúng bằng bối cảnh Project và Policy, và resolve chúng một cách deterministic thành một môi trường runtime có thể tái tạo.**

@@ -103,7 +103,7 @@ ResolutionContext
 ├── Catalog
 ├── DistributionLock
 ├── Project
-├── Profile
+├── Role
 ├── Presets
 ├── Policy
 ├── Target
@@ -209,7 +209,7 @@ Pipeline canonical là:
 ```text
 1. Validate Resolution Context
 
-2. Expand Profile
+2. Expand Role
 
 3. Expand Presets
 
@@ -271,7 +271,7 @@ Trước khi semantic resolution bắt đầu, validate:
 ```text
 Project exists
 
-Profile exists
+Role exists
 
 Presets exist
 
@@ -297,15 +297,15 @@ stacks/nonexistent
 
 ---
 
-# 8. Phase 2 — Mở rộng Profile
+# 8. Phase 2 — Mở rộng Role
 
 Nếu Project chọn:
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 ```
 
-Resolver sẽ load Profile canonical.
+Resolver sẽ load Role canonical.
 
 Ví dụ:
 
@@ -318,18 +318,18 @@ frontend-engineer
 → stacks/typescript
 ```
 
-Việc mở rộng Profile tạo ra các Preset requirement.
+Việc mở rộng Role tạo ra các Preset requirement.
 
-Việc mở rộng Profile không được resolve các publisher implementation.
+Việc mở rộng Role không được resolve các publisher implementation.
 
 ---
 
-# 9. Không có Profile Inheritance ẩn
+# 9. Không có Role Inheritance ẩn
 
-Việc mở rộng Profile nên chủ yếu sử dụng:
+Việc mở rộng Role nên chủ yếu sử dụng:
 
 ```text
-Profile
+Role
 → Presets
 ```
 
@@ -398,7 +398,7 @@ Sau khi mở rộng Preset, thu thập tất cả các Capability được yêu 
 Các nguồn có thể bao gồm:
 
 ```text
-Profile Presets
+Role Presets
 
 Project Presets
 
@@ -437,7 +437,7 @@ capability:
 engineering.testing.tdd
 
 sources:
-- profile/frontend-engineer
+- role/frontend-engineer
   → preset/engineering/core
 
 - preset/frontend/testing
@@ -516,7 +516,7 @@ Ví dụ:
 security.review
 ```
 
-trở thành một phần của desired state ngay cả khi không có Profile hay Preset nào yêu cầu nó.
+trở thành một phần của desired state ngay cả khi không có Role hay Preset nào yêu cầu nó.
 
 ---
 
@@ -2302,7 +2302,7 @@ Warning cho phép Resolution nhưng chỉ ra trạng thái bị suy giảm hoặ
 Các mã ban đầu được khuyến nghị:
 
 ```text
-UNKNOWN_PROFILE
+UNKNOWN_ROLE
 
 UNKNOWN_PRESET
 
@@ -2601,7 +2601,7 @@ Các input tiềm năng:
 ```text
 normalized Project manifest
 
-Profile content
+Role content
 
 Preset content
 
@@ -3629,7 +3629,7 @@ Lý do fallback phải luôn có thể giải thích được.
 Input:
 
 ```text
-Profile:
+Role:
 frontend-engineer
 
 Target:
@@ -4254,7 +4254,7 @@ render Component X into Claude native structure
 V1 phải hỗ trợ:
 
 ```text
-Profile expansion
+Role expansion
 
 Preset expansion
 
@@ -4439,7 +4439,7 @@ function resolve(context):
     validate(context)
 
     presets =
-        expandProfile(context.project.profile)
+        expandRole(context.project.role)
         + context.project.presets
 
     expandedPresets =

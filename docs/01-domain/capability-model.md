@@ -30,7 +30,7 @@ Implementation
 Publisher Package / Component
 ```
 
-The capability model exists so that users, profiles, presets, and projects can describe **what they need** without directly depending on **who implements it**.
+The capability model exists so that users, roles, presets, and projects can describe **what they need** without directly depending on **who implements it**.
 
 ---
 
@@ -660,7 +660,7 @@ Possible origins:
 
 ```text
 Preset
-Profile
+Role
 Project
 Capability dependency
 ```
@@ -1051,7 +1051,7 @@ Example:
 stability: experimental
 ```
 
-Experimental capabilities should be used carefully in long-lived profiles.
+Experimental capabilities should be used carefully in long-lived roles.
 
 ---
 
@@ -1779,9 +1779,9 @@ The Preset should not normally choose implementations.
 
 ---
 
-# 72. Profile Capability Flow
+# 72. Role Capability Flow
 
-A Profile should normally reach Capabilities through Presets.
+A Role should normally reach Capabilities through Presets.
 
 Example:
 
@@ -1793,7 +1793,7 @@ engineering/core
 engineering.testing.tdd
 ```
 
-Direct Profile → Capability references may be supported if useful, but Preset composition should remain the preferred pattern.
+Direct Role → Capability references may be supported if useful, but Preset composition should remain the preferred pattern.
 
 ---
 
@@ -1802,7 +1802,7 @@ Direct Profile → Capability references may be supported if useful, but Preset 
 A Project may add capabilities through:
 
 ```text
-Profile
+Role
 Preset
 explicit capability override
 ```
@@ -1811,7 +1811,7 @@ Conceptually:
 
 ```text
 Project
-├── Profile
+├── Role
 │   └── Presets
 │       └── Capabilities
 │
@@ -2038,7 +2038,7 @@ Affected Presets
 engineering/core
 frontend/testing
     ↓
-Affected Profiles
+Affected Roles
 frontend-engineer
 backend-engineer
 ```
@@ -2061,7 +2061,7 @@ and:
 ```text
 Capability
 → Presets
-→ Profiles
+→ Roles
 ```
 
 This improves:
@@ -2114,7 +2114,7 @@ description
 alias
 tag
 Preset
-Profile
+Role
 ```
 
 Publisher identity should be secondary.
@@ -2200,7 +2200,7 @@ For example:
 engineering.testing.tdd
 ```
 
-remains the same Capability whether requested by a Profile or Project.
+remains the same Capability whether requested by a Role or Project.
 
 ---
 
@@ -2373,7 +2373,7 @@ migration tooling should eventually be able to identify affected:
 
 ```text
 Presets
-Profiles
+Roles
 Projects
 Lockfiles
 ```
@@ -2551,7 +2551,7 @@ systematic-debugging skill
 
 ---
 
-# 104. Capability vs Profile Decision
+# 104. Capability vs Role Decision
 
 Capability:
 
@@ -2559,7 +2559,7 @@ Capability:
 what ability is needed?
 ```
 
-Profile:
+Role:
 
 ```text
 what baseline abilities does this role need?
@@ -2572,7 +2572,7 @@ product.discovery
 → Capability
 
 product-manager
-→ Profile
+→ Role
 ```
 
 ---
@@ -2686,7 +2686,7 @@ backend
 database
 ```
 
-That belongs in a Preset or Profile.
+That belongs in a Preset or Role.
 
 ---
 
@@ -2963,7 +2963,7 @@ assign cardinality
         ↓
 map implementations
         ↓
-validate in real profiles/projects
+validate in real roles/projects
         ↓
 stabilize
 ```
@@ -2995,7 +2995,7 @@ Changes to stable capabilities should be reviewed with attention to:
 ```text
 semantic compatibility
 affected presets
-affected profiles
+affected roles
 affected implementations
 existing project lockfiles
 migration requirements
@@ -3042,7 +3042,7 @@ Derived data may include:
 ```text
 search index
 reverse preset index
-reverse profile index
+reverse role index
 implementation index
 target-support matrix
 ```
@@ -3066,7 +3066,7 @@ The capability model must preserve the following invariants:
 
 5. Presets compose Capabilities.
 
-6. Profiles primarily compose Presets.
+6. Roles primarily compose Presets.
 
 7. Multiple publishers may implement one Capability.
 
@@ -3104,7 +3104,7 @@ The capability model must preserve the following invariants:
 ```text
 Project
 │
-├── Profile
+├── Role
 │   └── frontend-engineer
 │
 └── Presets
@@ -3307,7 +3307,7 @@ Capabilities
     ↓
 Presets
     ↓
-Profiles + Project
+Roles + Project
     ↓
 Capability Requirements
     ↓
@@ -3335,7 +3335,7 @@ The model is successful when:
 ```text
 users can request functionality without knowing publisher names
 
-profiles remain stable when publishers change
+roles remain stable when publishers change
 
 overlapping implementations can be resolved predictably
 
@@ -3345,7 +3345,7 @@ publisher updates can be analyzed semantically
 
 multiple runtimes can use the same capability intent
 
-catalog maintainers can introduce new publishers without redesigning profiles
+catalog maintainers can introduce new publishers without redesigning roles
 
 every selected implementation can be explained
 ```

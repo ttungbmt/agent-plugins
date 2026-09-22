@@ -16,7 +16,7 @@ Policy trả lời câu hỏi:
 Policy được cố ý tách biệt khỏi:
 
 - ngữ nghĩa của Capability,
-- việc kết hợp Profile,
+- việc kết hợp Role,
 - việc kết hợp Preset,
 - intent của Project,
 - độ ưu tiên của implementation,
@@ -231,7 +231,7 @@ TDD implementations from untrusted Publishers are denied
 Sự phân biệt là:
 
 ```text
-Project / Profile / Preset
+Project / Role / Preset
 → what is needed
 
 Policy
@@ -2780,7 +2780,7 @@ Affected Candidates
 ↓
 Capabilities
 ↓
-Profiles / Projects
+Roles / Projects
 ```
 
 Các index được generate về sau có thể hỗ trợ điều này.
@@ -3757,7 +3757,7 @@ Không phải cảnh báo nào cũng nên chặn việc load Policy.
 
 # 171. Validate khả năng resolve của Policy
 
-Validation nâng cao có thể mô phỏng các Profile tiêu biểu với một Policy.
+Validation nâng cao có thể mô phỏng các Role tiêu biểu với một Policy.
 
 Ví dụ:
 
@@ -3903,7 +3903,7 @@ security Policy rules
 
 ---
 
-# 179. Anti-pattern của Policy — Profile đóng vai Policy
+# 179. Anti-pattern của Policy — Role đóng vai Policy
 
 Tránh:
 
@@ -3912,7 +3912,7 @@ strict-backend-engineer
 secure-frontend-engineer
 ```
 
-Profile định nghĩa vai trò.
+Role định nghĩa vai trò.
 
 Policy định nghĩa governance.
 

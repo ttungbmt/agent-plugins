@@ -179,9 +179,9 @@ A patch mechanism may be added later as an explicit advanced escape hatch.
 
 ---
 
-# 7. No Deep Profile Inheritance
+# 7. No Deep Role Inheritance
 
-Profiles should not form deep inheritance hierarchies.
+Roles should not form deep inheritance hierarchies.
 
 Avoid:
 
@@ -199,7 +199,7 @@ Deep inheritance makes configuration difficult to understand and override.
 Prefer:
 
 ```text
-profile
+role
 → presets
 ```
 
@@ -377,12 +377,12 @@ AI may assist with future recommendations or classification, but not with reprod
 V1 should not attempt to answer automatically:
 
 ```text
-What is the perfect profile for me?
+What is the perfect role for me?
 Which plugins should I install?
 Which publisher is objectively best?
 ```
 
-The initial system should provide curated presets and profiles.
+The initial system should provide curated presets and roles.
 
 A recommendation system may be introduced later after sufficient metadata and usage experience exist.
 
@@ -458,7 +458,7 @@ V1 does not require:
 desktop application
 web marketplace
 visual dependency editor
-profile builder UI
+role builder UI
 ```
 
 The CLI and declarative files should be sufficient to validate the product model.
@@ -816,7 +816,7 @@ Remote services may enrich the system later but should not be required for deter
 
 ---
 
-# 41. No Mandatory Global User Profile
+# 41. No Mandatory Global User Role
 
 The system may eventually support user-level preferences.
 
@@ -825,7 +825,7 @@ However, project reproducibility must not depend on undocumented global state.
 A project should not resolve differently merely because:
 
 ```text
-Machine A has hidden profile settings
+Machine A has hidden role settings
 Machine B does not
 ```
 
@@ -833,23 +833,23 @@ Global preferences may influence interactive defaults but should not silently al
 
 ---
 
-# 42. No Mixing Profile and Project Semantics
+# 42. No Mixing Role and Project Semantics
 
-Profiles should not become a place to encode specific repository stacks.
+Roles should not become a place to encode specific repository stacks.
 
-Avoid profiles such as:
+Avoid roles such as:
 
 ```text
-tung-mealops-nextjs-cloudflare-profile
+tung-mealops-nextjs-cloudflare-role
 ```
 
-Profiles represent reusable roles.
+Roles represent reusable working contexts.
 
 Project configuration represents repository-specific needs.
 
 ---
 
-# 43. No Publisher-Specific Profiles
+# 43. No Publisher-Specific Roles
 
 Avoid:
 
@@ -859,7 +859,7 @@ ecc-backend-engineer
 matt-frontend-engineer
 ```
 
-Profiles should depend on capabilities and presets, not publishers.
+Roles should depend on capabilities and presets, not publishers.
 
 Publisher choice belongs to resolution.
 
@@ -976,7 +976,7 @@ Failing with a useful diagnostic is preferable to guessing.
 
 # 50. No Guarantee That Every Capability Exists on Every Target
 
-A profile may request capabilities that are unavailable on a particular runtime.
+A role may request capabilities that are unavailable on a particular runtime.
 
 The system should report:
 
@@ -1088,7 +1088,7 @@ Package
 Component
 Capability
 Preset
-Profile
+Role
 Policy
 Project
 

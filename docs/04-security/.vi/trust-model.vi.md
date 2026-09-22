@@ -1012,7 +1012,7 @@ depends on:
 
 # 45. Mức tin cậy tối thiểu
 
-Một project hoặc Profile MAY chỉ định mức tin cậy tối thiểu.
+Một project hoặc Role MAY chỉ định mức tin cậy tối thiểu.
 
 Ví dụ:
 
@@ -1026,9 +1026,9 @@ Nó SHOULD NOT bỏ qua Policy Engine.
 
 ---
 
-# 46. Yêu cầu tin cậy của Profile
+# 46. Yêu cầu tin cậy của Role
 
-Các Profile MAY định nghĩa các ràng buộc tin cậy kỳ vọng.
+Các Role MAY định nghĩa các ràng buộc tin cậy kỳ vọng.
 
 Ví dụ:
 
@@ -1814,9 +1814,9 @@ Các yêu cầu chính xác SHOULD có thể cấu hình được.
 
 ---
 
-# 86. Trust profile
+# 86. Trust role
 
-Các tổ chức MAY định nghĩa các trust profile có tên.
+Các tổ chức MAY định nghĩa các trust role có tên.
 
 Ví dụ:
 
@@ -1826,11 +1826,11 @@ balanced
 experimental
 ```
 
-Những profile này SHOULD được mở rộng thành Policy và cấu hình tin cậy.
+Những role này SHOULD được mở rộng thành Policy và cấu hình tin cậy.
 
 ---
 
-# 87. Trust profile nghiêm ngặt
+# 87. Trust role nghiêm ngặt
 
 Các quy tắc khái niệm ví dụ:
 
@@ -1852,7 +1852,7 @@ denied
 
 ---
 
-# 88. Trust profile cân bằng
+# 88. Trust role cân bằng
 
 Ví dụ:
 
@@ -1871,7 +1871,7 @@ denied
 
 ---
 
-# 89. Trust profile thử nghiệm
+# 89. Trust role thử nghiệm
 
 Ví dụ:
 
@@ -1883,13 +1883,13 @@ unknown requires explicit approval
 dangerous capabilities still restricted
 ```
 
-Các trust profile MUST NOT ghi đè các bất biến bảo mật quan trọng.
+Các trust role MUST NOT ghi đè các bất biến bảo mật quan trọng.
 
 ---
 
-# 90. Tin cậy và Profile
+# 90. Tin cậy và Role
 
-Các Profile của Agent Plugins như:
+Các Role của Agent Plugins như:
 
 ```text
 frontend
@@ -1897,7 +1897,7 @@ backend
 second-brain
 ```
 
-SHOULD NOT hard-code ngữ nghĩa tin cậy, trừ khi Profile đó hướng đến bảo mật một cách cụ thể.
+SHOULD NOT hard-code ngữ nghĩa tin cậy, trừ khi Role đó hướng đến bảo mật một cách cụ thể.
 
 Tin cậy chủ yếu thuộc về Policy/cấu hình.
 

@@ -325,7 +325,7 @@ Update Engine MUST xác minh rằng candidate thỏa mãn:
 ```text
 manifest constraints
 project constraints
-Profile constraints
+Role constraints
 Policy
 source restrictions
 ```
@@ -694,14 +694,14 @@ Ngay cả trong chế độ full update, các ràng buộc đã cấu hình vẫ
 
 ---
 
-# 30. Update và Profile
+# 30. Update và Role
 
-Profile xác định thành phần mong muốn của môi trường.
+Role xác định thành phần mong muốn của môi trường.
 
 Việc update MUST NOT âm thầm thêm các package không được chọn bởi:
 
 ```text
-Profile
+Role
 Preset
 project configuration
 dependencies
@@ -1337,7 +1337,7 @@ one package
 multiple packages
 one source
 one Publisher
-one Profile-derived subtree
+one Role-derived subtree
 ```
 
 V1 SHOULD ưu tiên:

@@ -29,7 +29,7 @@ Upstream / first-party source
           |
 Normalized inventory + curated Catalog + catalog.lock
           |
-Profile + Presets + Project + Policy
+Role + Presets + Project + Policy
           |
        Resolver
           |
@@ -44,7 +44,7 @@ Managed runtime state
 |---|---|
 | Acquire and normalize upstream structure | Source Adapter and shared acquisition service |
 | Capability meaning, mappings, priority | Curated Catalog |
-| Expand Profiles/Presets; choose implementations | Resolver |
+| Expand Roles/Presets; choose implementations | Resolver |
 | Evaluate trust and permissions | Policy engine |
 | Pin distribution inputs | `catalog.lock` workflow |
 | Freeze project selections | `agent-plugins.lock` workflow |

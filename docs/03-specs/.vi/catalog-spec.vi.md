@@ -77,7 +77,7 @@ catalog versioning
 Project manifests
 Project lockfiles
 Policy files
-Preset/Profile files
+Preset/Role files
 runtime materialization
 CLI behavior
 ```
@@ -1455,7 +1455,7 @@ stable Capability only has deprecated implementations
 
 cardinality-one Capability has equal-priority candidates
 
-deprecated Capability still used in Preset/Profile
+deprecated Capability still used in Preset/Role
 
 Package has no discovered Components
 
@@ -1572,7 +1572,7 @@ Component → Capabilities
 
 Capability → Presets
 
-Preset → Profiles
+Preset → Roles
 
 Publisher → Packages
 ```
@@ -1697,7 +1697,7 @@ hash(
 )
 ```
 
-Preset, Profile và Policy có thể có digest riêng hoặc tham gia vào một distribution digest rộng hơn, tùy thuộc vào thiết kế lockfile.
+Preset, Role và Policy có thể có digest riêng hoặc tham gia vào một distribution digest rộng hơn, tùy thuộc vào thiết kế lockfile.
 
 ---
 
@@ -1876,7 +1876,7 @@ Việc gỡ bỏ một ánh xạ có thể ảnh hưởng đến các thành ph�
 
 ```text
 Presets
-Profiles
+Roles
 consumer lockfiles
 ```
 
@@ -2028,7 +2028,7 @@ Catalog không được mã hóa các quyết định policy riêng của Projec
 
 ---
 
-# 87. Tách biệt Catalog và Profile
+# 87. Tách biệt Catalog và Role
 
 Catalog trả lời:
 
@@ -2036,13 +2036,13 @@ Catalog trả lời:
 what exists?
 ```
 
-Profile trả lời:
+Role trả lời:
 
 ```text
 what does this role need?
 ```
 
-Profile không được nhúng bên trong Catalog manifest.
+Role không được nhúng bên trong Catalog manifest.
 
 ---
 
@@ -2092,7 +2092,7 @@ Một Source Adapter không được quyết định:
 
 ```text
 Capability priority
-Profile membership
+Role membership
 Preset membership
 ```
 
@@ -3141,7 +3141,7 @@ Capabilities
     ↓
 Presets
     ↓
-Profiles
+Roles
 ```
 
 Với một Capability bị thay đổi:
@@ -3151,7 +3151,7 @@ Capability
     ↓
 Presets
     ↓
-Profiles
+Roles
 ```
 
 Các reverse index được sinh ra có thể hỗ trợ việc này.
@@ -3177,7 +3177,7 @@ all Packages belong to Publishers
 
 all generated inventory deterministic
 
-all initial V1 Profiles resolve successfully
+all initial V1 Roles resolve successfully
 ```
 
 ---
@@ -3222,7 +3222,7 @@ wshobson
 agent-plugins
 ```
 
-Phạm vi Capability ban đầu nên được chủ động giới hạn ở những gì cần thiết cho các Profile tiêu biểu.
+Phạm vi Capability ban đầu nên được chủ động giới hạn ở những gì cần thiết cho các Role tiêu biểu.
 
 ---
 
@@ -3300,7 +3300,7 @@ component discovery is deterministic
 
 generated indexes have no drift
 
-representative Profiles resolve successfully
+representative Roles resolve successfully
 ```
 
 ---
@@ -3310,7 +3310,7 @@ representative Profiles resolve successfully
 Tránh:
 
 ```yaml
-profile:
+role:
   plugins:
     - superpowers
     - ecc

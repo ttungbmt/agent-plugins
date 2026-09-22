@@ -24,7 +24,7 @@ Người dùng nên có thể mô tả những gì họ cần mà không phải 
 Nên dùng:
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 
 presets:
   - nextjs
@@ -51,7 +51,7 @@ Hệ thống nên chuyển intent ở mức cao thành các implementation cụ 
 Một project điển hình nên có thể được cấu hình chủ yếu thông qua:
 
 ```text
-profile
+role
 +
 presets
 +
@@ -107,7 +107,7 @@ Cấu hình của người dùng và project không nên bị gắn chặt với
 Chiều phụ thuộc được ưu tiên là:
 
 ```text
-Profile
+Role
    ↓
 Preset
    ↓
@@ -121,14 +121,14 @@ Publisher
 chứ không phải:
 
 ```text
-Profile
+Role
    ↓
 Publisher-specific plugin list
 ```
 
 ## Tiêu chí thành công
 
-Implementation của một capability có thể được thay thế mà không cần sửa mọi profile hoặc project đang sử dụng nó.
+Implementation của một capability có thể được thay thế mà không cần sửa mọi role hoặc project đang sử dụng nó.
 
 ---
 
@@ -160,15 +160,15 @@ Preset nên giúp giảm việc cấu hình project lặp đi lặp lại.
 
 ## Tiêu chí thành công
 
-Các nhóm capability phổ biến được định nghĩa một lần và tái sử dụng trên nhiều profile và project.
+Các nhóm capability phổ biến được định nghĩa một lần và tái sử dụng trên nhiều role và project.
 
 ---
 
-# 5. Cung cấp các profile dựa trên role
+# 5. Cung cấp các role baseline tái sử dụng
 
-Project nên cung cấp profile cho các working context phổ biến.
+Project nên cung cấp role cho các working context phổ biến.
 
-Các profile ban đầu nên bao gồm:
+Các role ban đầu nên bao gồm:
 
 ```text
 software-engineer
@@ -181,17 +181,17 @@ researcher
 second-brain
 ```
 
-Profile nên cung cấp các giá trị mặc định hợp lý trong khi vẫn có thể tùy chỉnh.
+Role nên cung cấp các giá trị mặc định hợp lý trong khi vẫn có thể tùy chỉnh.
 
 ## Tiêu chí thành công
 
-Một người dùng mới có thể chọn một profile và nhận được một baseline hữu ích mà không cần tự chọn từng capability.
+Một người dùng mới có thể chọn một role và nhận được một baseline hữu ích mà không cần tự chọn từng capability.
 
 ---
 
 # 6. Giữ tách biệt mối quan tâm của role và project
 
-Profile nên mô tả các working role tương đối ổn định.
+Role nên mô tả các bối cảnh làm việc tương đối ổn định.
 
 Project nên mô tả các requirement riêng của repository.
 
@@ -211,11 +211,11 @@ Project C
 Astro
 ```
 
-Cùng một profile nên hoạt động được trên nhiều project.
+Cùng một role nên hoạt động được trên nhiều project.
 
 ## Tiêu chí thành công
 
-Thay đổi requirement về stack của project không đòi hỏi phải định nghĩa lại role profile của người dùng.
+Thay đổi requirement về stack của project không đòi hỏi phải định nghĩa lại role của người dùng.
 
 ---
 
@@ -390,7 +390,7 @@ Mọi implementation được chọn đều có thể truy vết qua:
 
 ```text
 Project
-→ Profile
+→ Role
 → Preset
 → Capability
 → Implementation
@@ -630,7 +630,7 @@ Ví dụ:
 ```text
 catalog/
 presets/
-profiles/
+roles/
 policies/
 
         ↓
@@ -678,7 +678,7 @@ Hệ thống nên validate:
 - tham chiếu package,
 - capability mapping,
 - tham chiếu preset,
-- tham chiếu profile,
+- tham chiếu role,
 - target compatibility,
 - dependency cycle,
 - implementation xung đột.
@@ -750,7 +750,7 @@ ap diff
 ap doctor
 
 ap preset ...
-ap profile ...
+ap role ...
 
 ap update
 ```
@@ -792,7 +792,7 @@ Người dùng nên có thể tìm kiếm trên:
 ```text
 capabilities
 presets
-profiles
+roles
 publishers
 packages
 components
@@ -905,7 +905,7 @@ Package
 Component
 Capability
 Preset
-Profile
+Role
 Policy
 Project
 
@@ -948,7 +948,7 @@ Resolve:
 ```text
 Project
 +
-Profile
+Role
 +
 Presets
 +
@@ -1045,9 +1045,9 @@ trên các nguồn không đồng nhất.
 
 ---
 
-# 39. Mục tiêu profile V1
+# 39. Mục tiêu role V1
 
-Tối thiểu, V1 nên cung cấp các profile đại diện cho các loại công việc khác nhau:
+Tối thiểu, V1 nên cung cấp các role đại diện cho các loại công việc khác nhau:
 
 ```text
 frontend-engineer
@@ -1056,7 +1056,7 @@ product-manager
 second-brain
 ```
 
-Bốn profile này được chọn có chủ đích để kiểm thử các capability composition rất khác nhau.
+Bốn role này được chọn có chủ đích để kiểm thử các capability composition rất khác nhau.
 
 Chúng chứng minh rằng model không chỉ giới hạn trong software engineering.
 

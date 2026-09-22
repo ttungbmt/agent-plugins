@@ -57,7 +57,7 @@ community content
 +
 project overlays
 +
-profiles
+roles
 +
 presets
 +
@@ -83,7 +83,7 @@ Context/instructions
 Canonical Capability Layer
         │
         ▼
-Profiles / Presets / Policies
+Roles / Presets / Policies
         │
         ▼
 Resolver + Lockfile
@@ -170,7 +170,7 @@ M7  CLI MVP
 M8  Codex Adapter
 M9  Vendor & Source Model
 M10 Update Engine
-M11 Profiles & Presets UX
+M11 Roles & Presets UX
 M12 Multi-Target Production Readiness
 M13 Community Ecosystem
 M14 Advanced Tooling
@@ -230,7 +230,7 @@ packages/
 └── schemas/
 
 plugins/
-profiles/
+roles/
 presets/
 
 docs/
@@ -280,7 +280,7 @@ Command
 Hook
 
 Preset
-Profile
+Role
 
 Policy
 
@@ -314,7 +314,7 @@ Schema:
 ```text
 package manifest
 component manifest
-profile
+role
 preset
 policy
 ```
@@ -353,7 +353,7 @@ source-of-truth.md
 
 ```text
 manifest validator
-profile validator
+role validator
 preset validator
 policy validator
 ```
@@ -368,7 +368,7 @@ skills/
 agents/
 prompts/
 hooks/
-profiles/
+roles/
 presets/
 ```
 
@@ -380,7 +380,7 @@ presets/
 interface Catalog {
   packages: Map<PackageId, Package>
   components: Map<ComponentId, Component>
-  profiles: Map<ProfileId, Profile>
+  roles: Map<RoleId, Role>
   presets: Map<PresetId, Preset>
 }
 ```
@@ -441,7 +441,7 @@ resolution-spec.md
 
 ```text
 catalog
-profile
+role
 preset
 project config
 dependency constraints
@@ -452,7 +452,7 @@ overlays
 
 ```ts
 interface ResolvedEnvironment {
-  profile: ProfileId
+  role: RoleId
 
   packages: ResolvedPackage[]
   components: ResolvedComponent[]
@@ -470,7 +470,7 @@ V1:
 direct dependencies
 transitive dependencies
 preset composition
-profile inheritance
+role inheritance
 deduplication
 stable ordering
 conflict detection
@@ -754,7 +754,7 @@ unsupported metadata
 
 ## Tiêu chí hoàn thành
 
-Một profile chuẩn có thể render ra một cấu hình project Claude hoàn chỉnh và hợp lệ.
+Một role chuẩn có thể render ra một cấu hình project Claude hoàn chỉnh và hợp lệ.
 
 ---
 
@@ -788,8 +788,8 @@ init
 catalog list
 catalog show
 
-profile list
-profile show
+role list
+role show
 
 resolve
 
@@ -847,7 +847,7 @@ filesystem
 
 ## Tiêu chí hoàn thành
 
-Người dùng có thể khởi tạo một project và cài đặt một profile first-party vào Claude hoàn toàn thông qua CLI.
+Người dùng có thể khởi tạo một project và cài đặt một role first-party vào Claude hoàn toàn thông qua CLI.
 
 ---
 
@@ -862,7 +862,7 @@ Canonical manifests
 
 Catalog
 
-Profiles
+Roles
 
 Presets
 
@@ -884,7 +884,7 @@ Luồng được hỗ trợ:
 ```text
 first-party package
       ↓
-profile
+role
       ↓
 resolver
       ↓
@@ -921,7 +921,7 @@ Việc thêm Codex MUST NOT đòi hỏi thay đổi:
 
 ```text
 canonical package manifests
-profiles
+roles
 presets
 resolver semantics
 ```
@@ -952,7 +952,7 @@ Bất kỳ thiết kế lại lớn nào đối với model chuẩn do Codex đ�
 
 ## Tiêu chí hoàn thành
 
-Cùng một Profile có thể sinh ra:
+Cùng một Role có thể sinh ra:
 
 ```text
 Claude output
@@ -976,7 +976,7 @@ Ví dụ:
 
 ```bash
 agent-plugins build \
-  --profile frontend \
+  --role frontend \
   --target claude \
   --target codex
 ```
@@ -984,7 +984,7 @@ agent-plugins build \
 Pipeline:
 
 ```text
-Profile
+Role
    ↓
 Resolver
    ↓
@@ -1199,13 +1199,13 @@ Các dependency bên ngoài có thể được cập nhật an toàn với một
 
 ---
 
-# 21. Phase 15 — Hoàn thiện hệ thống Profile
+# 21. Phase 15 — Hoàn thiện hệ thống Role
 
 ## Mục tiêu
 
-Biến Profile thành abstraction cấu hình chính hướng tới người dùng.
+Biến Role thành abstraction cấu hình chính hướng tới người dùng.
 
-Các ví dụ profile ban đầu:
+Các ví dụ role ban đầu:
 
 ```text
 software-engineer
@@ -1218,7 +1218,7 @@ product-manager
 second-brain
 ```
 
-Kế thừa profile:
+Kế thừa role:
 
 ```text
 engineering-base
@@ -1376,7 +1376,7 @@ Cho phép nhiều implementation của cùng một capability.
 Việc lựa chọn MAY phụ thuộc vào:
 
 ```text
-Profile
+Role
 Policy
 Priority
 Trust
@@ -1508,7 +1508,7 @@ Why is this installed?
 
 Where did this come from?
 
-Which Profile selected it?
+Which Role selected it?
 
 Which Publisher supplied it?
 
@@ -1528,7 +1528,7 @@ Khi các primitive của CLI đã ổn định, đưa vào các trải nghiệm 
 Ink MAY cung cấp:
 
 ```text
-Profile browser
+Role browser
 
 Catalog explorer
 
@@ -1544,7 +1544,7 @@ Update review
 Ví dụ:
 
 ```text
-┌ Profiles ──────────┐
+┌ Roles ──────────┐
 │ frontend           │
 │ backend            │
 │ second-brain       │
@@ -1595,7 +1595,7 @@ Targets?
 Kết quả:
 
 ```yaml
-profile: frontend
+role: frontend
 
 targets:
   - claude
@@ -1750,7 +1750,7 @@ JetBrains
 Các tính năng tiềm năng:
 
 ```text
-profile selection
+role selection
 
 catalog browser
 
@@ -1778,7 +1778,7 @@ search catalog
 
 inspect capability
 
-resolve profile
+resolve role
 
 show generated plan
 
@@ -1855,7 +1855,7 @@ Hỗ trợ:
 
 ```text
 repo root
-├── shared profile
+├── shared role
 ├── frontend project
 ├── backend project
 └── documentation project
@@ -1866,14 +1866,14 @@ Cấu hình khả dĩ:
 ```yaml
 workspace:
   defaults:
-    profile: engineering-base
+    role: engineering-base
 
 projects:
   apps/web:
-    profile: frontend
+    role: frontend
 
   apps/api:
-    profile: backend
+    role: backend
 ```
 
 Resolution SHOULD hỗ trợ caching dùng chung trong khi vẫn bảo toàn sự cô lập giữa các project.
@@ -1989,7 +1989,7 @@ Khi trưởng thành, nền tảng có thể trông như sau:
                          │
                   Canonical Catalog
                          │
-                 Profiles / Presets
+                 Roles / Presets
                          │
                      Policies
                          │
@@ -2028,7 +2028,7 @@ Thứ tự thực tế SHOULD là:
 
 09. Preset loader
 
-10. Profile loader
+10. Role loader
 
 11. Resolver
 
@@ -2056,7 +2056,7 @@ Thứ tự thực tế SHOULD là:
 
 23. catalog commands
 
-24. profile commands
+24. role commands
 
 25. resolve command
 
@@ -2084,7 +2084,7 @@ Thứ tự thực tế SHOULD là:
 
 37. Update engine
 
-38. Preset/profile UX
+38. Preset/role UX
 
 39. More target adapters
 
@@ -2100,7 +2100,7 @@ Ranh giới MVP mạnh nhất là:
 ```text
 first-party canonical repository
 +
-profile/preset composition
+role/preset composition
 +
 deterministic resolver
 +
@@ -2136,7 +2136,7 @@ agent-plugins init
 Chọn:
 
 ```text
-Profile:
+Role:
   frontend
 
 Target:
@@ -2205,7 +2205,7 @@ catalog
 
 validation
 
-basic profile
+basic role
 
 basic preset
 
@@ -2319,7 +2319,7 @@ maintain upstream-derived content
 Thêm:
 
 ```text
-profile maturity
+role maturity
 
 preset library
 
@@ -2411,7 +2411,7 @@ V1.0 SHOULD đại diện cho một contract ổn định đối với:
 ```text
 canonical manifests
 
-profiles
+roles
 
 presets
 
@@ -2627,7 +2627,7 @@ Trong số này, ưu tiên cao nhất là:
 configuration-spec.md
 ```
 
-vì CLI, Profile, target, source và policy đều cần một contract cấu hình project cụ thể.
+vì CLI, Role, target, source và policy đều cần một contract cấu hình project cụ thể.
 
 ---
 
@@ -2903,7 +2903,7 @@ Source adapters
 Vendor
 Overlay
 Update
-Profiles
+Roles
 Preset library
 More runtimes
 ```

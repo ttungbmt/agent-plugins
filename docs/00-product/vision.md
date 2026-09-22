@@ -119,7 +119,7 @@ Capability
    ↓
 Preset
    ↓
-Profile + Project + Policy
+Role + Project + Policy
    ↓
 Resolver
    ↓
@@ -210,7 +210,7 @@ The project should favor:
 curation over accumulation
 ```
 
-A high-quality profile may use components from many publishers without installing everything those publishers offer.
+A high-quality role may use components from many publishers without installing everything those publishers offer.
 
 For example:
 
@@ -288,7 +288,7 @@ Researcher
 Second Brain
 ```
 
-A profile represents a reusable working context.
+A role represents a reusable working context.
 
 Example:
 
@@ -302,13 +302,13 @@ frontend-engineer
 └── typescript
 ```
 
-Profiles provide sensible defaults without locking users into a rigid environment.
+Roles provide sensible defaults without locking users into a rigid environment.
 
 ---
 
 # 9. Project-Aware Composition
 
-Profiles describe the user or working role.
+Roles describe the user's working context.
 
 Projects describe the current repository.
 
@@ -330,7 +330,7 @@ Project C
 Astro
 ```
 
-The profile remains stable while project-specific presets change.
+The role remains stable while project-specific presets change.
 
 This enables:
 
@@ -426,7 +426,7 @@ catalog
 +
 project manifest
 +
-profile
+role
 +
 policy
 +
@@ -464,7 +464,7 @@ Which capability does it provide?
 
 Which preset requested it?
 
-Which profile requested that preset?
+Which role requested that preset?
 
 Why was this implementation selected?
 
@@ -807,7 +807,7 @@ Maintainers should be able to:
 - map components to capabilities,
 - define preferred implementations,
 - build presets,
-- define profiles,
+- define roles,
 - test resolution,
 - review upstream changes,
 - publish updates.
@@ -837,7 +837,7 @@ The long-term ecosystem can be visualized as:
                             │
                          Presets
                             │
-                         Profiles
+                         Roles
                             │
                           Projects
                             │
@@ -869,7 +869,7 @@ Curated implementation mapping
 +
 Composable presets
 +
-Role-based profiles
+Reusable role baselines
 +
 Policy-aware resolution
 +
@@ -896,7 +896,7 @@ The project may eventually evolve through several stages.
 Catalog
 Capabilities
 Presets
-Profiles
+Roles
 Resolver
 Lockfile
 Claude Code support

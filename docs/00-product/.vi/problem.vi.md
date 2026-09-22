@@ -826,7 +826,7 @@ Một project chỉ nên chứa một manifest khai báo nhỏ.
 Ví dụ:
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 
 presets:
   - nextjs
@@ -971,7 +971,7 @@ Có thể coi bài toán được giải quyết tốt khi người dùng có th
 ### Cấu hình theo intent
 
 ```text
-profile + presets
+role + presets
 ```
 
 thay vì tự liệt kê hàng chục plugin.
@@ -990,7 +990,7 @@ Mọi package/component được chọn đều có thể trace ngược:
 
 ```text
 project
-→ profile
+→ role
 → preset
 → capability
 → implementation

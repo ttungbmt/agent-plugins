@@ -19,7 +19,7 @@ Capability
    ↓
 Preset
    ↓
-Profile + Project + Policy
+Role + Project + Policy
    ↓
 Resolver
    ↓
@@ -51,7 +51,7 @@ Kiến trúc phải cho phép:
 ```text
 capability-first configuration
 
-reusable presets and profiles
+reusable presets and roles
 
 publisher-independent user intent
 
@@ -73,7 +73,7 @@ multi-runtime extensibility
 Kiến trúc cũng phải tránh:
 
 ```text
-publisher logic leaking into profiles
+publisher logic leaking into roles
 
 runtime-specific concepts leaking into the domain
 
@@ -152,7 +152,7 @@ Core model không nên phụ thuộc vào các hệ thống bên ngoài.
 │ Component                                │
 │ Capability                               │
 │ Preset                                   │
-│ Profile                                  │
+│ Role                                  │
 │ Policy                                   │
 │ Project                                  │
 │ Resolution                               │
@@ -258,7 +258,7 @@ Capability
 Capability Implementation
 
 Preset
-Profile
+Role
 Policy
 Project
 
@@ -465,7 +465,7 @@ Which capability should the project use?
 
 Which candidate should win?
 
-Which profile needs this package?
+Which role needs this package?
 ```
 
 Đó là mối quan tâm của resolver và catalog.
@@ -674,14 +674,14 @@ Composition được biểu diễn thông qua:
 
 ```text
 Presets
-Profiles
+Roles
 Projects
 ```
 
 Hướng phụ thuộc:
 
 ```text
-Profile
+Role
    ↓
 Preset
    ↓
@@ -716,25 +716,25 @@ Preset là input khai báo authoritative.
 
 ---
 
-# 23. Lưu trữ Profile
+# 23. Lưu trữ Role
 
-Các profile canonical nằm trong:
+Các role canonical nằm trong:
 
 ```text
-profiles/
+roles/
 ```
 
 Ví dụ:
 
 ```text
-profiles/
+roles/
 ├── frontend-engineer.yaml
 ├── backend-engineer.yaml
 ├── product-manager.yaml
 └── second-brain.yaml
 ```
 
-Profile nên chủ yếu tham chiếu đến Preset.
+Role nên chủ yếu tham chiếu đến Preset.
 
 ---
 
@@ -755,7 +755,7 @@ personal.yaml
 enterprise.yaml
 ```
 
-Policy được resolve độc lập với Profile.
+Policy được resolve độc lập với Role.
 
 ---
 
@@ -772,7 +772,7 @@ Về mặt khái niệm:
 ```yaml
 apiVersion: agent-plugins.dev/v1alpha1
 
-profile: frontend-engineer
+role: frontend-engineer
 
 presets:
   - stacks/nextjs
@@ -802,7 +802,7 @@ Distribution Lock
 
 Project Manifest
 
-Resolved Profile
+Resolved Role
 
 Resolved Presets
 
@@ -828,7 +828,7 @@ Load Project
      ↓
 Validate Project
      ↓
-Expand Profile
+Expand Role
      ↓
 Expand Presets
      ↓
@@ -930,12 +930,12 @@ display output
 
 # 30. Mở rộng requirement
 
-Việc mở rộng Profile và Preset nên diễn ra trước khi lựa chọn implementation.
+Việc mở rộng Role và Preset nên diễn ra trước khi lựa chọn implementation.
 
 Đúng:
 
 ```text
-Profile
+Role
     ↓
 Presets
     ↓
@@ -1427,7 +1427,7 @@ Nó không nên định nghĩa lại:
 ```text
 Capability meaning
 
-Profile semantics
+Role semantics
 
 Preset composition
 
@@ -1727,7 +1727,7 @@ capability exists
 
 preset exists
 
-profile exists
+role exists
 
 policy exists
 ```
@@ -1898,7 +1898,7 @@ aliases
 
 presets
 
-profiles
+roles
 
 publishers
 
@@ -1977,7 +1977,7 @@ catalog/publishers/
 catalog/packages/
 catalog/capabilities/
 presets/
-profiles/
+roles/
 policies/
 plugins/native/
 
@@ -2018,7 +2018,7 @@ agent-plugins/
 │   └── capabilities/
 │
 ├── presets/
-├── profiles/
+├── roles/
 ├── policies/
 │
 ├── plugins/
@@ -2107,7 +2107,7 @@ publisher.schema.json
 package.schema.json
 capability.schema.json
 preset.schema.json
-profile.schema.json
+role.schema.json
 policy.schema.json
 project.schema.json
 lockfile.schema.json
@@ -2390,7 +2390,7 @@ Capability Mapping
     ↓
 Preset Impact
     ↓
-Profile Impact
+Role Impact
 ```
 
 Các reverse index được generate có thể giúp việc này hiệu quả.
@@ -2842,7 +2842,7 @@ Hệ thống phải giữ được:
 
 2. Core capabilities are target-independent.
 
-3. Profiles compose Presets.
+3. Roles compose Presets.
 
 4. Presets compose Capabilities.
 
@@ -2892,7 +2892,7 @@ Schema validation
 
 Catalog loading
 
-Preset/Profile expansion
+Preset/Role expansion
 
 Dependency graphs
 
@@ -3059,7 +3059,7 @@ Các ADR có khả năng bổ sung:
 ```text
 agent-plugins.yaml
 
-profile:
+role:
 frontend-engineer
 
 presets:
@@ -3078,7 +3078,7 @@ Project Loader
 
         ↓
 
-Profile Expansion
+Role Expansion
 
 frontend-engineer
 → workflow/core
@@ -3235,7 +3235,7 @@ Capability Impact
 
     ↓
 
-Preset / Profile Impact
+Preset / Role Impact
 
     ↓
 
@@ -3273,7 +3273,7 @@ Curated Catalog
         ↓
 Capabilities
         ↓
-Presets / Profiles / Project
+Presets / Roles / Project
         ↓
 Policy-Aware Resolver
         ↓

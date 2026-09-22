@@ -382,7 +382,7 @@ integrity hashes
 It should not contain:
 
 ```text id="sa6ox7"
-Project Profiles
+Project Roles
 
 Project Presets
 
@@ -719,7 +719,7 @@ spec:
         component: superpowers/superpowers#skill:test-driven-development
 
       requiredBy:
-        - profile/frontend-engineer
+        - role/frontend-engineer
         - preset/engineering/core
 
   packages:
@@ -832,7 +832,7 @@ The digest should include semantic fields only.
 Recommended inputs:
 
 ```text id="55tmc4"
-profile
+role
 
 presets
 
@@ -866,7 +866,7 @@ The system may also record a digest of fully expanded semantic intent.
 For example:
 
 ```text id="l7ew7x"
-expanded Profile
+expanded Role
 
 expanded Presets
 
@@ -922,9 +922,9 @@ include normalized Policy in resolutionInputDigest
 
 ---
 
-# 39. Profile and Preset Digests
+# 39. Role and Preset Digests
 
-Likewise, Profiles and Presets are referenced by ID but their content can change.
+Likewise, Roles and Presets are referenced by ID but their content can change.
 
 The project lock should detect semantic changes even if IDs remain stable.
 
@@ -947,7 +947,7 @@ resolutionInputDigest =
 hash(
   normalized project intent
   +
-  expanded profile
+  expanded role
   +
   expanded presets
   +
@@ -970,13 +970,13 @@ Exact canonical serialization must be deterministic.
 Without content digests:
 
 ```text id="fzqnkk"
-Profile ID unchanged
+Role ID unchanged
 ```
 
 could hide:
 
 ```text id="nmx9xr"
-Profile contents changed
+Role contents changed
 ```
 
 The Lockfile could appear current while semantics actually changed.
@@ -1073,7 +1073,7 @@ Example:
 
 ```yaml id="q6u6vs"
 requiredBy:
-  - profile/frontend-engineer
+  - role/frontend-engineer
   - preset/engineering/core
 ```
 
@@ -1160,7 +1160,7 @@ capabilities:
       - superpowers/superpowers#skill:test-driven-development
 
     requiredBy:
-      - profile/frontend-engineer
+      - role/frontend-engineer
       - preset/engineering/core
 ```
 
@@ -1685,7 +1685,7 @@ Examples:
 ```text id="fr0eqf"
 Project Manifest semantic change
 
-Profile content change
+Role content change
 
 Preset content change
 
@@ -3835,7 +3835,7 @@ It creates unclear ownership.
 Avoid:
 
 ```yaml id="ehwucr"
-profile: frontend-engineer
+role: frontend-engineer
 
 packages:
   superpowers: 6.4
@@ -4117,7 +4117,7 @@ Project:
 ```text id="4rbkza"
 agent-plugins.yaml
 
-profile:
+role:
 frontend-engineer
 ```
 

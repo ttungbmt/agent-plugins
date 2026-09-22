@@ -65,7 +65,7 @@ raw plugin installation list
 Nên dùng:
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 
 presets:
   - stacks/nextjs
@@ -138,7 +138,7 @@ metadata:
   name: mealops
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   presets:
     - stacks/nextjs
@@ -252,7 +252,7 @@ không nên làm thay đổi các implementation được chọn.
 Các field cốt lõi của V1:
 
 ```text
-profile
+role
 presets
 capabilities
 policy
@@ -264,7 +264,7 @@ Về mặt khái niệm:
 
 ```yaml
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
   presets: []
   capabilities: {}
   policy: default
@@ -284,7 +284,7 @@ apiVersion: agent-plugins.dev/v1alpha1
 kind: Project
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   targets:
     - claude-code
@@ -306,7 +306,7 @@ metadata:
   name: mealops
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   presets:
     - stacks/nextjs
@@ -321,32 +321,32 @@ spec:
 
 ---
 
-# 12. Profile
+# 12. Role
 
-`spec.profile` chọn một Profile có thể tái sử dụng.
+`spec.role` chọn một Role có thể tái sử dụng.
 
 Ví dụ:
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 ```
 
-Profile thiết lập ý định nền tảng ở cấp độ vai trò (role).
+Role thiết lập ý định nền tảng cho người đang làm việc.
 
 ---
 
-# 13. Số lượng Profile
+# 13. Số lượng Role
 
 V1 nên hỗ trợ:
 
 ```text
-zero or one Profile
+zero or one Role
 ```
 
 Không phải:
 
 ```text
-multiple Profiles
+multiple Roles
 ```
 
 theo mặc định.
@@ -365,9 +365,9 @@ Với nhu cầu hỗn hợp, hãy dùng thêm Preset.
 
 ---
 
-# 14. Profile tùy chọn
+# 14. Role tùy chọn
 
-Một project có thể bỏ qua Profile và kết hợp hoàn toàn từ các Preset hoặc các Capability tường minh.
+Một project có thể bỏ qua Role và kết hợp hoàn toàn từ các Preset hoặc các Capability tường minh.
 
 Ví dụ:
 
@@ -385,20 +385,20 @@ Phải tồn tại ít nhất một nguồn ý định Capability.
 
 ---
 
-# 15. Profile phải tồn tại
+# 15. Role phải tồn tại
 
-Tham chiếu Profile phải resolve được tới distribution đang hoạt động.
+Tham chiếu Role phải resolve được tới distribution đang hoạt động.
 
 Không hợp lệ:
 
 ```yaml
-profile: nonexistent-role
+role: nonexistent-role
 ```
 
 Diagnostic:
 
 ```text
-UNKNOWN_PROFILE
+UNKNOWN_ROLE
 ```
 
 ---
@@ -465,19 +465,19 @@ Không mục trùng lặp nào được tạo ra hành vi ngữ nghĩa trùng l�
 
 ---
 
-# 19. Project Preset so với Profile Preset
+# 19. Project Preset so với Role Preset
 
 Về mặt khái niệm, các Preset hiệu lực là:
 
 ```text
-Profile Presets
+Role Presets
 +
 Project Presets
 ```
 
 Chúng được mở rộng cùng nhau trước khi thực hiện Capability Resolution.
 
-Project Preset không thay thế Profile Preset trừ khi điều đó được mô hình hóa tường minh trong tương lai.
+Project Preset không thay thế Role Preset trừ khi điều đó được mô hình hóa tường minh trong tương lai.
 
 ---
 
@@ -553,7 +553,7 @@ Cách này giữ tất cả các ngoại lệ tường minh ở cùng một ch�
 Composition thông thường:
 
 ```text
-Profile
+Role
 +
 Presets
 ```
@@ -787,7 +787,7 @@ thay vì âm thầm tạo ra một graph không hợp lệ.
 
 # 34. Bật trùng lặp
 
-Nếu một Capability đã được kế thừa từ Profile hoặc Preset và đồng thời được bật tường minh:
+Nếu một Capability đã được kế thừa từ Role hoặc Preset và đồng thời được bật tường minh:
 
 ```text
 deduplicate semantic requirement
@@ -970,7 +970,7 @@ Consumer thông thường không cần biết tên Publisher.
 Ý định Capability được xây dựng từ:
 
 ```text
-Profile
+Role
    +
 Project Presets
    +
@@ -1153,7 +1153,7 @@ poor explainability
 Việc tái sử dụng nên diễn ra thông qua:
 
 ```text
-Profiles
+Roles
 Presets
 Policies
 ```
@@ -1200,7 +1200,7 @@ V1 không nên thực hiện nội suy (interpolation) biến môi trường tù
 Tránh dùng:
 
 ```yaml
-profile: ${AGENT_PROFILE}
+role: ${AGENT_ROLE}
 ```
 
 vì trạng thái môi trường ẩn có thể khiến Resolution không thể tái lập (non-reproducible).
@@ -1270,7 +1270,7 @@ kind:
 metadata:
 
 spec:
-  profile:
+  role:
   presets:
   policy:
   targets:
@@ -1338,7 +1338,7 @@ array structure
 Kiểm tra:
 
 ```text
-Profile exists
+Role exists
 
 Preset exists
 
@@ -1384,7 +1384,7 @@ spec:
     - claude-code
 ```
 
-vì không tồn tại Profile, Preset hay ý định Capability nào.
+vì không tồn tại Role, Preset hay ý định Capability nào.
 
 Ngoại lệ có thể có:
 
@@ -1396,7 +1396,7 @@ có thể được hỗ trợ sau này nếu hữu ích.
 
 ---
 
-# 65. Project chỉ có Profile
+# 65. Project chỉ có Role
 
 Hợp lệ:
 
@@ -1405,13 +1405,13 @@ apiVersion: agent-plugins.dev/v1alpha1
 kind: Project
 
 spec:
-  profile: backend-engineer
+  role: backend-engineer
 
   targets:
     - claude-code
 ```
 
-Profile cung cấp ý định Capability.
+Role cung cấp ý định Capability.
 
 ---
 
@@ -1479,7 +1479,7 @@ Không có gì có ý nghĩa để resolve.
 
 # 69. Các ID tham chiếu trong Manifest
 
-Profile:
+Role:
 
 ```text
 frontend-engineer
@@ -1519,7 +1519,7 @@ Mỗi field sử dụng định danh domain chuẩn cho thực thể của nó.
 
 ---
 
-# 70. Ví dụ Profile
+# 70. Ví dụ Role
 
 ```yaml
 apiVersion: agent-plugins.dev/v1alpha1
@@ -1529,7 +1529,7 @@ metadata:
   name: web-app
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   targets:
     - claude-code
@@ -1547,7 +1547,7 @@ metadata:
   name: mealops
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   presets:
     - stacks/nextjs
@@ -1572,7 +1572,7 @@ metadata:
   name: api-service
 
 spec:
-  profile: backend-engineer
+  role: backend-engineer
 
   presets:
     - stacks/typescript
@@ -1597,7 +1597,7 @@ metadata:
   name: product-workspace
 
 spec:
-  profile: product-manager
+  role: product-manager
 
   presets:
     - knowledge/research
@@ -1621,7 +1621,7 @@ metadata:
   name: personal-knowledge-system
 
 spec:
-  profile: second-brain
+  role: second-brain
 
   presets:
     - knowledge/research
@@ -1644,7 +1644,7 @@ apiVersion: agent-plugins.dev/v1alpha1
 kind: Project
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   targets:
     - claude-code
@@ -1664,7 +1664,7 @@ apiVersion: agent-plugins.dev/v1alpha1
 kind: Project
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   targets:
     - claude-code
@@ -1686,7 +1686,7 @@ apiVersion: agent-plugins.dev/v1alpha1
 kind: Project
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   targets:
     - claude-code
@@ -1709,7 +1709,7 @@ metadata:
   name: custom-web-app
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   presets:
     - stacks/nextjs
@@ -1769,7 +1769,7 @@ Về mặt khái niệm:
 ```text
 Project
 
-profile:
+role:
   frontend-engineer
 
 presets:
@@ -1835,7 +1835,7 @@ Một Target mặc định có thể gây ra hành vi bất ngờ khi hỗ trợ
 Do đó:
 
 ```text
-Profile may default
+Role may default
 Policy may default
 Target should remain explicit
 ```
@@ -1844,9 +1844,9 @@ Target should remain explicit
 
 ---
 
-# 83. Profile mặc định
+# 83. Role mặc định
 
-V1 không nên đặt mặc định một Profile.
+V1 không nên đặt mặc định một Role.
 
 Hệ thống không thể an toàn giả định:
 
@@ -1856,7 +1856,7 @@ software-engineer
 
 cho mọi consumer.
 
-`ap init` có thể đề xuất hoặc cho chọn tương tác một Profile, nhưng manifest kết quả nên chứa Profile một cách tường minh.
+`ap init` có thể đề xuất hoặc cho chọn tương tác một Role, nhưng manifest kết quả nên chứa Role một cách tường minh.
 
 ---
 
@@ -1933,7 +1933,7 @@ resolved concrete state
 Các thay đổi có thể yêu cầu resolve lại bao gồm:
 
 ```text
-Profile change
+Role change
 
 Preset change
 
@@ -1963,7 +1963,7 @@ Project Lockfile có thể chứa một digest của dữ liệu manifest đã c
 Ví dụ, hash:
 
 ```text
-profile
+role
 presets
 policy
 targets
@@ -1982,7 +1982,7 @@ formatting
 
 ---
 
-# 89. Thay đổi Manifest: Profile
+# 89. Thay đổi Manifest: Role
 
 Ví dụ:
 
@@ -2250,7 +2250,7 @@ Một tổ chức trong tương lai có thể muốn cấu hình dùng chung.
 Ưu tiên các thành phần có thể tái sử dụng:
 
 ```text
-Profiles
+Roles
 Presets
 Policies
 ```
@@ -2412,7 +2412,7 @@ metadata:
   description?: string
 
 spec:
-  profile?: ProfileId
+  role?: RoleId
 
   presets?: PresetId[]
 
@@ -2439,7 +2439,7 @@ spec:
 Manifest phải chứa ít nhất một trong các thành phần sau:
 
 ```text
-profile
+role
 
 preset
 
@@ -2520,7 +2520,7 @@ Preset:
 engineering/security
 ```
 
-Profile:
+Role:
 
 ```text
 frontend-engineer
@@ -2541,7 +2541,7 @@ UNSUPPORTED_API_VERSION
 
 UNKNOWN_FIELD
 
-UNKNOWN_PROFILE
+UNKNOWN_ROLE
 
 UNKNOWN_PRESET
 
@@ -2573,7 +2573,7 @@ MULTI_TARGET_NOT_SUPPORTED
 Diagnostic nên bao gồm các đường dẫn như:
 
 ```text
-spec.profile
+spec.role
 
 spec.presets[1]
 
@@ -2599,7 +2599,7 @@ Ví dụ:
   "apiVersion": "agent-plugins.dev/v1alpha1",
   "kind": "Project",
   "spec": {
-    "profile": "frontend-engineer",
+    "role": "frontend-engineer",
     "targets": ["claude-code"]
   }
 }
@@ -2628,7 +2628,7 @@ agent-plugins.yaml
 Luồng khái niệm:
 
 ```text
-select Profile
+select Role
 ↓
 select optional Presets
 ↓
@@ -2681,13 +2681,13 @@ Việc xóa một Project Preset nên chỉnh sửa:
 spec.presets
 ```
 
-Việc xóa một Capability kế thừa từ Profile có thể cần thêm:
+Việc xóa một Capability kế thừa từ Role có thể cần thêm:
 
 ```text
 spec.overrides.capabilities.disable
 ```
 
-CLI nên giữ nguyên mô hình ngữ nghĩa thay vì làm phẳng (flatten) Profile.
+CLI nên giữ nguyên mô hình ngữ nghĩa thay vì làm phẳng (flatten) Role.
 
 ---
 
@@ -2711,7 +2711,7 @@ Ví dụ:
 engineering.testing.tdd
 
 Required by:
-profile frontend-engineer
+role frontend-engineer
 → preset engineering/core
 
 Implementation:
@@ -2785,21 +2785,21 @@ actual runtime state
 
 ---
 
-# 134. Manifest so với Profile
+# 134. Manifest so với Role
 
 Manifest chọn:
 
 ```text
-Profile
+Role
 ```
 
-Profile định nghĩa:
+Role định nghĩa:
 
 ```text
 reusable role baseline
 ```
 
-Không nhúng trực tiếp nội dung Profile vào mọi Manifest.
+Không nhúng trực tiếp nội dung Role vào mọi Manifest.
 
 ---
 
@@ -2914,7 +2914,7 @@ không được ảnh hưởng đến input Resolution đã chuẩn hóa.
 Fingerprint của Manifest đã chuẩn hóa nên bao gồm:
 
 ```text
-profile
+role
 
 presets
 
@@ -2966,7 +2966,7 @@ apiVersion: agent-plugins.dev/v1alpha1
 kind: Project
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   targets:
     - claude-code
@@ -2984,7 +2984,7 @@ metadata:
   name: web-platform
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   presets:
     - stacks/nextjs
@@ -3008,7 +3008,7 @@ metadata:
   name: backend-service
 
 spec:
-  profile: backend-engineer
+  role: backend-engineer
 
   presets:
     - stacks/typescript
@@ -3022,7 +3022,7 @@ spec:
 
 ---
 
-# 146. Ví dụ — Không có Profile
+# 146. Ví dụ — Không có Role
 
 ```yaml
 apiVersion: agent-plugins.dev/v1alpha1
@@ -3052,7 +3052,7 @@ apiVersion: agent-plugins.dev/v1alpha1
 kind: Project
 
 spec:
-  profile: backend-engineer
+  role: backend-engineer
 
   targets:
     - claude-code
@@ -3072,7 +3072,7 @@ apiVersion: agent-plugins.dev/v1alpha1
 kind: Project
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   targets:
     - claude-code
@@ -3092,7 +3092,7 @@ apiVersion: agent-plugins.dev/v1alpha1
 kind: Project
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   targets:
     - claude-code
@@ -3123,7 +3123,7 @@ publisher selection leaks into consumer intent
 
 duplicate workflows become likely
 
-Profiles/Presets are bypassed
+Roles/Presets are bypassed
 
 Resolver loses semantic context
 ```
@@ -3185,12 +3185,12 @@ Resolution cốt lõi phải luôn mang tính tất định và khai báo.
 
 ---
 
-# 154. Ví dụ không hợp lệ — Nhiều Profile cạnh tranh nhau
+# 154. Ví dụ không hợp lệ — Nhiều Role cạnh tranh nhau
 
 Tránh dùng:
 
 ```yaml
-profiles:
+roles:
   - frontend-engineer
   - backend-engineer
   - product-manager
@@ -3199,7 +3199,7 @@ profiles:
 Hãy dùng:
 
 ```text
-one Profile
+one Role
 +
 additional Presets
 ```
@@ -3231,7 +3231,7 @@ Capability over Publisher
 
 composition over inheritance
 
-Profile for role
+Role for who is working
 
 Preset for reusable composition
 
@@ -3253,7 +3253,7 @@ Tránh:
 ```text
 large plugin arrays
 
-publisher-specific Profiles
+publisher-specific Roles
 
 publisher-specific Presets
 
@@ -3295,7 +3295,7 @@ targets
 Ngoài ra, cần ít nhất một nguồn ý định ngữ nghĩa:
 
 ```text
-profile
+role
 
 preset
 
@@ -3309,7 +3309,7 @@ Capability enable override
 ```text
 metadata
 
-spec.profile
+spec.role
 
 spec.presets
 
@@ -3331,7 +3331,7 @@ default
 V1 không nên yêu cầu:
 
 ```text
-multiple Profiles
+multiple Roles
 
 nested manifest inheritance
 
@@ -3345,7 +3345,7 @@ inline Policy definitions
 
 version pinning in Project manifest
 
-task-level profiles
+task-level roles
 
 automatic stack detection fields
 
@@ -3395,9 +3395,9 @@ Project Manifest phải bảo toàn:
 
 4. It does not contain generated runtime state.
 
-5. It selects at most one Profile in V1.
+5. It selects at most one Role in V1.
 
-6. Profiles and Presets remain reusable external entities.
+6. Roles and Presets remain reusable external entities.
 
 7. Policy is selected by reference.
 
@@ -3430,7 +3430,7 @@ metadata:
   name: my-project
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   presets:
     - stacks/nextjs
@@ -3461,7 +3461,7 @@ metadata:
   name: my-project
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   presets:
     - stacks/nextjs

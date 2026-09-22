@@ -129,7 +129,7 @@ catalog/packages/
 catalog/capabilities/
 
 presets/
-profiles/
+roles/
 policies/
 
 plugins/native/
@@ -151,7 +151,7 @@ default priority
 curation status
 trust classification
 preset composition
-profile composition
+role composition
 ```
 
 Ví dụ:
@@ -323,29 +323,29 @@ Một index được generate có thể liệt kê các capability của nó, nh
 
 ---
 
-# 10. Profile Metadata canonical
+# 10. Role Metadata canonical
 
 Source of truth:
 
 ```text
-profiles/
+roles/
 ```
 
-Profile sở hữu:
+Role sở hữu:
 
 ```text
-Profile ID
+Role ID
 Preset composition
-Profile metadata
+Role metadata
 ```
 
 Ví dụ:
 
 ```text
-profiles/frontend-engineer.yaml
+roles/frontend-engineer.yaml
 ```
 
-Các profile index được generate không được trở thành các định nghĩa có thể chỉnh sửa độc lập.
+Các role index được generate không được trở thành các định nghĩa có thể chỉnh sửa độc lập.
 
 ---
 
@@ -491,7 +491,7 @@ Publisher
 Package
 Capability
 Preset
-Profile
+Role
 Policy
 Project
 Lockfile
@@ -791,7 +791,7 @@ agent-plugins.yaml
 Nó sở hữu ý định (intent) của project như:
 
 ```text
-profile
+role
 presets
 policy
 targets
@@ -818,7 +818,7 @@ Những thứ đó thuộc về nơi khác.
 Nên dùng:
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 
 presets:
   - stacks/nextjs
@@ -977,7 +977,7 @@ Distribution Lock
 
 Project Manifest
 
-Profile
+Role
 
 Presets
 
@@ -1236,7 +1236,7 @@ Authoritative Catalog Mapping
 │                                            │
 │ catalog/                                   │
 │ presets/                                   │
-│ profiles/                                  │
+│ roles/                                  │
 │ policies/                                  │
 │ plugins/native/                            │
 └─────────────────────┬──────────────────────┘
@@ -1275,7 +1275,7 @@ artifacts                   │
 | Implementation mapping | `catalog/capabilities/` | Curation của maintainer |
 | Độ ưu tiên implementation mặc định | `catalog/capabilities/` | Curation của maintainer |
 | Thành phần của Preset | `presets/` | Curation của maintainer |
-| Thành phần của Profile | `profiles/` | Curation của maintainer |
+| Thành phần của Role | `roles/` | Curation của maintainer |
 | Các quy tắc Policy | `policies/` | Curation của maintainer |
 | Native source code | `plugins/native/` | Implementation first-party |
 | Component inventory third-party | Discovery state được generate | Source adapter + upstream |
@@ -1298,7 +1298,7 @@ artifacts                   │
 ```text
 catalog/
 presets/
-profiles/
+roles/
 policies/
 plugins/native/
 ```
@@ -1653,7 +1653,7 @@ Các input canonical của resolver là:
 Catalog
 Distribution Lock
 Project Manifest
-Profile
+Role
 Presets
 Policy
 Target descriptor
@@ -1957,7 +1957,7 @@ Effective configuration nên được tính toán từ:
 ```text
 Project
 +
-Profile
+Role
 +
 Presets
 +
@@ -2071,7 +2071,7 @@ Resolution của project không được phụ thuộc vào global state không 
 Nếu trong tương lai có cấu hình cấp người dùng:
 
 ```text
-global profile defaults
+global role defaults
 preferred policy
 ```
 
@@ -2260,7 +2260,7 @@ Project explicit override
         ↓
 Project Presets
         ↓
-Profile Presets
+Role Presets
 ```
 
 Đối với tính đủ điều kiện (eligibility) của implementation:
@@ -2434,12 +2434,12 @@ Sau đó validate thành phần (composition).
 
 ---
 
-## Thêm Profile
+## Thêm Role
 
 Chỉnh sửa:
 
 ```text
-profiles/
+roles/
 ```
 
 ---
@@ -2703,7 +2703,7 @@ lockfiles conform to schemas
 
 Capability mappings reference valid Components
 
-Preset/Profile references are valid
+Preset/Role references are valid
 ```
 
 ---
@@ -2775,7 +2775,7 @@ Nếu các câu hỏi này không có câu trả lời rõ ràng, quyền sở h
 | Những component nào tồn tại ở upstream? | Component inventory đã discover/được generate |
 | Phiên bản upstream nào được curate? | `catalog.lock` |
 | Những capability nào thuộc về cùng nhau? | `presets/` |
-| Role này sử dụng những gì? | `profiles/` |
+| Role này sử dụng những gì? | `roles/` |
 | Những gì được cho phép? | `policies/` |
 | Source first-party nằm ở đâu? | `plugins/native/` |
 | Project này muốn gì? | `agent-plugins.yaml` |
@@ -2845,7 +2845,7 @@ Curated Intent
 │
 ├── catalog/
 ├── presets/
-├── profiles/
+├── roles/
 ├── policies/
 └── plugins/native/
         │

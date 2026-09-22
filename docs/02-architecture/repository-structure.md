@@ -70,7 +70,7 @@ agent-plugins/
 │       │   │   ├── search/
 │       │   │   ├── explain/
 │       │   │   ├── preset/
-│       │   │   └── profile/
+│       │   │   └── role/
 │       │   │
 │       │   ├── ui/
 │       │   ├── formatters/
@@ -102,7 +102,7 @@ agent-plugins/
 │   │       ├── package.schema.json
 │   │       ├── capability.schema.json
 │   │       ├── preset.schema.json
-│   │       ├── profile.schema.json
+│   │       ├── role.schema.json
 │   │       ├── policy.schema.json
 │   │       ├── project.schema.json
 │   │       └── lockfile.schema.json
@@ -197,7 +197,7 @@ agent-plugins/
 │       ├── browser.yaml
 │       └── obsidian.yaml
 │
-├── profiles/
+├── roles/
 │   ├── software-engineer.yaml
 │   ├── frontend-engineer.yaml
 │   ├── backend-engineer.yaml
@@ -328,7 +328,7 @@ Runtime Code
 Domain Data
 ├── catalog/
 ├── presets/
-├── profiles/
+├── roles/
 ├── policies/
 └── plugins/
 
@@ -560,7 +560,7 @@ package.ts
 component.ts
 capability.ts
 preset.ts
-profile.ts
+role.ts
 project.ts
 policy.ts
 target.ts
@@ -744,7 +744,7 @@ publisher
 package
 capability
 preset
-profile
+role
 policy
 project
 lockfile
@@ -1152,7 +1152,7 @@ synthesis
 knowledge-management
 ```
 
-Useful for non-coding Profiles.
+Useful for non-coding Roles.
 
 ---
 
@@ -1174,19 +1174,19 @@ If a tool corresponds to one simple semantic ability, it may instead be a Capabi
 
 ---
 
-# 41. profiles/
+# 41. roles/
 
-Profiles represent working roles.
+Roles represent reusable working contexts.
 
-Each Profile should normally be one YAML file.
+Each Role should normally be one YAML file.
 
 Example:
 
 ```text
-profiles/frontend-engineer.yaml
+roles/frontend-engineer.yaml
 ```
 
-Profiles should primarily contain:
+Roles should primarily contain:
 
 ```text
 preset references
@@ -1197,7 +1197,7 @@ Avoid embedding large capability lists repeatedly.
 
 ---
 
-# 42. Profile Naming
+# 42. Role Naming
 
 Use role-oriented names.
 
@@ -1388,7 +1388,7 @@ publishers
 packages
 components
 presets
-profiles
+roles
 ```
 
 ---
@@ -1399,7 +1399,7 @@ May contain reverse mappings such as:
 
 ```text
 Capability → Presets
-Preset → Profiles
+Preset → Roles
 Component → Capabilities
 Package → Components
 ```
@@ -1974,7 +1974,7 @@ Authoritative:
 ```text
 catalog/
 presets/
-profiles/
+roles/
 policies/
 plugins/native/
 docs/
@@ -2014,7 +2014,7 @@ The consumer state normally exists in downstream repositories rather than this d
 | `packages/` | Reusable implementation code | Yes |
 | `catalog/` | Curated ecosystem metadata | Yes |
 | `presets/` | Capability compositions | Yes |
-| `profiles/` | Role compositions | Yes |
+| `roles/` | Preset compositions | Yes |
 | `policies/` | Resolution/governance rules | Yes |
 | `plugins/native/` | First-party implementations | Yes |
 | `generated/` | Derived indexes/artifacts | No |
@@ -2064,7 +2064,7 @@ Data directories are loaded by appropriate application/core services.
 ```text
 catalog/
 presets/
-profiles/
+roles/
 policies/
 plugins/native/
         ↓
@@ -2094,7 +2094,7 @@ for:
 ```text
 filenames
 directory names
-profile IDs
+role IDs
 publisher IDs
 package IDs
 preset names
@@ -2509,7 +2509,7 @@ agent-plugins/
 │   └── capabilities/
 │
 ├── presets/
-├── profiles/
+├── roles/
 ├── policies/
 ├── plugins/
 │   └── native/
@@ -2539,7 +2539,7 @@ Recommended implementation order:
 
 5. presets/
 
-6. profiles/
+6. roles/
 
 7. policies/
 
@@ -2639,9 +2639,9 @@ knowledge/synthesis
 
 ---
 
-# 114. V1 Profiles
+# 114. V1 Roles
 
-Initial representative Profiles:
+Initial representative Roles:
 
 ```text
 frontend-engineer
@@ -2721,7 +2721,7 @@ publisher names spread everywhere
 
 one folder per hypothetical concept
 
-deep profile inheritance directories
+deep role inheritance directories
 
 duplicate catalog metadata
 
@@ -2749,7 +2749,7 @@ The structure should preserve these invariants:
 
 5. Curated publisher/package/capability metadata stays under catalog.
 
-6. Presets and Profiles never live inside publisher folders.
+6. Presets and Roles never live inside publisher folders.
 
 7. Native implementation source stays under plugins/native.
 
@@ -2803,7 +2803,7 @@ presets/
 > Where does role composition go?
 
 ```text
-profiles/
+roles/
 ```
 
 > Where do trust and governance rules go?
@@ -2868,7 +2868,7 @@ Code
 Canonical Domain Data
 ├── catalog/
 ├── presets/
-├── profiles/
+├── roles/
 ├── policies/
 └── plugins/native/
 

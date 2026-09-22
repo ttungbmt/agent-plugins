@@ -192,7 +192,7 @@ Tạo các domain type chuẩn tắc.
 - [ ] `Publisher`
 - [ ] `Source`
 - [ ] `Preset`
-- [ ] `Profile`
+- [ ] `Role`
 - [ ] `Policy`
 - [ ] `Overlay`
 
@@ -216,7 +216,7 @@ prompt:<id>
 command:<id>
 hook:<id>
 preset:<id>
-profile:<id>
+role:<id>
 ```
 
 Công việc:
@@ -257,7 +257,7 @@ Công việc:
 - [ ] Schema cho Command
 - [ ] Schema cho Hook
 - [ ] Schema cho Preset
-- [ ] Schema cho Profile
+- [ ] Schema cho Role
 - [ ] Schema cho Policy
 - [ ] Schema cho cấu hình Project
 - [ ] Schema cho adapter manifest
@@ -325,7 +325,7 @@ prompts/
 commands/
 hooks/
 presets/
-profiles/
+roles/
 policies/
 ```
 
@@ -362,7 +362,7 @@ Công việc:
 
 - [ ] Thiếu dependency
 - [ ] Vòng lặp dependency
-- [ ] Vòng lặp kế thừa Profile
+- [ ] Vòng lặp kế thừa Role
 - [ ] Vòng lặp compose Preset
 - [ ] Capability publisher không hợp lệ
 
@@ -385,7 +385,7 @@ Catalog
 ├── packages
 ├── components
 ├── presets
-├── profiles
+├── roles
 ├── policies
 └── publishers
 ```
@@ -443,21 +443,21 @@ Tạo các Preset ban đầu:
 
 ---
 
-# 12. Hệ thống Profile
+# 12. Hệ thống Role
 
 ## P0
 
-- [ ] Parse Profile
-- [ ] Hỗ trợ kế thừa Profile
+- [ ] Parse Role
+- [ ] Hỗ trợ kế thừa Role
 - [ ] Hỗ trợ tham chiếu Preset
 - [ ] Hỗ trợ chọn package tường minh
 - [ ] Hỗ trợ tham chiếu policy
 - [ ] Phát hiện vòng lặp kế thừa
-- [ ] Tạo Profile hiệu lực
+- [ ] Tạo Role hiệu lực
 
 ## P1
 
-Các Profile ban đầu:
+Các Role ban đầu:
 
 - [ ] `software-engineer`
 - [ ] `frontend`
@@ -474,7 +474,7 @@ Các Profile ban đầu:
 Implement:
 
 ```text
-Profile
+Role
    ↓
 Preset expansion
    ↓
@@ -514,7 +514,7 @@ inheritedFrom
 Ví dụ:
 
 ```text
-profile:frontend
+role:frontend
 → preset:typescript
 → plugin:typescript
 → skill:typescript
@@ -538,7 +538,7 @@ Công việc:
 - [ ] Package trực tiếp
 - [ ] Package bắc cầu
 - [ ] Preset lồng nhau
-- [ ] Kế thừa Profile
+- [ ] Kế thừa Role
 - [ ] Dependency trùng lặp
 - [ ] Vòng lặp dependency
 - [ ] Xung đột
@@ -620,7 +620,7 @@ configuration-spec.md
 Công việc:
 
 - [ ] Định nghĩa schema config của project
-- [ ] Định nghĩa Profile mặc định
+- [ ] Định nghĩa Role mặc định
 - [ ] Định nghĩa danh sách target
 - [ ] Định nghĩa source
 - [ ] Định nghĩa policy
@@ -891,11 +891,11 @@ Implement:
 - [ ] `catalog list`
 - [ ] `catalog show`
 
-## P1 — `profile`
+## P1 — `role`
 
-- [ ] `profile list`
-- [ ] `profile show`
-- [ ] `profile show --resolved`
+- [ ] `role list`
+- [ ] `role show`
+- [ ] `role show --resolved`
 
 ## P1 — `resolve`
 
@@ -966,7 +966,7 @@ Không để MVP bị chặn bởi TUI nâng cao.
 Cách dùng Ink ban đầu:
 
 - [ ] Wizard cho `init`
-- [ ] Bộ chọn Profile
+- [ ] Bộ chọn Role
 - [ ] Bộ chọn target
 - [ ] UI xác nhận
 
@@ -995,7 +995,7 @@ fixtures/
 Bao gồm:
 
 ```text
-Profile: frontend
+Role: frontend
 
 Preset:
   engineering-base
@@ -1038,7 +1038,7 @@ MVP hoàn thành khi:
 
 - [ ] Các canonical manifest đã ổn định
 - [ ] Catalog tải được các first-party package
-- [ ] Profile hoạt động
+- [ ] Role hoạt động
 - [ ] Preset hoạt động
 - [ ] Resolver hoạt động một cách xác định
 - [ ] Policy hoạt động
@@ -1057,7 +1057,7 @@ Câu chuyện MVP cốt lõi:
 ```text
 canonical content
     ↓
-profile
+role
     ↓
 resolve
     ↓
@@ -1407,7 +1407,7 @@ Không implement trước khi ngữ nghĩa cốt lõi ổn định.
 ## P3
 
 - [ ] Trình khám phá catalog
-- [ ] Trình khám phá Profile
+- [ ] Trình khám phá Role
 - [ ] Cây dependency
 - [ ] Ma trận capability
 - [ ] Xem trước cài đặt
@@ -1452,7 +1452,7 @@ TUI MUST sử dụng các Application API.
 - [ ] Schema
 - [ ] Manifest parser
 - [ ] Catalog
-- [ ] Compose Profile
+- [ ] Compose Role
 - [ ] Compose Preset
 
 ## P1 — Test cốt lõi
@@ -1653,7 +1653,7 @@ Công việc:
 ## P3
 
 - [ ] Khám phá VS Code
-- [ ] Bộ chọn Profile
+- [ ] Bộ chọn Role
 - [ ] Trình duyệt catalog
 - [ ] Diagnostic
 - [ ] Xem trước artifact được sinh ra
@@ -1671,7 +1671,7 @@ Các thao tác đọc tiềm năng:
 - [ ] Tìm kiếm catalog
 - [ ] Kiểm tra package
 - [ ] Kiểm tra capability
-- [ ] Resolve Profile
+- [ ] Resolve Role
 - [ ] Hiển thị Render Plan
 
 Các thao tác ghi tiềm năng cần một đợt security review riêng.
@@ -1754,7 +1754,7 @@ Bắt buộc:
 - [ ] Kiểm tra
 - [ ] Catalog
 - [ ] Preset
-- [ ] Profile
+- [ ] Role
 - [ ] Resolver
 - [ ] Claude adapter cơ bản
 - [ ] CLI cơ bản
@@ -1839,7 +1839,7 @@ Mục tiêu:
 better daily UX
 ```
 
-- [ ] Thư viện Profile hoàn thiện
+- [ ] Thư viện Role hoàn thiện
 - [ ] Thư viện Preset
 - [ ] Thư viện capability first-party
 - [ ] Wizard init được cải thiện
@@ -1898,7 +1898,7 @@ release candidate
 Trước V1.0:
 
 - [ ] API canonical manifest ổn định
-- [ ] API Profile ổn định
+- [ ] API Role ổn định
 - [ ] API Preset ổn định
 - [ ] Ngữ nghĩa resolver ổn định
 - [ ] Ngữ nghĩa policy ổn định

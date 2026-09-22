@@ -826,7 +826,7 @@ A project should contain only a small declarative manifest.
 For example:
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 
 presets:
   - nextjs
@@ -971,7 +971,7 @@ The problem can be considered well solved when users can:
 ### Configure by Intent
 
 ```text
-profile + presets
+role + presets
 ```
 
 instead of listing dozens of plugins by hand.
@@ -990,7 +990,7 @@ Every selected package/component can be traced back:
 
 ```text
 project
-→ profile
+→ role
 → preset
 → capability
 → implementation

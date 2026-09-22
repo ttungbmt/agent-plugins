@@ -35,7 +35,7 @@ Capability
    ↓
 Preset
    ↓
-Profile + Project + Policy
+Role + Project + Policy
    ↓
 Resolution
    ↓
@@ -195,7 +195,7 @@ A **Capability Requirement** means that a Capability is requested by:
 
 ```text
 Preset
-Profile
+Role
 Project
 another Capability
 ```
@@ -269,9 +269,9 @@ Use Preset when answering:
 
 ---
 
-# 10. Profile
+# 10. Role
 
-A **Profile** is a reusable role or working context composed from Presets.
+A **Role** is a reusable working context composed from Presets.
 
 Examples:
 
@@ -284,7 +284,7 @@ researcher
 second-brain
 ```
 
-Use Profile when answering:
+Use Role when answering:
 
 > What baseline capabilities does this role normally need?
 
@@ -297,7 +297,7 @@ A **Project** represents the desired agent environment of a specific repository 
 A Project may select:
 
 ```text
-profile
+role
 presets
 policy
 targets
@@ -359,7 +359,7 @@ A **Resolution** is the concrete result produced by evaluating:
 ```text
 Project
 +
-Profile
+Role
 +
 Presets
 +
@@ -387,7 +387,7 @@ Conceptually:
 ```text
 Project
 ↓
-Profile
+Role
 ↓
 Presets
 ↓
@@ -543,7 +543,7 @@ Conceptually:
 Catalog
 Distribution Lock
 Project Manifest
-Profile
+Role
 Presets
 Policy
 Target
@@ -582,7 +582,7 @@ Examples:
 ```text
 Preset → Preset
 Preset → Capability
-Profile → Preset
+Role → Preset
 Capability → Capability
 Component → Component
 ```
@@ -756,7 +756,7 @@ agent-plugins.yaml
 It may contain:
 
 ```text
-profile
+role
 presets
 targets
 policy
@@ -1198,7 +1198,7 @@ Canonical trace:
 
 ```text
 Project
-→ Profile
+→ Role
 → Preset
 → Capability
 → Implementation
@@ -1342,7 +1342,7 @@ Do not use Skill as a synonym for Capability.
 
 An **Agent** is a Component type representing a specialized autonomous or semi-autonomous worker context.
 
-Do not use Agent as a synonym for Profile.
+Do not use Agent as a synonym for Role.
 
 ---
 
@@ -1449,7 +1449,7 @@ Package
 Component
 Capability
 Preset
-Profile
+Role
 Policy
 Project
 Target
@@ -1533,7 +1533,7 @@ when describing reusable capability composition.
 Prefer:
 
 ```text
-Profile
+Role
 ```
 
 when describing a working role.
@@ -1561,7 +1561,7 @@ as the universal term for every domain object.
 Avoid using:
 
 ```text
-profile
+role
 ```
 
 for project-specific stacks.
@@ -1646,22 +1646,22 @@ Capability
 
 ---
 
-## Preset vs Profile
+## Preset vs Role
 
 ```text
 Preset
 → reusable capability composition
 
-Profile
+Role
 → role using presets
 ```
 
 ---
 
-## Profile vs Project
+## Role vs Project
 
 ```text
-Profile
+Role
 → who / working role
 
 Project
@@ -1749,7 +1749,7 @@ When explaining why something exists, use this order:
 ```text
 Project
    ↓
-Profile
+Role
    ↓
 Preset
    ↓
@@ -1814,7 +1814,7 @@ Materialized
 | Capability | Publisher-independent semantic ability |
 | Capability Implementation | Component implementing a Capability |
 | Preset | Reusable composition of Capabilities |
-| Profile | Reusable role composed from Presets |
+| Role | Reusable working context composed from Presets |
 | Project | Desired configuration of a repository |
 | Policy | Constraints applied during resolution |
 | Catalog | Curated Publisher/Package/Capability metadata |
@@ -1857,4 +1857,4 @@ If not, reuse the existing terminology.
 
 # 88. Terminology in One Sentence
 
-> **Use Publisher for origin, Package for installation, Component for implementation, Capability for intent, Preset for composition, Profile for role, Project for repository needs, Policy for constraints, Resolution for concrete selection, and Target Adapter for runtime materialization.**
+> **Use Publisher for origin, Package for installation, Component for implementation, Capability for intent, Preset for composition, Role for who is working, Project for repository needs, Policy for constraints, Resolution for concrete selection, and Target Adapter for runtime materialization.**

@@ -57,7 +57,7 @@ community content
 +
 project overlays
 +
-profiles
+roles
 +
 presets
 +
@@ -83,7 +83,7 @@ Context/instructions
 Canonical Capability Layer
         │
         ▼
-Profiles / Presets / Policies
+Roles / Presets / Policies
         │
         ▼
 Resolver + Lockfile
@@ -170,7 +170,7 @@ M7  CLI MVP
 M8  Codex Adapter
 M9  Vendor & Source Model
 M10 Update Engine
-M11 Profiles & Presets UX
+M11 Roles & Presets UX
 M12 Multi-Target Production Readiness
 M13 Community Ecosystem
 M14 Advanced Tooling
@@ -230,7 +230,7 @@ packages/
 └── schemas/
 
 plugins/
-profiles/
+roles/
 presets/
 
 docs/
@@ -280,7 +280,7 @@ Command
 Hook
 
 Preset
-Profile
+Role
 
 Policy
 
@@ -314,7 +314,7 @@ Schemas:
 ```text
 package manifest
 component manifest
-profile
+role
 preset
 policy
 ```
@@ -353,7 +353,7 @@ source-of-truth.md
 
 ```text
 manifest validator
-profile validator
+role validator
 preset validator
 policy validator
 ```
@@ -368,7 +368,7 @@ skills/
 agents/
 prompts/
 hooks/
-profiles/
+roles/
 presets/
 ```
 
@@ -380,7 +380,7 @@ Conceptual output:
 interface Catalog {
   packages: Map<PackageId, Package>
   components: Map<ComponentId, Component>
-  profiles: Map<ProfileId, Profile>
+  roles: Map<RoleId, Role>
   presets: Map<PresetId, Preset>
 }
 ```
@@ -441,7 +441,7 @@ resolution-spec.md
 
 ```text
 catalog
-profile
+role
 preset
 project config
 dependency constraints
@@ -452,7 +452,7 @@ overlays
 
 ```ts
 interface ResolvedEnvironment {
-  profile: ProfileId
+  role: RoleId
 
   packages: ResolvedPackage[]
   components: ResolvedComponent[]
@@ -470,7 +470,7 @@ V1:
 direct dependencies
 transitive dependencies
 preset composition
-profile inheritance
+role inheritance
 deduplication
 stable ordering
 conflict detection
@@ -754,7 +754,7 @@ unsupported metadata
 
 ## Exit Criteria
 
-A canonical profile can render a complete valid Claude project configuration.
+A canonical role can render a complete valid Claude project configuration.
 
 ---
 
@@ -788,8 +788,8 @@ init
 catalog list
 catalog show
 
-profile list
-profile show
+role list
+role show
 
 resolve
 
@@ -847,7 +847,7 @@ filesystem
 
 ## Exit Criteria
 
-A user can initialize a project and install a first-party profile into Claude entirely through the CLI.
+A user can initialize a project and install a first-party role into Claude entirely through the CLI.
 
 ---
 
@@ -862,7 +862,7 @@ Canonical manifests
 
 Catalog
 
-Profiles
+Roles
 
 Presets
 
@@ -884,7 +884,7 @@ Supported flow:
 ```text
 first-party package
       ↓
-profile
+role
       ↓
 resolver
       ↓
@@ -921,7 +921,7 @@ Adding Codex MUST NOT require changing:
 
 ```text
 canonical package manifests
-profiles
+roles
 presets
 resolver semantics
 ```
@@ -952,7 +952,7 @@ Any major canonical redesign required by Codex SHOULD trigger architectural revi
 
 ## Exit Criteria
 
-The same Profile can generate:
+The same Role can generate:
 
 ```text
 Claude output
@@ -976,7 +976,7 @@ Example:
 
 ```bash
 agent-plugins build \
-  --profile frontend \
+  --role frontend \
   --target claude \
   --target codex
 ```
@@ -984,7 +984,7 @@ agent-plugins build \
 Pipeline:
 
 ```text
-Profile
+Role
    ↓
 Resolver
    ↓
@@ -1199,13 +1199,13 @@ External dependencies can be safely updated with a visible change plan.
 
 ---
 
-# 21. Phase 15 — Profile System Maturity
+# 21. Phase 15 — Role System Maturity
 
 ## Goal
 
-Make Profiles the primary user-facing configuration abstraction.
+Make Roles the primary user-facing configuration abstraction.
 
-Initial profile examples:
+Initial role examples:
 
 ```text
 software-engineer
@@ -1218,7 +1218,7 @@ product-manager
 second-brain
 ```
 
-Profile inheritance:
+Role inheritance:
 
 ```text
 engineering-base
@@ -1376,7 +1376,7 @@ Allow multiple implementations of the same capability.
 Selection MAY depend on:
 
 ```text
-Profile
+Role
 Policy
 Priority
 Trust
@@ -1508,7 +1508,7 @@ Why is this installed?
 
 Where did this come from?
 
-Which Profile selected it?
+Which Role selected it?
 
 Which Publisher supplied it?
 
@@ -1528,7 +1528,7 @@ Once CLI primitives are stable, introduce richer terminal experiences.
 Ink MAY provide:
 
 ```text
-Profile browser
+Role browser
 
 Catalog explorer
 
@@ -1544,7 +1544,7 @@ Update review
 Example:
 
 ```text
-┌ Profiles ──────────┐
+┌ Roles ──────────┐
 │ frontend           │
 │ backend            │
 │ second-brain       │
@@ -1595,7 +1595,7 @@ Targets?
 Result:
 
 ```yaml
-profile: frontend
+role: frontend
 
 targets:
   - claude
@@ -1750,7 +1750,7 @@ JetBrains
 Potential features:
 
 ```text
-profile selection
+role selection
 
 catalog browser
 
@@ -1778,7 +1778,7 @@ search catalog
 
 inspect capability
 
-resolve profile
+resolve role
 
 show generated plan
 
@@ -1855,7 +1855,7 @@ Support:
 
 ```text
 repo root
-├── shared profile
+├── shared role
 ├── frontend project
 ├── backend project
 └── documentation project
@@ -1866,14 +1866,14 @@ Possible configuration:
 ```yaml
 workspace:
   defaults:
-    profile: engineering-base
+    role: engineering-base
 
 projects:
   apps/web:
-    profile: frontend
+    role: frontend
 
   apps/api:
-    profile: backend
+    role: backend
 ```
 
 Resolution SHOULD support shared caching while preserving project isolation.
@@ -1989,7 +1989,7 @@ At maturity, the platform may look like:
                          │
                   Canonical Catalog
                          │
-                 Profiles / Presets
+                 Roles / Presets
                          │
                      Policies
                          │
@@ -2028,7 +2028,7 @@ The practical order SHOULD be:
 
 09. Preset loader
 
-10. Profile loader
+10. Role loader
 
 11. Resolver
 
@@ -2056,7 +2056,7 @@ The practical order SHOULD be:
 
 23. catalog commands
 
-24. profile commands
+24. role commands
 
 25. resolve command
 
@@ -2084,7 +2084,7 @@ The practical order SHOULD be:
 
 37. Update engine
 
-38. Preset/profile UX
+38. Preset/role UX
 
 39. More target adapters
 
@@ -2100,7 +2100,7 @@ The strongest MVP boundary is:
 ```text
 first-party canonical repository
 +
-profile/preset composition
+role/preset composition
 +
 deterministic resolver
 +
@@ -2136,7 +2136,7 @@ agent-plugins init
 Choose:
 
 ```text
-Profile:
+Role:
   frontend
 
 Target:
@@ -2205,7 +2205,7 @@ catalog
 
 validation
 
-basic profile
+basic role
 
 basic preset
 
@@ -2319,7 +2319,7 @@ maintain upstream-derived content
 Add:
 
 ```text
-profile maturity
+role maturity
 
 preset library
 
@@ -2411,7 +2411,7 @@ V1.0 SHOULD represent a stable contract for:
 ```text
 canonical manifests
 
-profiles
+roles
 
 presets
 
@@ -2627,7 +2627,7 @@ Among these, the highest priority is:
 configuration-spec.md
 ```
 
-because the CLI, Profiles, targets, sources, and policies all need a concrete project configuration contract.
+because the CLI, Roles, targets, sources, and policies all need a concrete project configuration contract.
 
 ---
 
@@ -2903,7 +2903,7 @@ Source adapters
 Vendor
 Overlay
 Update
-Profiles
+Roles
 Preset library
 More runtimes
 ```

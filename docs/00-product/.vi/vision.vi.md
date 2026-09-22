@@ -119,7 +119,7 @@ Capability
    ↓
 Preset
    ↓
-Profile + Project + Policy
+Role + Project + Policy
    ↓
 Resolver
    ↓
@@ -210,7 +210,7 @@ Project nên ưu tiên:
 curation over accumulation
 ```
 
-Một profile chất lượng cao có thể dùng component từ nhiều publisher mà không cần cài mọi thứ các publisher đó cung cấp.
+Một role chất lượng cao có thể dùng component từ nhiều publisher mà không cần cài mọi thứ các publisher đó cung cấp.
 
 Ví dụ:
 
@@ -288,7 +288,7 @@ Researcher
 Second Brain
 ```
 
-Một profile đại diện cho một working context có thể tái sử dụng.
+Một role đại diện cho một working context có thể tái sử dụng.
 
 Ví dụ:
 
@@ -302,13 +302,13 @@ frontend-engineer
 └── typescript
 ```
 
-Profile cung cấp các giá trị mặc định hợp lý mà không khóa người dùng vào một environment cứng nhắc.
+Role cung cấp các giá trị mặc định hợp lý mà không khóa người dùng vào một environment cứng nhắc.
 
 ---
 
 # 9. Composition nhận biết project
 
-Profile mô tả người dùng hoặc working role.
+Role mô tả bối cảnh làm việc của người dùng.
 
 Project mô tả repository hiện tại.
 
@@ -330,7 +330,7 @@ Project C
 Astro
 ```
 
-Profile giữ ổn định trong khi các preset riêng của project thay đổi.
+Role giữ ổn định trong khi các preset riêng của project thay đổi.
 
 Điều này cho phép:
 
@@ -426,7 +426,7 @@ catalog
 +
 project manifest
 +
-profile
+role
 +
 policy
 +
@@ -464,7 +464,7 @@ Which capability does it provide?
 
 Which preset requested it?
 
-Which profile requested that preset?
+Which role requested that preset?
 
 Why was this implementation selected?
 
@@ -807,7 +807,7 @@ Maintainer nên có thể:
 - map component vào capability,
 - định nghĩa implementation được ưu tiên,
 - xây dựng preset,
-- định nghĩa profile,
+- định nghĩa role,
 - kiểm thử resolution,
 - review thay đổi từ upstream,
 - publish update.
@@ -837,7 +837,7 @@ Hệ sinh thái dài hạn có thể được hình dung như sau:
                             │
                          Presets
                             │
-                         Profiles
+                         Roles
                             │
                           Projects
                             │
@@ -869,7 +869,7 @@ Curated implementation mapping
 +
 Composable presets
 +
-Role-based profiles
+Role baseline tái sử dụng
 +
 Policy-aware resolution
 +
@@ -896,7 +896,7 @@ Project có thể phát triển qua nhiều giai đoạn.
 Catalog
 Capabilities
 Presets
-Profiles
+Roles
 Resolver
 Lockfile
 Claude Code support

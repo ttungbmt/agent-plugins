@@ -61,7 +61,7 @@ A person responsible for defining and maintaining the agent environment of a pro
 Responsibilities may include:
 
 ```text
-selecting profiles
+selecting roles
 selecting presets
 reviewing updates
 maintaining lockfiles
@@ -165,7 +165,7 @@ ap init
 The user selects:
 
 ```text
-Profile:
+Role:
 frontend-engineer
 
 Presets:
@@ -182,7 +182,7 @@ default
 The resulting project manifest may resemble:
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 
 presets:
   - stacks/nextjs
@@ -248,7 +248,7 @@ PostgreSQL
 The user configures:
 
 ```yaml
-profile: backend-engineer
+role: backend-engineer
 
 presets:
   - stacks/typescript
@@ -292,7 +292,7 @@ REQ-SYNC-001
 
 ---
 
-# 5. UC-003 — Use a Second Brain Profile
+# 5. UC-003 — Use a Second Brain Role
 
 ## Actor
 
@@ -309,7 +309,7 @@ The user maintains an Obsidian-based knowledge system.
 They configure:
 
 ```yaml
-profile: second-brain
+role: second-brain
 
 presets:
   - knowledge/research
@@ -360,7 +360,7 @@ REQ-NAT-001
 
 ---
 
-# 6. UC-004 — Use a Product Manager Profile
+# 6. UC-004 — Use a Product Manager Role
 
 ## Actor
 
@@ -375,7 +375,7 @@ Configure agent tooling around product discovery, research, specification, and w
 The user selects:
 
 ```yaml
-profile: product-manager
+role: product-manager
 
 presets:
   - domains/product
@@ -401,11 +401,11 @@ engineering.domain-modeling
 
 ## Expected Outcome
 
-The profile should combine relevant capabilities from different publishers without requiring the Product Manager to understand their repository structure.
+The role should combine relevant capabilities from different publishers without requiring the Product Manager to understand their repository structure.
 
 ---
 
-# 7. UC-005 — Reuse the Same Profile Across Different Projects
+# 7. UC-005 — Reuse the Same Role Across Different Projects
 
 ## Actor
 
@@ -442,7 +442,7 @@ Astro
 All three projects use:
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 ```
 
 but different project presets.
@@ -461,7 +461,7 @@ frontend practices
 
 while project-specific capabilities vary.
 
-The user should not need separate profiles such as:
+The user should not need separate roles such as:
 
 ```text
 frontend-nextjs-engineer
@@ -493,7 +493,7 @@ Add a cross-cutting capability to an existing project.
 A frontend project already uses:
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 ```
 
 The user wants additional security capabilities.
@@ -507,7 +507,7 @@ presets:
 
 ## Expected Outcome
 
-Security capabilities become part of resolution without modifying the frontend profile.
+Security capabilities become part of resolution without modifying the frontend role.
 
 The system does not need a separate first-class `Addon` entity.
 
@@ -559,7 +559,7 @@ cardinality: one
 
 ## Scenario
 
-The frontend profile requests:
+The frontend role requests:
 
 ```text
 engineering.testing.tdd
@@ -1355,7 +1355,7 @@ engineering.testing.tdd
 
 ## Expected Outcome
 
-Profiles and presets reference only the canonical capability.
+Roles and presets reference only the canonical capability.
 
 Publisher-specific terminology remains isolated within catalog mapping.
 
@@ -1444,7 +1444,7 @@ knowledge.synthesis
 
 ## Expected Outcome
 
-Profiles and project manifests remain unchanged.
+Roles and project manifests remain unchanged.
 
 Only the implementation mapping and subsequent lockfiles change.
 
@@ -1597,7 +1597,7 @@ and restricting external hooks.
 
 ## Expected Outcome
 
-The same profile and presets may resolve differently under different policies.
+The same role and presets may resolve differently under different policies.
 
 Those differences must be explicit and explainable.
 
@@ -1632,7 +1632,7 @@ engineering/security
 
 and requires projects to compose it.
 
-Projects may otherwise use different profiles:
+Projects may otherwise use different roles:
 
 ```text
 frontend-engineer
@@ -2185,7 +2185,7 @@ The maintainer modifies:
 ```text
 catalog/
 presets/
-profiles/
+roles/
 ```
 
 and runs the generation process.
@@ -2310,7 +2310,7 @@ but its semantic capabilities remain the same.
 
 The source adapter is updated.
 
-Profiles, presets, and capability IDs remain unchanged wherever possible.
+Roles, presets, and capability IDs remain unchanged wherever possible.
 
 This validates the source adapter boundary.
 
@@ -2339,7 +2339,7 @@ The following remain stable:
 ```text
 capabilities
 presets
-profiles
+roles
 project intent
 ```
 
@@ -2375,7 +2375,7 @@ The update analysis identifies:
 removed component
 affected capability
 available alternatives
-affected profiles/presets
+affected roles/presets
 ```
 
 If another valid implementation exists, the catalog maintainer may deliberately promote it.
@@ -2412,7 +2412,7 @@ engineering.architecture
 
 ## Expected Outcome
 
-Profiles continue referencing:
+Roles continue referencing:
 
 ```text
 engineering.architecture
@@ -2424,11 +2424,11 @@ Projects receive the new implementation only when their resolution/lock state is
 
 ---
 
-# 51. UC-049 — Profile Uses Shared Presets
+# 51. UC-049 — Role Uses Shared Presets
 
 ## Actor
 
-Profile Maintainer
+Role Maintainer
 
 ## Goal
 
@@ -2454,7 +2454,7 @@ engineering/core
 
 These capabilities are defined once in reusable presets.
 
-Profiles compose them rather than duplicating capability lists.
+Roles compose them rather than duplicating capability lists.
 
 ---
 
@@ -2470,7 +2470,7 @@ Avoid unnecessary package installation.
 
 ## Scenario
 
-The selected profile and presets require only:
+The selected role and presets require only:
 
 ```text
 planning
@@ -2649,11 +2649,11 @@ Developer
 
 ## Goal
 
-Remove a capability inherited from a profile or preset.
+Remove a capability inherited from a role or preset.
 
 ## Scenario
 
-A profile normally includes:
+A role normally includes:
 
 ```text
 browser testing
@@ -2740,7 +2740,7 @@ The output should prioritize semantic information.
 Example:
 
 ```text
-Profile
+Role
 frontend-engineer
 
 Presets
@@ -2853,7 +2853,7 @@ The following matrix summarizes the major areas exercised by the use cases.
 
 | Area | Representative Use Cases |
 |---|---|
-| Profiles | UC-001, UC-002, UC-003, UC-004 |
+| Roles | UC-001, UC-002, UC-003, UC-004 |
 | Project composition | UC-005, UC-006 |
 | Capability resolution | UC-007, UC-008, UC-011 |
 | Policies | UC-009, UC-010, UC-027 |
@@ -2894,9 +2894,9 @@ UC-001  Frontend project initialization
 
 UC-002  Backend project initialization
 
-UC-003  Second Brain profile
+UC-003  Second Brain role
 
-UC-004  Product Manager profile
+UC-004  Product Manager role
 
 UC-007  Exclusive capability conflict resolution
 
@@ -2950,7 +2950,7 @@ Frontend Engineer
         ↓
 Next.js Project
         ↓
-Select Profile
+Select Role
         ↓
 Add Project Presets
         ↓
@@ -3013,7 +3013,7 @@ describe user intent before implementation
 
 capabilities before publishers
 
-profiles before plugin lists
+roles before plugin lists
 
 explicit failure over hidden fallback
 

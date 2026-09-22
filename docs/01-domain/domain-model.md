@@ -31,7 +31,7 @@ Capability
    ↓
 Preset
    ↓
-Profile + Project + Policy
+Role + Project + Policy
    ↓
 Resolution
    ↓
@@ -97,7 +97,7 @@ Semantic
 
 Composition
 ├── Preset
-├── Profile
+├── Role
 ├── Project
 └── Policy
 
@@ -629,7 +629,7 @@ Requirements may originate from:
 
 ```text
 Preset
-Profile
+Role
 Project
 another capability
 ```
@@ -740,13 +740,13 @@ C → A
 
 ---
 
-# 15. Profile
+# 15. Role
 
 ## Definition
 
-A **Profile** represents a reusable role or working context.
+A **Role** represents a reusable working context.
 
-A Profile answers:
+A Role answers:
 
 > **What baseline capabilities does this type of user normally need?**
 
@@ -764,9 +764,9 @@ second-brain
 
 ---
 
-## Profile Responsibilities
+## Role Responsibilities
 
-Profiles should primarily compose presets.
+Roles should primarily compose presets.
 
 Example:
 
@@ -779,7 +779,7 @@ frontend-engineer
 └── stacks/typescript
 ```
 
-A Profile should not normally:
+A Role should not normally:
 
 ```text
 reference publisher-specific components
@@ -790,7 +790,7 @@ contain runtime installation logic
 
 ---
 
-# 16. Profile vs Preset
+# 16. Role vs Preset
 
 The distinction is:
 
@@ -798,8 +798,8 @@ The distinction is:
 Preset
 → reusable capability group
 
-Profile
-→ reusable working role composed from presets
+Role
+→ reusable working context composed from presets
 ```
 
 Example:
@@ -808,22 +808,22 @@ Example:
 Preset:
 engineering/security
 
-Profile:
+Role:
 backend-engineer
 ```
 
-A profile uses multiple presets.
+A role uses multiple presets.
 
 A preset does not represent a person or role.
 
 ---
 
-# 17. Profile vs Project
+# 17. Role vs Project
 
 The distinction is:
 
 ```text
-Profile
+Role
 → who / what role is working
 
 Project
@@ -833,7 +833,7 @@ Project
 Example:
 
 ```text
-Profile:
+Role:
 frontend-engineer
 
 Project A:
@@ -843,7 +843,7 @@ Project B:
 React + Vite
 ```
 
-The Profile remains reusable across both projects.
+The Role remains reusable across both projects.
 
 ---
 
@@ -860,7 +860,7 @@ A Project answers:
 A Project may select:
 
 ```text
-profile
+role
 presets
 policy
 targets
@@ -872,7 +872,7 @@ capability overrides
 ## Project Example
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 
 presets:
   - stacks/nextjs
@@ -958,9 +958,9 @@ deny
 
 ---
 
-# 21. Policy Is Not a Profile
+# 21. Policy Is Not a Role
 
-A Profile answers:
+A Role answers:
 
 ```text
 What capabilities do I normally need?
@@ -975,7 +975,7 @@ What is allowed?
 Example:
 
 ```text
-Profile:
+Role:
 backend-engineer
 
 Policy:
@@ -1023,7 +1023,7 @@ A **Resolution** is the computed result of evaluating:
 ```text
 Project
 +
-Profile
+Role
 +
 Presets
 +
@@ -1049,7 +1049,7 @@ Conceptually:
 ```text
 Project
    ↓
-Profile
+Role
    ↓
 Presets
    ↓
@@ -1163,7 +1163,7 @@ Preset → Preset
 
 Preset → Capability
 
-Profile → Preset
+Role → Preset
 
 Project → Preset
 
@@ -1398,7 +1398,7 @@ It should not:
 
 ```text
 choose user capabilities
-apply profile composition
+apply role composition
 decide final implementation winners
 ```
 
@@ -1524,7 +1524,7 @@ Project Manifest
 It includes:
 
 ```text
-profile
+role
 presets
 policy
 target
@@ -1923,7 +1923,7 @@ Conceptually:
 catalog
 distribution lock
 project manifest
-profile
+role
 presets
 policy
 target
@@ -2165,11 +2165,11 @@ Preset
 Preset
   * ─── * Preset
 
-Profile
+Role
   1 ─── * Preset
 
 Project
-  0..1 ─── 1 Profile
+  0..1 ─── 1 Role
 
 Project
   * ─── * Preset
@@ -2228,7 +2228,7 @@ Package
       │ *              │ compose
       │                │
 ┌─────┴──────┐         │
-│  Profile   │         │
+│  Role   │         │
 └─────▲──────┘         │
       │                │
       │ selected by    │
@@ -2264,7 +2264,7 @@ Package
 The intended semantic dependency direction is:
 
 ```text
-Profile
+Role
    ↓
 Preset
    ↓
@@ -2274,7 +2274,7 @@ Capability
 not:
 
 ```text
-Profile
+Role
    ↓
 Package
 ```
@@ -2359,13 +2359,13 @@ Reuse should primarily occur through Presets.
 Preferred:
 
 ```text
-Profile
+Role
 ├── workflow/core
 ├── engineering/core
 └── frontend
 ```
 
-Avoid deep inheritance chains between Profiles.
+Avoid deep inheritance chains between Roles.
 
 ---
 
@@ -2512,7 +2512,7 @@ This terminology should be used consistently in resolver diagnostics.
 # 85. Example — Frontend Engineer
 
 ```text
-Profile
+Role
 frontend-engineer
 
       ↓
@@ -2563,7 +2563,7 @@ Claude Code Adapter
 # 86. Example — Second Brain
 
 ```text
-Profile
+Role
 second-brain
 
       ↓
@@ -2706,7 +2706,7 @@ Capability Implementation
 Capability Requirement
 
 Preset
-Profile
+Role
 Project
 Policy
 
@@ -2803,7 +2803,7 @@ Contains:
 
 ```text
 Preset
-Profile
+Role
 ```
 
 Responsible for:
@@ -2952,7 +2952,7 @@ The most important invariants are:
 ```text
 1. Capability IDs are publisher-independent.
 
-2. Profiles primarily compose Presets.
+2. Roles primarily compose Presets.
 
 3. Presets primarily compose Capabilities.
 
@@ -2985,4 +2985,4 @@ The most important invariants are:
 
 # 96. Domain Model in One Sentence
 
-> **`agent-plugins` models external tooling as Publishers containing Packages and Components, normalizes those Components into semantic Capabilities, composes Capabilities through Presets and Profiles, constrains them through Project and Policy context, and deterministically resolves them into a reproducible runtime environment.**
+> **`agent-plugins` models external tooling as Publishers containing Packages and Components, normalizes those Components into semantic Capabilities, composes Capabilities through Presets and Roles, constrains them through Project and Policy context, and deterministically resolves them into a reproducible runtime environment.**

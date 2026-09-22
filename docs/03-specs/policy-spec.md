@@ -16,7 +16,7 @@ Policy answers:
 Policy is intentionally separate from:
 
 - Capability semantics,
-- Profile composition,
+- Role composition,
 - Preset composition,
 - Project intent,
 - implementation priority,
@@ -231,7 +231,7 @@ TDD implementations from untrusted Publishers are denied
 The distinction is:
 
 ```text
-Project / Profile / Preset
+Project / Role / Preset
 → what is needed
 
 Policy
@@ -2780,7 +2780,7 @@ Affected Candidates
 ↓
 Capabilities
 ↓
-Profiles / Projects
+Roles / Projects
 ```
 
 Generated indexes may later support this.
@@ -3757,7 +3757,7 @@ Not all warnings should block Policy loading.
 
 # 171. Policy Reachability Validation
 
-Advanced validation may simulate representative Profiles against a Policy.
+Advanced validation may simulate representative Roles against a Policy.
 
 Example:
 
@@ -3903,7 +3903,7 @@ This prevents trust taxonomy explosion.
 
 ---
 
-# 179. Policy Anti-Pattern — Profile as Policy
+# 179. Policy Anti-Pattern — Role as Policy
 
 Avoid:
 
@@ -3912,7 +3912,7 @@ strict-backend-engineer
 secure-frontend-engineer
 ```
 
-Profiles define role.
+Roles define baseline intent.
 
 Policies define governance.
 

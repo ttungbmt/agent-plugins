@@ -77,7 +77,7 @@ This specification does not define:
 Project manifests
 Project lockfiles
 Policy files
-Preset/Profile files
+Preset/Role files
 runtime materialization
 CLI behavior
 ```
@@ -1456,7 +1456,7 @@ stable Capability only has deprecated implementations
 
 cardinality-one Capability has equal-priority candidates
 
-deprecated Capability still used in Preset/Profile
+deprecated Capability still used in Preset/Role
 
 Package has no discovered Components
 
@@ -1573,7 +1573,7 @@ Component → Capabilities
 
 Capability → Presets
 
-Preset → Profiles
+Preset → Roles
 
 Publisher → Packages
 ```
@@ -1698,7 +1698,7 @@ hash(
 )
 ```
 
-Presets, Profiles, and Policies may have separate digests or participate in a broader distribution digest depending on lockfile design.
+Presets, Roles, and Policies may have separate digests or participate in a broader distribution digest depending on lockfile design.
 
 ---
 
@@ -1877,7 +1877,7 @@ Removing a mapping may impact existing:
 
 ```text
 Presets
-Profiles
+Roles
 consumer lockfiles
 ```
 
@@ -2029,7 +2029,7 @@ Catalog must not encode Project-specific policy decisions.
 
 ---
 
-# 87. Catalog and Profile Separation
+# 87. Catalog and Role Separation
 
 Catalog answers:
 
@@ -2037,13 +2037,13 @@ Catalog answers:
 what exists?
 ```
 
-Profile answers:
+Role answers:
 
 ```text
 what does this role need?
 ```
 
-Profiles must not be embedded inside Catalog manifests.
+Roles must not be embedded inside Catalog manifests.
 
 ---
 
@@ -2093,7 +2093,7 @@ A Source Adapter must not decide:
 
 ```text
 Capability priority
-Profile membership
+Role membership
 Preset membership
 ```
 
@@ -3142,7 +3142,7 @@ Capabilities
     ↓
 Presets
     ↓
-Profiles
+Roles
 ```
 
 For a changed Capability:
@@ -3152,7 +3152,7 @@ Capability
     ↓
 Presets
     ↓
-Profiles
+Roles
 ```
 
 Generated reverse indexes may support this.
@@ -3178,7 +3178,7 @@ all Packages belong to Publishers
 
 all generated inventory deterministic
 
-all initial V1 Profiles resolve successfully
+all initial V1 Roles resolve successfully
 ```
 
 ---
@@ -3223,7 +3223,7 @@ wshobson
 agent-plugins
 ```
 
-Initial Capability coverage should be deliberately limited to what is needed for representative Profiles.
+Initial Capability coverage should be deliberately limited to what is needed for representative Roles.
 
 ---
 
@@ -3301,7 +3301,7 @@ component discovery is deterministic
 
 generated indexes have no drift
 
-representative Profiles resolve successfully
+representative Roles resolve successfully
 ```
 
 ---
@@ -3311,7 +3311,7 @@ representative Profiles resolve successfully
 Avoid:
 
 ```yaml
-profile:
+role:
   plugins:
     - superpowers
     - ecc

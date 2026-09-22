@@ -382,7 +382,7 @@ integrity hashes
 Nó không nên chứa:
 
 ```text id="sa6ox7"
-Project Profiles
+Project Roles
 
 Project Presets
 
@@ -719,7 +719,7 @@ spec:
         component: superpowers/superpowers#skill:test-driven-development
 
       requiredBy:
-        - profile/frontend-engineer
+        - role/frontend-engineer
         - preset/engineering/core
 
   packages:
@@ -832,7 +832,7 @@ Digest chỉ nên bao gồm các field mang ngữ nghĩa.
 Input được khuyến nghị:
 
 ```text id="55tmc4"
-profile
+role
 
 presets
 
@@ -866,7 +866,7 @@ Hệ thống cũng có thể ghi lại digest của semantic intent đã đượ
 Ví dụ:
 
 ```text id="l7ew7x"
-expanded Profile
+expanded Role
 
 expanded Presets
 
@@ -922,9 +922,9 @@ include normalized Policy in resolutionInputDigest
 
 ---
 
-# 39. Digest của Profile và Preset
+# 39. Digest của Role và Preset
 
-Tương tự, Profile và Preset được tham chiếu bằng ID nhưng nội dung của chúng có thể thay đổi.
+Tương tự, Role và Preset được tham chiếu bằng ID nhưng nội dung của chúng có thể thay đổi.
 
 Project lock nên phát hiện các thay đổi ngữ nghĩa ngay cả khi ID vẫn giữ ổn định.
 
@@ -947,7 +947,7 @@ resolutionInputDigest =
 hash(
   normalized project intent
   +
-  expanded profile
+  expanded role
   +
   expanded presets
   +
@@ -970,13 +970,13 @@ Serialization chuẩn chính xác phải là tất định.
 Nếu không có content digest:
 
 ```text id="fzqnkk"
-Profile ID unchanged
+Role ID unchanged
 ```
 
 có thể che giấu:
 
 ```text id="nmx9xr"
-Profile contents changed
+Role contents changed
 ```
 
 Lockfile có thể trông như vẫn cập nhật trong khi ngữ nghĩa thực tế đã thay đổi.
@@ -1073,7 +1073,7 @@ Ví dụ:
 
 ```yaml id="q6u6vs"
 requiredBy:
-  - profile/frontend-engineer
+  - role/frontend-engineer
   - preset/engineering/core
 ```
 
@@ -1160,7 +1160,7 @@ capabilities:
       - superpowers/superpowers#skill:test-driven-development
 
     requiredBy:
-      - profile/frontend-engineer
+      - role/frontend-engineer
       - preset/engineering/core
 ```
 
@@ -1685,7 +1685,7 @@ Ví dụ:
 ```text id="fr0eqf"
 Project Manifest semantic change
 
-Profile content change
+Role content change
 
 Preset content change
 
@@ -3835,7 +3835,7 @@ gộp chung trạng thái distribution và trạng thái của consumer.
 Tránh:
 
 ```yaml id="ehwucr"
-profile: frontend-engineer
+role: frontend-engineer
 
 packages:
   superpowers: 6.4
@@ -4117,7 +4117,7 @@ Project:
 ```text id="4rbkza"
 agent-plugins.yaml
 
-profile:
+role:
 frontend-engineer
 ```
 

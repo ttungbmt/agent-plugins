@@ -192,7 +192,7 @@ Create canonical domain types.
 - [ ] `Publisher`
 - [ ] `Source`
 - [ ] `Preset`
-- [ ] `Profile`
+- [ ] `Role`
 - [ ] `Policy`
 - [ ] `Overlay`
 
@@ -216,7 +216,7 @@ prompt:<id>
 command:<id>
 hook:<id>
 preset:<id>
-profile:<id>
+role:<id>
 ```
 
 Tasks:
@@ -257,7 +257,7 @@ Tasks:
 - [ ] Command schema
 - [ ] Hook schema
 - [ ] Preset schema
-- [ ] Profile schema
+- [ ] Role schema
 - [ ] Policy schema
 - [ ] Project configuration schema
 - [ ] Adapter manifest schema
@@ -325,7 +325,7 @@ prompts/
 commands/
 hooks/
 presets/
-profiles/
+roles/
 policies/
 ```
 
@@ -362,7 +362,7 @@ Tasks:
 
 - [ ] Missing dependencies
 - [ ] Dependency cycles
-- [ ] Profile inheritance cycles
+- [ ] Role inheritance cycles
 - [ ] Preset composition cycles
 - [ ] Invalid capability publishers
 
@@ -385,7 +385,7 @@ Catalog
 ├── packages
 ├── components
 ├── presets
-├── profiles
+├── roles
 ├── policies
 └── publishers
 ```
@@ -443,21 +443,21 @@ Create initial Presets:
 
 ---
 
-# 12. Profile System
+# 12. Role System
 
 ## P0
 
-- [ ] Parse Profiles
-- [ ] Support Profile inheritance
+- [ ] Parse Roles
+- [ ] Support Role inheritance
 - [ ] Support Preset references
 - [ ] Support explicit package selection
 - [ ] Support policy references
 - [ ] Detect inheritance cycles
-- [ ] Produce effective Profile
+- [ ] Produce effective Role
 
 ## P1
 
-Initial Profiles:
+Initial Roles:
 
 - [ ] `software-engineer`
 - [ ] `frontend`
@@ -474,7 +474,7 @@ Initial Profiles:
 Implement:
 
 ```text
-Profile
+Role
    ↓
 Preset expansion
    ↓
@@ -514,7 +514,7 @@ inheritedFrom
 Example:
 
 ```text
-profile:frontend
+role:frontend
 → preset:typescript
 → plugin:typescript
 → skill:typescript
@@ -538,7 +538,7 @@ Tasks:
 - [ ] Direct package
 - [ ] Transitive package
 - [ ] Nested Preset
-- [ ] Profile inheritance
+- [ ] Role inheritance
 - [ ] Duplicate dependency
 - [ ] Dependency cycle
 - [ ] Conflict
@@ -620,7 +620,7 @@ configuration-spec.md
 Tasks:
 
 - [ ] Define project config schema
-- [ ] Define default Profile
+- [ ] Define default Role
 - [ ] Define target list
 - [ ] Define sources
 - [ ] Define policies
@@ -891,11 +891,11 @@ Implement:
 - [ ] `catalog list`
 - [ ] `catalog show`
 
-## P1 — `profile`
+## P1 — `role`
 
-- [ ] `profile list`
-- [ ] `profile show`
-- [ ] `profile show --resolved`
+- [ ] `role list`
+- [ ] `role show`
+- [ ] `role show --resolved`
 
 ## P1 — `resolve`
 
@@ -966,7 +966,7 @@ Do not block MVP on advanced TUI.
 Initial Ink usage:
 
 - [ ] `init` wizard
-- [ ] Profile selector
+- [ ] Role selector
 - [ ] Target selector
 - [ ] Confirmation UI
 
@@ -995,7 +995,7 @@ fixtures/
 Contains:
 
 ```text
-Profile: frontend
+Role: frontend
 
 Preset:
   engineering-base
@@ -1038,7 +1038,7 @@ The MVP is complete when:
 
 - [ ] Canonical manifests are stable
 - [ ] Catalog loads first-party packages
-- [ ] Profiles work
+- [ ] Roles work
 - [ ] Presets work
 - [ ] Resolver works deterministically
 - [ ] Policy works
@@ -1057,7 +1057,7 @@ Core MVP story:
 ```text
 canonical content
     ↓
-profile
+role
     ↓
 resolve
     ↓
@@ -1407,7 +1407,7 @@ Do not implement before core semantics stabilize.
 ## P3
 
 - [ ] Catalog explorer
-- [ ] Profile explorer
+- [ ] Role explorer
 - [ ] Dependency tree
 - [ ] Capability matrix
 - [ ] Install preview
@@ -1452,7 +1452,7 @@ TUI MUST consume Application APIs.
 - [ ] Schemas
 - [ ] Manifest parser
 - [ ] Catalog
-- [ ] Profile composition
+- [ ] Role composition
 - [ ] Preset composition
 
 ## P1 — Core Tests
@@ -1653,7 +1653,7 @@ Tasks:
 ## P3
 
 - [ ] VS Code exploration
-- [ ] Profile selector
+- [ ] Role selector
 - [ ] Catalog browser
 - [ ] Diagnostics
 - [ ] Generated artifact preview
@@ -1671,7 +1671,7 @@ Potential read operations:
 - [ ] Search catalog
 - [ ] Inspect package
 - [ ] Inspect capability
-- [ ] Resolve Profile
+- [ ] Resolve Role
 - [ ] Show Render Plan
 
 Potential write operations require separate security review.
@@ -1754,7 +1754,7 @@ Required:
 - [ ] Validation
 - [ ] Catalog
 - [ ] Preset
-- [ ] Profile
+- [ ] Role
 - [ ] Resolver
 - [ ] Basic Claude adapter
 - [ ] Basic CLI
@@ -1839,7 +1839,7 @@ Goal:
 better daily UX
 ```
 
-- [ ] Mature Profile library
+- [ ] Mature Role library
 - [ ] Preset library
 - [ ] First-party capability library
 - [ ] Improved init wizard
@@ -1898,7 +1898,7 @@ release candidate
 Before V1.0:
 
 - [ ] Canonical manifest API stable
-- [ ] Profile API stable
+- [ ] Role API stable
 - [ ] Preset API stable
 - [ ] Resolver semantics stable
 - [ ] Policy semantics stable

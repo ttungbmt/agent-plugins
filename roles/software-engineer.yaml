@@ -1,10 +1,10 @@
 apiVersion: agent-plugins/v1
-kind: Profile
+kind: Role
 metadata:
   id: software-engineer
 spec:
   description: Reusable role baseline for someone writing production software.
-  # A Profile reaches Capabilities through Presets. domain-model.md:743-790
+  # A Role reaches Capabilities through Presets. domain-model.md section 15
   presets:
     - workflow/core
     - engineering/core

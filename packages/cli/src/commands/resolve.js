@@ -8,7 +8,7 @@ export default class Resolve extends Command {
   async run() {
     const p = plan()
 
-    this.log(`profile   ${p.profile.metadata.id}`)
+    this.log(`role      ${p.role.metadata.id}`)
     this.log(`policy    ${p.policy.metadata.id}`)
     this.log(`package   ${p.packageId} @ ${p.upstreamVersion}`)
     this.log('')

@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url'
 
 /**
  * The distribution root: the agent-plugins repository that owns
- * catalog/, presets/, profiles/ and policies/.
+ * catalog/, presets/, roles/ and policies/.
  *
  * The CLI ships inside that repository, so we walk up from our own
  * location. AGENT_PLUGINS_ROOT overrides, which is what tests use.
@@ -17,14 +17,14 @@ export function distributionRoot() {
 
   let dir = dirname(fileURLToPath(import.meta.url))
   while (dir !== dirname(dir)) {
-    if (existsSync(join(dir, 'catalog')) && existsSync(join(dir, 'profiles'))) {
+    if (existsSync(join(dir, 'catalog')) && existsSync(join(dir, 'roles'))) {
       return dir
     }
 
     dir = dirname(dir)
   }
 
-  throw new Error('distribution root not found: no ancestor directory contains catalog/ and profiles/')
+  throw new Error('distribution root not found: no ancestor directory contains catalog/ and roles/')
 }
 
 /**

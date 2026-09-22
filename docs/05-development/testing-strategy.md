@@ -27,7 +27,7 @@ canonical domain
 schemas
 manifests
 catalog
-profiles
+roles
 presets
 resolver
 policy
@@ -325,7 +325,7 @@ Test canonical IDs such as:
 plugin:superpowers
 skill:typescript
 agent:reviewer
-profile:frontend
+role:frontend
 ```
 
 Cases MUST include:
@@ -491,13 +491,13 @@ MUST fail deterministically.
 
 ---
 
-# 20. Profile Tests
+# 20. Role Tests
 
 Test:
 
 ```text
-simple Profile
-Profile inheritance
+simple Role
+Role inheritance
 multiple Presets
 package additions
 policy references
@@ -505,7 +505,7 @@ invalid parent
 inheritance cycle
 ```
 
-Effective Profile generation MUST be deterministic.
+Effective Role generation MUST be deterministic.
 
 ---
 
@@ -532,7 +532,7 @@ dependency cycle
 
 conflicting version
 
-Profile inheritance
+Role inheritance
 
 Preset expansion
 
@@ -568,7 +568,7 @@ This MUST have explicit tests.
 Example:
 
 ```text
-profile:frontend
+role:frontend
 → preset:web
 → plugin:typescript
 → skill:typescript
@@ -1217,7 +1217,7 @@ Test:
 init
 validate
 catalog
-profile
+role
 resolve
 plan
 build
@@ -1593,7 +1593,7 @@ fixtures/canonical/
 ├── simple-agent/
 ├── full-plugin/
 ├── nested-presets/
-├── profile-inheritance/
+├── role-inheritance/
 ├── dependency-conflict/
 ├── policy-denied/
 └── mixed-trust/
@@ -1753,7 +1753,7 @@ Stress scenarios MAY include:
 ```text
 very deep graph
 very wide graph
-many Profiles
+many Roles
 many Presets
 many target artifacts
 ```
@@ -2378,7 +2378,7 @@ Then
 
 ```text
 Given
-  one frontend Profile
+  one frontend Role
 
 When
   build Claude
@@ -2666,7 +2666,7 @@ manifest parser tests
 
 catalog tests
 
-Profile/Preset tests
+Role/Preset tests
 
 resolver tests
 
@@ -3311,7 +3311,7 @@ Create:
 tests/fixtures/
 ├── minimal-valid/
 ├── invalid-manifest/
-├── frontend-profile/
+├── frontend-role/
 ├── dependency-cycle/
 ├── policy-denied/
 ├── mixed-trust/
@@ -3329,7 +3329,7 @@ The first E2E test SHOULD prove:
 
 ```text
 Given
-  a valid first-party frontend Profile
+  a valid first-party frontend Role
 
 When
   the project is resolved

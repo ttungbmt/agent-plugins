@@ -103,7 +103,7 @@ ResolutionContext
 ├── Catalog
 ├── DistributionLock
 ├── Project
-├── Profile
+├── Role
 ├── Presets
 ├── Policy
 ├── Target
@@ -209,7 +209,7 @@ The canonical pipeline is:
 ```text
 1. Validate Resolution Context
 
-2. Expand Profile
+2. Expand Role
 
 3. Expand Presets
 
@@ -271,7 +271,7 @@ Before semantic resolution begins, validate:
 ```text
 Project exists
 
-Profile exists
+Role exists
 
 Presets exist
 
@@ -297,15 +297,15 @@ stacks/nonexistent
 
 ---
 
-# 8. Phase 2 — Profile Expansion
+# 8. Phase 2 — Role Expansion
 
 If the Project selects:
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 ```
 
-the Resolver loads the canonical Profile.
+the Resolver loads the canonical Role.
 
 Example:
 
@@ -318,18 +318,18 @@ frontend-engineer
 → stacks/typescript
 ```
 
-Profile expansion produces Preset requirements.
+Role expansion produces Preset requirements.
 
-Profile expansion must not resolve publisher implementations.
+Role expansion must not resolve publisher implementations.
 
 ---
 
-# 9. No Hidden Profile Inheritance
+# 9. No Hidden Role Inheritance
 
-Profile expansion should primarily use:
+Role expansion should primarily use:
 
 ```text
-Profile
+Role
 → Presets
 ```
 
@@ -398,7 +398,7 @@ After Preset expansion, collect all requested Capabilities.
 Sources may include:
 
 ```text
-Profile Presets
+Role Presets
 
 Project Presets
 
@@ -437,7 +437,7 @@ capability:
 engineering.testing.tdd
 
 sources:
-- profile/frontend-engineer
+- role/frontend-engineer
   → preset/engineering/core
 
 - preset/frontend/testing
@@ -516,7 +516,7 @@ Example:
 security.review
 ```
 
-becomes part of desired state even if no Profile or Preset requested it.
+becomes part of desired state even if no Role or Preset requested it.
 
 ---
 
@@ -2302,7 +2302,7 @@ Warnings permit Resolution but indicate degraded or noteworthy state.
 Recommended initial codes:
 
 ```text
-UNKNOWN_PROFILE
+UNKNOWN_ROLE
 
 UNKNOWN_PRESET
 
@@ -2601,7 +2601,7 @@ Potential inputs:
 ```text
 normalized Project manifest
 
-Profile content
+Role content
 
 Preset content
 
@@ -3629,7 +3629,7 @@ The fallback reason must remain explainable.
 Input:
 
 ```text
-Profile:
+Role:
 frontend-engineer
 
 Target:
@@ -4254,7 +4254,7 @@ render Component X into Claude native structure
 V1 must support:
 
 ```text
-Profile expansion
+Role expansion
 
 Preset expansion
 
@@ -4439,7 +4439,7 @@ function resolve(context):
     validate(context)
 
     presets =
-        expandProfile(context.project.profile)
+        expandRole(context.project.role)
         + context.project.presets
 
     expandedPresets =

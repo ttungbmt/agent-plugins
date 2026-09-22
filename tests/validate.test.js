@@ -78,7 +78,7 @@ describe('catalog validation', () => {
   })
 
   // The guard at catalog.js:21 used to swallow this, which is how a committed
-  // 0-byte profiles/default.yaml survived while declaring no Profile at all.
+  // 0-byte roles/default.yaml survived while declaring no Role at all.
   it('rejects an empty manifest', () => {
     assert.deepEqual(check('empty-file').codes, ['INVALID_MANIFEST'])
   })

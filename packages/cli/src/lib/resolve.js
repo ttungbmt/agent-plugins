@@ -4,7 +4,7 @@
  * resolution-spec.md:29 — "determine the smallest valid and reproducible
  * implementation set that satisfies all required capabilities."
  *
- * Selection is never package-driven: we start from the Profile's Capabilities
+ * Selection is never package-driven: we start from the Role's Capabilities
  * and pick one implementation each, honouring cardinality.
  */
 
@@ -13,18 +13,18 @@ function decision(code, entity, outcome, reason) {
   return {code, entity, outcome, reason}
 }
 
-/** Profile -> Presets -> Capability IDs. Presets may include other presets. */
-export function expandProfile(catalog, manifest) {
+/** Role -> Presets -> Capability IDs. Presets may include other presets. */
+export function expandRole(catalog, manifest) {
   const decisions = []
   const capabilities = new Set()
 
-  const profileId = manifest.spec?.profile
-  const profile = catalog.profiles.get(profileId)
-  if (!profile) throw new Error(`unknown profile "${profileId}"`)
+  const roleId = manifest.spec?.role
+  const role = catalog.roles.get(roleId)
+  if (!role) throw new Error(`unknown role "${roleId}"`)
 
   const seenPresets = new Set()
   const queue = [
-    ...(profile.spec?.presets ?? []).map((id) => ({id, via: `profile:${profileId}`})),
+    ...(role.spec?.presets ?? []).map((id) => ({id, via: `role:${roleId}`})),
     ...(manifest.spec?.presets ?? []).map((id) => ({id, via: 'project'})),
   ]
 
@@ -59,7 +59,7 @@ export function expandProfile(catalog, manifest) {
     }
   }
 
-  return {capabilities, decisions, profile}
+  return {capabilities, decisions, role}
 }
 
 /** One Component per Capability. cardinality: one means exactly one winner. */

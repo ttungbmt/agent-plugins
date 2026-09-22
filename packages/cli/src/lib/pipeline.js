@@ -4,7 +4,7 @@ import {join} from 'node:path'
 import {loadCatalog, loadManifest} from './catalog.js'
 import {requiresClosure} from './closure.js'
 import {distributionRoot, projectPaths, projectRoot, sourceStore} from './paths.js'
-import {expandProfile, selectImplementations} from './resolve.js'
+import {expandRole, selectImplementations} from './resolve.js'
 import {ensureSnapshot, readComponents} from './source.js'
 
 /**
@@ -45,7 +45,7 @@ export function plan() {
   const catalog = loadCatalog(distributionRoot())
   const manifest = loadManifest(paths.manifest)
 
-  const {capabilities, decisions: profileDecisions, profile} = expandProfile(catalog, manifest)
+  const {capabilities, decisions: roleDecisions, role} = expandRole(catalog, manifest)
   const {decisions: selectionDecisions, selections} = selectImplementations(catalog, capabilities)
 
   const packageIds = new Set([...selections.values()].map((s) => s.package))
@@ -78,14 +78,14 @@ export function plan() {
     capabilities,
     catalog,
     components,
-    decisions: [...profileDecisions, ...selectionDecisions],
+    decisions: [...roleDecisions, ...selectionDecisions],
     edges,
     included,
     manifest,
     packageId,
     paths,
     policy,
-    profile,
+    role,
     seeds: new Set(seeds),
     selections,
     snapshot,

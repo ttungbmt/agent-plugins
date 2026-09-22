@@ -30,7 +30,7 @@ Implementation
 Publisher Package / Component
 ```
 
-Capability model tồn tại để người dùng, profile, preset và project có thể mô tả **họ cần gì** mà không phụ thuộc trực tiếp vào **ai implement nó**.
+Capability model tồn tại để người dùng, role, preset và project có thể mô tả **họ cần gì** mà không phụ thuộc trực tiếp vào **ai implement nó**.
 
 ---
 
@@ -660,7 +660,7 @@ Các nguồn gốc có thể có:
 
 ```text
 Preset
-Profile
+Role
 Project
 Capability dependency
 ```
@@ -1051,7 +1051,7 @@ Ví dụ:
 stability: experimental
 ```
 
-Các experimental capability nên được sử dụng cẩn trọng trong các profile tồn tại lâu dài.
+Các experimental capability nên được sử dụng cẩn trọng trong các role tồn tại lâu dài.
 
 ---
 
@@ -1779,9 +1779,9 @@ Thông thường, Preset không nên chọn implementation.
 
 ---
 
-# 72. Luồng Capability của Profile
+# 72. Luồng Capability của Role
 
-Một Profile thông thường nên đi đến Capability thông qua Preset.
+Một Role thông thường nên đi đến Capability thông qua Preset.
 
 Ví dụ:
 
@@ -1793,7 +1793,7 @@ engineering/core
 engineering.testing.tdd
 ```
 
-Tham chiếu trực tiếp Profile → Capability có thể được hỗ trợ nếu hữu ích, nhưng composition qua Preset nên vẫn là mẫu được ưu tiên.
+Tham chiếu trực tiếp Role → Capability có thể được hỗ trợ nếu hữu ích, nhưng composition qua Preset nên vẫn là mẫu được ưu tiên.
 
 ---
 
@@ -1802,7 +1802,7 @@ Tham chiếu trực tiếp Profile → Capability có thể được hỗ trợ 
 Một Project có thể thêm capability thông qua:
 
 ```text
-Profile
+Role
 Preset
 explicit capability override
 ```
@@ -1811,7 +1811,7 @@ Về mặt khái niệm:
 
 ```text
 Project
-├── Profile
+├── Role
 │   └── Presets
 │       └── Capabilities
 │
@@ -2038,7 +2038,7 @@ Affected Presets
 engineering/core
 frontend/testing
     ↓
-Affected Profiles
+Affected Roles
 frontend-engineer
 backend-engineer
 ```
@@ -2061,7 +2061,7 @@ và:
 ```text
 Capability
 → Presets
-→ Profiles
+→ Roles
 ```
 
 Điều này cải thiện:
@@ -2114,7 +2114,7 @@ description
 alias
 tag
 Preset
-Profile
+Role
 ```
 
 Định danh publisher nên là yếu tố thứ yếu.
@@ -2200,7 +2200,7 @@ Ví dụ:
 engineering.testing.tdd
 ```
 
-vẫn là cùng một Capability dù được yêu cầu bởi Profile hay Project.
+vẫn là cùng một Capability dù được yêu cầu bởi Role hay Project.
 
 ---
 
@@ -2373,7 +2373,7 @@ về lâu dài, công cụ migration nên có khả năng xác định các thà
 
 ```text
 Presets
-Profiles
+Roles
 Projects
 Lockfiles
 ```
@@ -2551,7 +2551,7 @@ systematic-debugging skill
 
 ---
 
-# 104. Quyết định giữa Capability và Profile
+# 104. Quyết định giữa Capability và Role
 
 Capability:
 
@@ -2559,7 +2559,7 @@ Capability:
 what ability is needed?
 ```
 
-Profile:
+Role:
 
 ```text
 what baseline abilities does this role need?
@@ -2572,7 +2572,7 @@ product.discovery
 → Capability
 
 product-manager
-→ Profile
+→ Role
 ```
 
 ---
@@ -2686,7 +2686,7 @@ backend
 database
 ```
 
-Điều đó thuộc về một Preset hoặc Profile.
+Điều đó thuộc về một Preset hoặc Role.
 
 ---
 
@@ -2963,7 +2963,7 @@ assign cardinality
         ↓
 map implementations
         ↓
-validate in real profiles/projects
+validate in real roles/projects
         ↓
 stabilize
 ```
@@ -2995,7 +2995,7 @@ Các thay đổi đối với stable capability nên được review với sự 
 ```text
 semantic compatibility
 affected presets
-affected profiles
+affected roles
 affected implementations
 existing project lockfiles
 migration requirements
@@ -3042,7 +3042,7 @@ Dữ liệu dẫn xuất có thể bao gồm:
 ```text
 search index
 reverse preset index
-reverse profile index
+reverse role index
 implementation index
 target-support matrix
 ```
@@ -3066,7 +3066,7 @@ Capability model phải bảo toàn các invariant sau:
 
 5. Presets compose Capabilities.
 
-6. Profiles primarily compose Presets.
+6. Roles primarily compose Presets.
 
 7. Multiple publishers may implement one Capability.
 
@@ -3104,7 +3104,7 @@ Capability model phải bảo toàn các invariant sau:
 ```text
 Project
 │
-├── Profile
+├── Role
 │   └── frontend-engineer
 │
 └── Presets
@@ -3307,7 +3307,7 @@ Capabilities
     ↓
 Presets
     ↓
-Profiles + Project
+Roles + Project
     ↓
 Capability Requirements
     ↓
@@ -3335,7 +3335,7 @@ Model thành công khi:
 ```text
 users can request functionality without knowing publisher names
 
-profiles remain stable when publishers change
+roles remain stable when publishers change
 
 overlapping implementations can be resolved predictably
 
@@ -3345,7 +3345,7 @@ publisher updates can be analyzed semantically
 
 multiple runtimes can use the same capability intent
 
-catalog maintainers can introduce new publishers without redesigning profiles
+catalog maintainers can introduce new publishers without redesigning roles
 
 every selected implementation can be explained
 ```

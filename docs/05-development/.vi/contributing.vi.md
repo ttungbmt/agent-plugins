@@ -177,7 +177,7 @@ Người dùng nên có thể hiểu được:
 ```text
 why a package exists
 where it came from
-which Profile selected it
+which Role selected it
 which policy affected it
 which adapter rendered it
 which files changed
@@ -247,7 +247,7 @@ first-party/
 vendor/
 overlays/
 
-profiles/
+roles/
 presets/
 
 docs/
@@ -569,7 +569,7 @@ skill:typescript
 agent:reviewer
 prompt:research
 preset:frontend-core
-profile:frontend
+role:frontend
 ```
 
 Không dùng đường dẫn filesystem làm danh tính của entity.
@@ -1003,7 +1003,7 @@ Plugin
 
 Preset
 
-Profile
+Role
 ```
 
 Sử dụng domain model thay vì lựa chọn dựa trên sự tiện lợi của thư mục.
@@ -1075,9 +1075,9 @@ Tránh các preset khổng lồ cố gắng đại diện cho cả một tổ ch
 
 ---
 
-# 40. Profile
+# 40. Role
 
-Profile mô tả các vai trò hoặc môi trường hiệu lực của người dùng/project.
+Role mô tả các vai trò hoặc môi trường hiệu lực của người dùng/project.
 
 Ví dụ:
 
@@ -1091,9 +1091,9 @@ product-manager
 second-brain
 ```
 
-Profile MAY kết hợp nhiều Preset và package.
+Role MAY kết hợp nhiều Preset và package.
 
-Tránh các Profile đặc thù theo target như:
+Tránh các Role đặc thù theo target như:
 
 ```text
 frontend-claude
@@ -1935,7 +1935,7 @@ Trước khi thêm một tính năng, hãy xác nhận:
 
 [ ] Validation passes
 
-[ ] Relevant Profile/Preset integration reviewed
+[ ] Relevant Role/Preset integration reviewed
 ```
 
 ---
@@ -1956,14 +1956,14 @@ Trước khi thêm một tính năng, hãy xác nhận:
 
 ---
 
-# 84. Checklist cho Profile mới
+# 84. Checklist cho Role mới
 
 ```text
 [ ] Represents a meaningful role/environment
 
 [ ] Reuses Presets where possible
 
-[ ] Avoids duplicating another Profile
+[ ] Avoids duplicating another Role
 
 [ ] Inheritance is clear
 

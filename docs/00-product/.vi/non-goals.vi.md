@@ -179,9 +179,9 @@ Một patch mechanism có thể được bổ sung sau này như một escape ha
 
 ---
 
-# 7. Không có profile inheritance sâu
+# 7. Không có role inheritance sâu
 
-Profile không nên tạo thành các cây kế thừa sâu.
+Role không nên tạo thành các cây kế thừa sâu.
 
 Tránh:
 
@@ -199,7 +199,7 @@ Kế thừa sâu khiến cấu hình khó hiểu và khó override.
 Ưu tiên:
 
 ```text
-profile
+role
 → presets
 ```
 
@@ -377,12 +377,12 @@ AI có thể hỗ trợ recommendation hoặc phân loại trong tương lai, nh
 V1 không nên cố tự động trả lời:
 
 ```text
-What is the perfect profile for me?
+What is the perfect role for me?
 Which plugins should I install?
 Which publisher is objectively best?
 ```
 
-Hệ thống ban đầu nên cung cấp các preset và profile được curate.
+Hệ thống ban đầu nên cung cấp các preset và role được curate.
 
 Một recommendation system có thể được đưa vào sau khi đã có đủ metadata và kinh nghiệm sử dụng.
 
@@ -458,7 +458,7 @@ V1 không yêu cầu:
 desktop application
 web marketplace
 visual dependency editor
-profile builder UI
+role builder UI
 ```
 
 CLI và các file khai báo nên đủ để kiểm chứng product model.
@@ -816,7 +816,7 @@ Remote service có thể làm phong phú hệ thống sau này nhưng không nê
 
 ---
 
-# 41. Không bắt buộc global user profile
+# 41. Không bắt buộc global user role
 
 Về lâu dài hệ thống có thể hỗ trợ các preference ở cấp user.
 
@@ -825,7 +825,7 @@ Tuy nhiên, reproducibility của project không được phụ thuộc vào glo
 Một project không nên resolve khác nhau chỉ vì:
 
 ```text
-Machine A has hidden profile settings
+Machine A has hidden role settings
 Machine B does not
 ```
 
@@ -833,23 +833,23 @@ Global preference có thể ảnh hưởng đến các giá trị mặc định 
 
 ---
 
-# 42. Không trộn lẫn ngữ nghĩa của profile và project
+# 42. Không trộn lẫn ngữ nghĩa của role và project
 
-Profile không nên trở thành nơi mã hóa stack của một repository cụ thể.
+Role không nên trở thành nơi mã hóa stack của một repository cụ thể.
 
-Tránh các profile như:
+Tránh các role như:
 
 ```text
-tung-mealops-nextjs-cloudflare-profile
+tung-mealops-nextjs-cloudflare-role
 ```
 
-Profile đại diện cho các role có thể tái sử dụng.
+Role đại diện cho các bối cảnh làm việc có thể tái sử dụng.
 
 Cấu hình project đại diện cho các nhu cầu riêng của repository.
 
 ---
 
-# 43. Không có profile gắn với publisher
+# 43. Không có role gắn với publisher
 
 Tránh:
 
@@ -859,7 +859,7 @@ ecc-backend-engineer
 matt-frontend-engineer
 ```
 
-Profile nên phụ thuộc vào capability và preset, không phải publisher.
+Role nên phụ thuộc vào capability và preset, không phải publisher.
 
 Việc chọn publisher thuộc về resolution.
 
@@ -976,7 +976,7 @@ Fail với một chẩn đoán hữu ích tốt hơn là đoán mò.
 
 # 50. Không đảm bảo mọi capability tồn tại trên mọi target
 
-Một profile có thể yêu cầu những capability không có sẵn trên một runtime cụ thể.
+Một role có thể yêu cầu những capability không có sẵn trên một runtime cụ thể.
 
 Hệ thống nên báo cáo:
 
@@ -1088,7 +1088,7 @@ Package
 Component
 Capability
 Preset
-Profile
+Role
 Policy
 Project
 

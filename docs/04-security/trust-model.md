@@ -1012,7 +1012,7 @@ This SHOULD appear in diagnostics when relevant.
 
 # 45. Minimum Trust
 
-A project or Profile MAY specify minimum trust.
+A project or Role MAY specify minimum trust.
 
 Example:
 
@@ -1026,9 +1026,9 @@ It SHOULD NOT bypass the Policy Engine.
 
 ---
 
-# 46. Profile Trust Requirements
+# 46. Role Trust Requirements
 
-Profiles MAY define expected trust constraints.
+Roles MAY define expected trust constraints.
 
 For example:
 
@@ -1814,9 +1814,9 @@ Exact requirements SHOULD be configurable.
 
 ---
 
-# 86. Trust Profiles
+# 86. Trust Roles
 
-Organizations MAY define named trust profiles.
+Organizations MAY define named trust roles.
 
 Example:
 
@@ -1830,7 +1830,7 @@ These SHOULD expand into Policy and trust configuration.
 
 ---
 
-# 87. Strict Trust Profile
+# 87. Strict Trust Role
 
 Example conceptual rules:
 
@@ -1852,7 +1852,7 @@ denied
 
 ---
 
-# 88. Balanced Trust Profile
+# 88. Balanced Trust Role
 
 Example:
 
@@ -1871,7 +1871,7 @@ denied
 
 ---
 
-# 89. Experimental Trust Profile
+# 89. Experimental Trust Role
 
 Example:
 
@@ -1883,13 +1883,13 @@ unknown requires explicit approval
 dangerous capabilities still restricted
 ```
 
-Trust profiles MUST NOT override critical security invariants.
+Trust roles MUST NOT override critical security invariants.
 
 ---
 
-# 90. Trust and Profiles
+# 90. Trust and Roles
 
-Agent Plugins Profiles such as:
+Agent Plugins Roles such as:
 
 ```text
 frontend
@@ -1897,7 +1897,7 @@ backend
 second-brain
 ```
 
-SHOULD NOT hard-code trust semantics unless the Profile is specifically security-oriented.
+SHOULD NOT hard-code trust semantics unless the Role is specifically security-oriented.
 
 Trust belongs primarily to Policy/configuration.
 

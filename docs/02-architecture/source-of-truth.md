@@ -129,7 +129,7 @@ catalog/packages/
 catalog/capabilities/
 
 presets/
-profiles/
+roles/
 policies/
 
 plugins/native/
@@ -151,7 +151,7 @@ default priority
 curation status
 trust classification
 preset composition
-profile composition
+role composition
 ```
 
 Example:
@@ -323,29 +323,29 @@ A generated index may list its capabilities, but the Preset file remains authori
 
 ---
 
-# 10. Canonical Profile Metadata
+# 10. Canonical Role Metadata
 
 Source of truth:
 
 ```text
-profiles/
+roles/
 ```
 
-Profiles own:
+Roles own:
 
 ```text
-Profile ID
+Role ID
 Preset composition
-Profile metadata
+Role metadata
 ```
 
 Example:
 
 ```text
-profiles/frontend-engineer.yaml
+roles/frontend-engineer.yaml
 ```
 
-Generated profile indexes must not become independently editable definitions.
+Generated role indexes must not become independently editable definitions.
 
 ---
 
@@ -491,7 +491,7 @@ Publisher
 Package
 Capability
 Preset
-Profile
+Role
 Policy
 Project
 Lockfile
@@ -791,7 +791,7 @@ agent-plugins.yaml
 It owns project intent such as:
 
 ```text
-profile
+role
 presets
 policy
 targets
@@ -818,7 +818,7 @@ Those belong elsewhere.
 Preferred:
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 
 presets:
   - stacks/nextjs
@@ -977,7 +977,7 @@ Distribution Lock
 
 Project Manifest
 
-Profile
+Role
 
 Presets
 
@@ -1236,7 +1236,7 @@ Authoritative Catalog Mapping
 │                                            │
 │ catalog/                                   │
 │ presets/                                   │
-│ profiles/                                  │
+│ roles/                                  │
 │ policies/                                  │
 │ plugins/native/                            │
 └─────────────────────┬──────────────────────┘
@@ -1275,7 +1275,7 @@ artifacts                   │
 | Implementation mapping | `catalog/capabilities/` | Maintainer curation |
 | Default implementation priority | `catalog/capabilities/` | Maintainer curation |
 | Preset composition | `presets/` | Maintainer curation |
-| Profile composition | `profiles/` | Maintainer curation |
+| Role composition | `roles/` | Maintainer curation |
 | Policy rules | `policies/` | Maintainer curation |
 | Native source code | `plugins/native/` | First-party implementation |
 | Third-party Component inventory | Generated discovery state | Source adapter + upstream |
@@ -1298,7 +1298,7 @@ artifacts                   │
 ```text
 catalog/
 presets/
-profiles/
+roles/
 policies/
 plugins/native/
 ```
@@ -1653,7 +1653,7 @@ Canonical resolver inputs are:
 Catalog
 Distribution Lock
 Project Manifest
-Profile
+Role
 Presets
 Policy
 Target descriptor
@@ -1957,7 +1957,7 @@ Effective configuration should be computed from:
 ```text
 Project
 +
-Profile
+Role
 +
 Presets
 +
@@ -2071,7 +2071,7 @@ Project resolution must not depend on undocumented global state.
 If future user-level configuration exists:
 
 ```text
-global profile defaults
+global role defaults
 preferred policy
 ```
 
@@ -2260,7 +2260,7 @@ Project explicit override
         ↓
 Project Presets
         ↓
-Profile Presets
+Role Presets
 ```
 
 For implementation eligibility:
@@ -2434,12 +2434,12 @@ Then validate composition.
 
 ---
 
-## Add Profile
+## Add Role
 
 Modify:
 
 ```text
-profiles/
+roles/
 ```
 
 ---
@@ -2703,7 +2703,7 @@ lockfiles conform to schemas
 
 Capability mappings reference valid Components
 
-Preset/Profile references are valid
+Preset/Role references are valid
 ```
 
 ---
@@ -2775,7 +2775,7 @@ If these questions have no clear answer, the data ownership is not yet well desi
 | What components exist upstream? | discovered/generated component inventory |
 | Which upstream version is curated? | `catalog.lock` |
 | Which capabilities belong together? | `presets/` |
-| What does this role use? | `profiles/` |
+| What does this role use? | `roles/` |
 | What is allowed? | `policies/` |
 | Where is first-party source? | `plugins/native/` |
 | What does this project want? | `agent-plugins.yaml` |
@@ -2845,7 +2845,7 @@ Curated Intent
 │
 ├── catalog/
 ├── presets/
-├── profiles/
+├── roles/
 ├── policies/
 └── plugins/native/
         │

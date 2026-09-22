@@ -61,7 +61,7 @@ Người chịu trách nhiệm định nghĩa và duy trì agent environment c�
 Trách nhiệm có thể bao gồm:
 
 ```text
-selecting profiles
+selecting roles
 selecting presets
 reviewing updates
 maintaining lockfiles
@@ -165,7 +165,7 @@ ap init
 Người dùng chọn:
 
 ```text
-Profile:
+Role:
 frontend-engineer
 
 Presets:
@@ -182,7 +182,7 @@ default
 Project manifest thu được có thể trông như sau:
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 
 presets:
   - stacks/nextjs
@@ -248,7 +248,7 @@ PostgreSQL
 Người dùng cấu hình:
 
 ```yaml
-profile: backend-engineer
+role: backend-engineer
 
 presets:
   - stacks/typescript
@@ -292,7 +292,7 @@ REQ-SYNC-001
 
 ---
 
-# 5. UC-003 — Sử dụng profile Second Brain
+# 5. UC-003 — Sử dụng role Second Brain
 
 ## Actor
 
@@ -309,7 +309,7 @@ Người dùng duy trì một hệ thống quản lý tri thức dựa trên Obs
 Họ cấu hình:
 
 ```yaml
-profile: second-brain
+role: second-brain
 
 presets:
   - knowledge/research
@@ -360,7 +360,7 @@ REQ-NAT-001
 
 ---
 
-# 6. UC-004 — Sử dụng profile Product Manager
+# 6. UC-004 — Sử dụng role Product Manager
 
 ## Actor
 
@@ -375,7 +375,7 @@ Cấu hình agent tooling xoay quanh product discovery, research, specification 
 Người dùng chọn:
 
 ```yaml
-profile: product-manager
+role: product-manager
 
 presets:
   - domains/product
@@ -401,11 +401,11 @@ engineering.domain-modeling
 
 ## Kết quả mong đợi
 
-Profile nên kết hợp các capability phù hợp từ nhiều publisher khác nhau mà không buộc Product Manager phải hiểu cấu trúc repository của chúng.
+Role nên kết hợp các capability phù hợp từ nhiều publisher khác nhau mà không buộc Product Manager phải hiểu cấu trúc repository của chúng.
 
 ---
 
-# 7. UC-005 — Tái sử dụng cùng một profile cho nhiều project khác nhau
+# 7. UC-005 — Tái sử dụng cùng một role cho nhiều project khác nhau
 
 ## Actor
 
@@ -442,7 +442,7 @@ Astro
 Cả ba project đều dùng:
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 ```
 
 nhưng với các project preset khác nhau.
@@ -461,7 +461,7 @@ frontend practices
 
 trong khi các capability riêng của từng project thay đổi.
 
-Người dùng không cần các profile riêng biệt như:
+Người dùng không cần các role riêng biệt như:
 
 ```text
 frontend-nextjs-engineer
@@ -493,7 +493,7 @@ Thêm một capability cross-cutting vào một project hiện có.
 Một project frontend đã sử dụng:
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 ```
 
 Người dùng muốn bổ sung các capability về security.
@@ -507,7 +507,7 @@ presets:
 
 ## Kết quả mong đợi
 
-Các capability security trở thành một phần của quá trình resolution mà không cần sửa đổi frontend profile.
+Các capability security trở thành một phần của quá trình resolution mà không cần sửa đổi frontend role.
 
 Hệ thống không cần một entity first-class riêng là `Addon`.
 
@@ -559,7 +559,7 @@ cardinality: one
 
 ## Kịch bản
 
-Frontend profile yêu cầu:
+Frontend role yêu cầu:
 
 ```text
 engineering.testing.tdd
@@ -1355,7 +1355,7 @@ engineering.testing.tdd
 
 ## Kết quả mong đợi
 
-Profile và preset chỉ tham chiếu đến canonical capability.
+Role và preset chỉ tham chiếu đến canonical capability.
 
 Thuật ngữ riêng của từng publisher được cô lập bên trong catalog mapping.
 
@@ -1444,7 +1444,7 @@ knowledge.synthesis
 
 ## Kết quả mong đợi
 
-Profile và project manifest vẫn giữ nguyên.
+Role và project manifest vẫn giữ nguyên.
 
 Chỉ có implementation mapping và các lockfile sau đó thay đổi.
 
@@ -1597,7 +1597,7 @@ và hạn chế external hook.
 
 ## Kết quả mong đợi
 
-Cùng một profile và preset có thể được resolve khác nhau dưới các policy khác nhau.
+Cùng một role và preset có thể được resolve khác nhau dưới các policy khác nhau.
 
 Những khác biệt đó phải tường minh và giải thích được.
 
@@ -1632,7 +1632,7 @@ engineering/security
 
 và yêu cầu các project compose nó.
 
-Ngoài ra, các project có thể dùng các profile khác nhau:
+Ngoài ra, các project có thể dùng các role khác nhau:
 
 ```text
 frontend-engineer
@@ -2185,7 +2185,7 @@ Maintainer sửa đổi:
 ```text
 catalog/
 presets/
-profiles/
+roles/
 ```
 
 và chạy quá trình generation.
@@ -2310,7 +2310,7 @@ nhưng các semantic capability của nó vẫn giữ nguyên.
 
 Source adapter được cập nhật.
 
-Profile, preset và capability ID vẫn được giữ nguyên ở mức tối đa có thể.
+Role, preset và capability ID vẫn được giữ nguyên ở mức tối đa có thể.
 
 Điều này kiểm chứng ranh giới của source adapter.
 
@@ -2339,7 +2339,7 @@ Những thành phần sau vẫn ổn định:
 ```text
 capabilities
 presets
-profiles
+roles
 project intent
 ```
 
@@ -2375,7 +2375,7 @@ Phân tích update xác định:
 removed component
 affected capability
 available alternatives
-affected profiles/presets
+affected roles/presets
 ```
 
 Nếu tồn tại một implementation hợp lệ khác, catalog maintainer có thể chủ động promote nó.
@@ -2412,7 +2412,7 @@ engineering.architecture
 
 ## Kết quả mong đợi
 
-Các profile tiếp tục tham chiếu đến:
+Các role tiếp tục tham chiếu đến:
 
 ```text
 engineering.architecture
@@ -2424,11 +2424,11 @@ Các project chỉ nhận implementation mới khi resolution/lock state của c
 
 ---
 
-# 51. UC-049 — Profile sử dụng các preset dùng chung
+# 51. UC-049 — Role sử dụng các preset dùng chung
 
 ## Actor
 
-Profile Maintainer
+Role Maintainer
 
 ## Mục tiêu
 
@@ -2454,7 +2454,7 @@ engineering/core
 
 Các capability này được định nghĩa một lần trong các preset có thể tái sử dụng.
 
-Các profile compose chúng thay vì lặp lại danh sách capability.
+Các role compose chúng thay vì lặp lại danh sách capability.
 
 ---
 
@@ -2470,7 +2470,7 @@ Tránh cài đặt package không cần thiết.
 
 ## Kịch bản
 
-Profile và preset được chọn chỉ yêu cầu:
+Role và preset được chọn chỉ yêu cầu:
 
 ```text
 planning
@@ -2649,11 +2649,11 @@ Developer
 
 ## Mục tiêu
 
-Loại bỏ một capability được kế thừa từ profile hoặc preset.
+Loại bỏ một capability được kế thừa từ role hoặc preset.
 
 ## Kịch bản
 
-Một profile thường bao gồm:
+Một role thường bao gồm:
 
 ```text
 browser testing
@@ -2740,7 +2740,7 @@ Output nên ưu tiên thông tin semantic.
 Ví dụ:
 
 ```text
-Profile
+Role
 frontend-engineer
 
 Presets
@@ -2853,7 +2853,7 @@ Ma trận sau tóm tắt các lĩnh vực chính được các use case kiểm c
 
 | Lĩnh vực | Use case tiêu biểu |
 |---|---|
-| Profile | UC-001, UC-002, UC-003, UC-004 |
+| Role | UC-001, UC-002, UC-003, UC-004 |
 | Project composition | UC-005, UC-006 |
 | Capability resolution | UC-007, UC-008, UC-011 |
 | Policy | UC-009, UC-010, UC-027 |
@@ -2894,9 +2894,9 @@ UC-001  Frontend project initialization
 
 UC-002  Backend project initialization
 
-UC-003  Second Brain profile
+UC-003  Second Brain role
 
-UC-004  Product Manager profile
+UC-004  Product Manager role
 
 UC-007  Exclusive capability conflict resolution
 
@@ -2950,7 +2950,7 @@ Frontend Engineer
         ↓
 Next.js Project
         ↓
-Select Profile
+Select Role
         ↓
 Add Project Presets
         ↓
@@ -3013,7 +3013,7 @@ describe user intent before implementation
 
 capabilities before publishers
 
-profiles before plugin lists
+roles before plugin lists
 
 explicit failure over hidden fallback
 

@@ -29,7 +29,7 @@ Upstream / first-party source
           |
 Normalized inventory + curated Catalog + catalog.lock
           |
-Profile + Presets + Project + Policy
+Role + Presets + Project + Policy
           |
        Resolver
           |
@@ -44,7 +44,7 @@ Managed runtime state
 |---|---|
 | Thu thập và chuẩn hóa cấu trúc upstream | Source Adapter và dịch vụ thu thập (acquisition) dùng chung |
 | Ý nghĩa Capability, mapping, mức ưu tiên | Catalog được tuyển chọn |
-| Mở rộng Profile/Preset; chọn implementation | Resolver |
+| Mở rộng Role/Preset; chọn implementation | Resolver |
 | Đánh giá độ tin cậy (trust) và quyền (permission) | Policy engine |
 | Ghim (pin) các input phân phối | workflow `catalog.lock` |
 | Cố định các lựa chọn của project | workflow `agent-plugins.lock` |

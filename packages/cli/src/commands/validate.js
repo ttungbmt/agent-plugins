@@ -38,7 +38,7 @@ export default class Validate extends Command {
 
     this.log(`catalog   ${root}`)
     this.log(
-      `entities  ${['publishers', 'packages', 'capabilities', 'presets', 'profiles', 'policies']
+      `entities  ${['publishers', 'packages', 'capabilities', 'presets', 'roles', 'policies']
         .map((key) => `${catalog[key].size} ${key}`)
         .join(', ')}`,
     )
@@ -89,11 +89,11 @@ export default class Validate extends Command {
       return out
     }
 
-    const profileId = manifest.spec?.profile
-    if (!profileId) {
-      add('INVALID_MANIFEST', 'spec.profile', 'no profile declared, and there is no default')
-    } else if (!catalog.profiles.has(profileId)) {
-      add('UNKNOWN_PROFILE', 'spec.profile', `no Profile "${profileId}"`)
+    const roleId = manifest.spec?.role
+    if (!roleId) {
+      add('INVALID_MANIFEST', 'spec.role', 'no role declared, and there is no default')
+    } else if (!catalog.roles.has(roleId)) {
+      add('UNKNOWN_ROLE', 'spec.role', `no Role "${roleId}"`)
     }
 
     for (const presetId of manifest.spec?.presets ?? []) {

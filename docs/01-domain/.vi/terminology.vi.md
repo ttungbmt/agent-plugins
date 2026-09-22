@@ -35,7 +35,7 @@ Capability
    ↓
 Preset
    ↓
-Profile + Project + Policy
+Role + Project + Policy
    ↓
 Resolution
    ↓
@@ -194,7 +194,7 @@ Nhiều implementation có thể cùng cung cấp một Capability.
 
 ```text
 Preset
-Profile
+Role
 Project
 another Capability
 ```
@@ -268,9 +268,9 @@ Dùng Preset khi trả lời câu hỏi:
 
 ---
 
-# 10. Profile
+# 10. Role
 
-**Profile** là một role hoặc working context có thể tái sử dụng, được compose từ các Preset.
+**Role** là một bối cảnh làm việc có thể tái sử dụng, được compose từ các Preset.
 
 Ví dụ:
 
@@ -283,7 +283,7 @@ researcher
 second-brain
 ```
 
-Dùng Profile khi trả lời câu hỏi:
+Dùng Role khi trả lời câu hỏi:
 
 > Role này thường cần những baseline capability nào?
 
@@ -296,7 +296,7 @@ Dùng Profile khi trả lời câu hỏi:
 Một Project có thể chọn:
 
 ```text
-profile
+role
 presets
 policy
 targets
@@ -358,7 +358,7 @@ Không dùng Catalog như một từ đồng nghĩa với upstream repository.
 ```text
 Project
 +
-Profile
+Role
 +
 Presets
 +
@@ -386,7 +386,7 @@ Về mặt khái niệm:
 ```text
 Project
 ↓
-Profile
+Role
 ↓
 Presets
 ↓
@@ -542,7 +542,7 @@ Về mặt khái niệm:
 Catalog
 Distribution Lock
 Project Manifest
-Profile
+Role
 Presets
 Policy
 Target
@@ -581,7 +581,7 @@ Ví dụ:
 ```text
 Preset → Preset
 Preset → Capability
-Profile → Preset
+Role → Preset
 Capability → Capability
 Component → Component
 ```
@@ -755,7 +755,7 @@ agent-plugins.yaml
 Nó có thể chứa:
 
 ```text
-profile
+role
 presets
 targets
 policy
@@ -1197,7 +1197,7 @@ Trace chuẩn:
 
 ```text
 Project
-→ Profile
+→ Role
 → Preset
 → Capability
 → Implementation
@@ -1341,7 +1341,7 @@ Không dùng Skill như một từ đồng nghĩa với Capability.
 
 **Agent** là một loại Component đại diện cho một worker context chuyên biệt, tự chủ hoặc bán tự chủ.
 
-Không dùng Agent như một từ đồng nghĩa với Profile.
+Không dùng Agent như một từ đồng nghĩa với Role.
 
 ---
 
@@ -1448,7 +1448,7 @@ Package
 Component
 Capability
 Preset
-Profile
+Role
 Policy
 Project
 Target
@@ -1532,7 +1532,7 @@ khi mô tả composition capability có thể tái sử dụng.
 Ưu tiên:
 
 ```text
-Profile
+Role
 ```
 
 khi mô tả một role làm việc.
@@ -1560,7 +1560,7 @@ như thuật ngữ chung cho mọi domain object.
 Tránh dùng:
 
 ```text
-profile
+role
 ```
 
 cho các stack đặc thù của project.
@@ -1645,22 +1645,22 @@ Capability
 
 ---
 
-## Preset vs Profile
+## Preset vs Role
 
 ```text
 Preset
 → reusable capability composition
 
-Profile
+Role
 → role using presets
 ```
 
 ---
 
-## Profile vs Project
+## Role vs Project
 
 ```text
-Profile
+Role
 → who / working role
 
 Project
@@ -1748,7 +1748,7 @@ Khi giải thích vì sao một thứ tồn tại, hãy dùng thứ tự sau:
 ```text
 Project
    ↓
-Profile
+Role
    ↓
 Preset
    ↓
@@ -1813,7 +1813,7 @@ Materialized
 | Capability | Khả năng ngữ nghĩa độc lập với publisher |
 | Capability Implementation | Component implement một Capability |
 | Preset | Composition có thể tái sử dụng gồm các Capability |
-| Profile | Role có thể tái sử dụng được compose từ các Preset |
+| Role | Bối cảnh làm việc có thể tái sử dụng, compose từ các Preset |
 | Project | Configuration mong muốn của một repository |
 | Policy | Các ràng buộc được áp dụng trong quá trình resolution |
 | Catalog | Metadata đã được curate về Publisher/Package/Capability |
@@ -1856,4 +1856,4 @@ Nếu không, hãy tái sử dụng thuật ngữ hiện có.
 
 # 88. Thuật ngữ trong một câu
 
-> **Dùng Publisher cho nguồn gốc, Package cho việc cài đặt, Component cho implementation, Capability cho intent, Preset cho composition, Profile cho role, Project cho nhu cầu của repository, Policy cho ràng buộc, Resolution cho lựa chọn cụ thể, và Target Adapter cho việc materialize vào runtime.**
+> **Dùng Publisher cho nguồn gốc, Package cho việc cài đặt, Component cho implementation, Capability cho intent, Preset cho composition, Role cho người đang làm việc, Project cho nhu cầu của repository, Policy cho ràng buộc, Resolution cho lựa chọn cụ thể, và Target Adapter cho việc materialize vào runtime.**

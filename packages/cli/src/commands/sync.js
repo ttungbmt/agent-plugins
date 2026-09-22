@@ -25,7 +25,7 @@ export default class Sync extends Command {
     const p = plan()
     const {paths} = p
 
-    this.log(`profile ${p.profile.metadata.id} -> ${p.capabilities.size} capabilities -> ${p.included.size} components`)
+    this.log(`role ${p.role.metadata.id} -> ${p.capabilities.size} capabilities -> ${p.included.size} components`)
     this.log(`source  ${p.snapshot.key}  (${p.snapshot.cached ? 'cache hit' : 'fetched'}, shared store)`)
 
     // The version is a digest of the bytes that would ship. Computing it reads
@@ -124,7 +124,7 @@ export default class Sync extends Command {
           },
         ],
         policy: p.policy.metadata.id,
-        profile: p.profile.metadata.id,
+        role: p.role.metadata.id,
         target: 'claude-code',
       },
     }

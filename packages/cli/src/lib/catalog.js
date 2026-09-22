@@ -10,7 +10,7 @@ const SOURCES = [
   {dir: ['catalog', 'packages'], key: 'packages', kind: 'Package'},
   {dir: ['catalog', 'capabilities'], key: 'capabilities', kind: 'Capability'},
   {dir: ['presets'], key: 'presets', kind: 'Preset'},
-  {dir: ['profiles'], key: 'profiles', kind: 'Profile'},
+  {dir: ['roles'], key: 'roles', kind: 'Role'},
   {dir: ['policies'], key: 'policies', kind: 'Policy'},
 ]
 
@@ -96,7 +96,7 @@ function indexKind(files, kind) {
   return {diagnostics, map}
 }
 
-/** Every reference must resolve: Capability -> Package -> Publisher, and Profile -> Preset -> Capability. */
+/** Every reference must resolve: Capability -> Package -> Publisher, and Role -> Preset -> Capability. */
 function referenceDiagnostics(catalog) {
   const diagnostics = []
   const ref = (code, entry, field, message, entity) =>
@@ -136,10 +136,10 @@ function referenceDiagnostics(catalog) {
     }
   }
 
-  for (const [id, profile] of catalog.profiles) {
-    for (const presetId of profile.spec.presets) {
+  for (const [id, role] of catalog.roles) {
+    for (const presetId of role.spec.presets) {
       if (!catalog.presets.has(presetId)) {
-        ref('UNKNOWN_PRESET', profile, 'spec.presets', `no Preset "${presetId}"`, id)
+        ref('UNKNOWN_PRESET', role, 'spec.presets', `no Preset "${presetId}"`, id)
       }
     }
   }
@@ -175,7 +175,7 @@ export function inspectCatalog(root) {
 
 /**
  * Load the authoritative domain data.
- * source-of-truth.md:112-133 — catalog/, presets/, profiles/, policies/
+ * source-of-truth.md:112-133 — catalog/, presets/, roles/, policies/
  * are the authoritative source; everything else is derived.
  *
  * catalog-spec.md:2844-2857 — any hard validation error fails the load. A

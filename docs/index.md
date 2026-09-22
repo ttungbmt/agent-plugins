@@ -82,7 +82,7 @@ Todo
       ↓
    Preset
       ↓
-   Profile + Project + Policy
+   Role + Project + Policy
       ↓
    Resolution
    ```
@@ -180,6 +180,7 @@ Accepted ADRs:
 
 - [`0010-claude-code-materialization.md`](./decisions/adr/0010-claude-code-materialization.md) — V1 materializes into Claude Code through a per-project generated local marketplace; ecosystems installed whole, collections filtered to standalone components.
 - [`0011-publisher-terminology.md`](./decisions/adr/0011-publisher-terminology.md) — the `Provider` entity becomes `Publisher` and the word "provider" is retired; fetch coordinates stay on `Package.spec.source` and the access mechanism stays an enum, not an entity.
+- [`0012-role-terminology.md`](./decisions/adr/0012-role-terminology.md) — the `Profile` entity becomes `Role`, matching the word its own definition already used; `spec.profile` becomes `spec.role`.
 
 ADRs are written alongside the main documentation rather than at the end of the documentation process.
 

@@ -14,7 +14,7 @@ The CLI is the primary human- and automation-facing interface for:
 
 - discovering packages;
 - managing project configuration;
-- selecting Profiles and Presets;
+- selecting Roles and Presets;
 - resolving dependencies;
 - evaluating policies;
 - creating and updating lockfiles;
@@ -216,9 +216,9 @@ Examples:
 ```bash
 agent-plugins catalog list
 
-agent-plugins profile show frontend
+agent-plugins role show frontend
 
-agent-plugins resolve --profile frontend
+agent-plugins resolve --role frontend
 
 agent-plugins build --target claude
 
@@ -253,7 +253,7 @@ agent-plugins
 │   ├── list
 │   └── show
 │
-├── profile
+├── role
 │   ├── list
 │   └── show
 │
@@ -315,7 +315,7 @@ init
  ↓
 inspect catalog
  ↓
-select profile / preset
+select role / preset
  ↓
 resolve
  ↓
@@ -372,7 +372,7 @@ Interactive mode MAY ask for:
 
 ```text
 Project name
-Default profile
+Default role
 Target runtimes
 Configuration location
 Lockfile preference
@@ -419,7 +419,7 @@ Example:
 
 ```bash
 agent-plugins init \
-  --profile frontend \
+  --role frontend \
   --target claude \
   --target codex \
   --yes
@@ -535,14 +535,14 @@ The CLI MUST NOT imply that Presets are runtime targets.
 
 ---
 
-# 17. `profile`
+# 17. `role`
 
-Inspect Profiles.
+Inspect Roles.
 
 ```bash
-agent-plugins profile list
+agent-plugins role list
 
-agent-plugins profile show frontend
+agent-plugins role show frontend
 ```
 
 Output SHOULD explain inheritance and composition.
@@ -569,19 +569,19 @@ Policies:
 
 ---
 
-# 18. Effective Profile Inspection
+# 18. Effective Role Inspection
 
-The CLI SHOULD support inspecting the effective Profile after inheritance.
+The CLI SHOULD support inspecting the effective Role after inheritance.
 
 Example:
 
 ```bash
-agent-plugins profile show frontend --resolved
+agent-plugins role show frontend --resolved
 ```
 
 This answers:
 
-> What configuration does this Profile effectively represent?
+> What configuration does this Role effectively represent?
 
 It MUST NOT perform Target Adapter rendering.
 
@@ -595,10 +595,10 @@ It MUST NOT perform Target Adapter rendering.
 agent-plugins resolve
 ```
 
-With explicit Profile:
+With explicit Role:
 
 ```bash
-agent-plugins resolve --profile frontend
+agent-plugins resolve --role frontend
 ```
 
 Resolution MUST use the rules defined by `resolution-spec.md`.
@@ -610,7 +610,7 @@ Resolution MUST use the rules defined by `resolution-spec.md`.
 Default output SHOULD summarize:
 
 ```text
-Profile: frontend
+Role: frontend
 
 Packages        12
 Skills          34
@@ -649,7 +649,7 @@ Example:
 ```text
 skill:typescript
   selected because:
-    profile:frontend
+    role:frontend
       → preset:web-core
         → plugin:typescript-suite
           → skill:typescript
@@ -775,7 +775,7 @@ agent-plugins build \
 Architecture:
 
 ```text
-Profile
+Role
    │
    ▼
 Resolver
@@ -953,7 +953,7 @@ Validation SHOULD cover:
 - references;
 - dependency declarations;
 - duplicate IDs;
-- Profile inheritance;
+- Role inheritance;
 - Preset references;
 - policies;
 - lockfile structure;
@@ -1417,7 +1417,7 @@ Recommended global options:
 
 --config <path>
 
---profile <id>
+--role <id>
 
 --target <id>
 
@@ -2000,8 +2000,8 @@ Possible model:
 ```text
 repository configuration
         │
-        ├── app A profile
-        ├── app B profile
+        ├── app A role
+        ├── app B role
         └── shared defaults
 ```
 
@@ -2090,7 +2090,7 @@ Completion MAY include:
 
 - commands;
 - flags;
-- Profile IDs;
+- Role IDs;
 - Preset IDs;
 - Target Adapter IDs.
 
@@ -2129,9 +2129,9 @@ For example:
 ```text
 Examples:
 
-  agent-plugins resolve --profile frontend
+  agent-plugins resolve --role frontend
 
-  agent-plugins resolve --profile backend --json
+  agent-plugins resolve --role backend --json
 ```
 
 Help SHOULD avoid becoming full documentation.
@@ -2223,7 +2223,7 @@ plugin:superpowers
 skill:typescript
 agent:code-reviewer
 preset:frontend-core
-profile:frontend
+role:frontend
 ```
 
 Short IDs MAY be accepted when unambiguous.
@@ -2253,7 +2253,7 @@ Target selection MAY come from:
 ```text
 CLI
 Project config
-Profile
+Role
 Default config
 ```
 
@@ -2275,18 +2275,18 @@ agent-plugins build \
 
 ---
 
-# 96. Profile Selection
+# 96. Role Selection
 
 Similarly:
 
 ```bash
-agent-plugins resolve --profile frontend
+agent-plugins resolve --role frontend
 ```
 
 If the project defines:
 
 ```yaml
-defaultProfile: frontend
+defaultRole: frontend
 ```
 
 then:
@@ -2295,9 +2295,9 @@ then:
 agent-plugins resolve
 ```
 
-uses that Profile.
+uses that Role.
 
-The selected Profile SHOULD be visible in verbose or summary output.
+The selected Role SHOULD be visible in verbose or summary output.
 
 ---
 
@@ -2307,7 +2307,7 @@ The CLI MAY eventually support ephemeral Preset augmentation:
 
 ```bash
 agent-plugins resolve \
-  --profile frontend \
+  --role frontend \
   --with security
 ```
 
@@ -2332,7 +2332,7 @@ CLI arguments
 For example:
 
 ```yaml
-defaultProfile: frontend
+defaultRole: frontend
 
 targets:
   - claude
@@ -2343,7 +2343,7 @@ should avoid requiring:
 
 ```bash
 agent-plugins build \
-  --profile frontend \
+  --role frontend \
   --target claude \
   --target codex
 ```
@@ -2375,8 +2375,8 @@ package show
 preset list
 preset show
 
-profile list
-profile show
+role list
+role show
 
 resolve
 
@@ -2698,7 +2698,7 @@ For example:
 ```text
 catalog list
 adapter list
-profile list
+role list
 ```
 
 MUST NOT depend on filesystem enumeration order.
@@ -2961,7 +2961,7 @@ tests/
 └── fixtures/
     ├── empty-project/
     ├── basic-project/
-    ├── frontend-profile/
+    ├── frontend-role/
     ├── conflict/
     ├── outdated-lock/
     ├── unsupported-target/
@@ -3058,8 +3058,8 @@ agent-plugins init
 agent-plugins catalog list
 agent-plugins catalog show
 
-agent-plugins profile list
-agent-plugins profile show
+agent-plugins role list
+agent-plugins role show
 
 agent-plugins resolve
 
@@ -3226,7 +3226,7 @@ The most important distinction is:
 catalog
     discover what exists
 
-profile / preset
+role / preset
     inspect intended composition
 
 resolve
@@ -3370,7 +3370,7 @@ Why is this package here?
 
 Where did it come from?
 
-Which profile selected it?
+Which role selected it?
 
 Which policy affected it?
 
@@ -3561,7 +3561,7 @@ Configuration
 Catalog
  │
  ▼
-Profile / Preset
+Role / Preset
  │
  ▼
 Resolver
@@ -3612,7 +3612,7 @@ For:
 
 ```bash
 agent-plugins install \
-  --profile frontend \
+  --role frontend \
   --target claude
 ```
 
@@ -3629,7 +3629,7 @@ Project Configuration
 
 Catalog
 
-↓ resolve profile
+↓ resolve role
 
 Resolver
 
@@ -3680,7 +3680,7 @@ DISCOVER
 catalog
 package
 preset
-profile
+role
 adapter
 source
 

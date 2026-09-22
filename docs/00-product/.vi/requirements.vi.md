@@ -373,19 +373,19 @@ Preset A
 
 **Mức ưu tiên:** P1
 
-Người dùng SHOULD có thể thêm hoặc bớt preset khỏi một project mà không cần định nghĩa lại profile.
+Người dùng SHOULD có thể thêm hoặc bớt preset khỏi một project mà không cần định nghĩa lại role.
 
 ---
 
-# 6. Yêu cầu về Profile
+# 6. Yêu cầu về Role
 
-## REQ-PRO-001 — Mô hình Profile
+## REQ-PRO-001 — Mô hình Role
 
 **Mức ưu tiên:** P0
 
-Hệ thống MUST hỗ trợ các Profile dựa trên role.
+Hệ thống MUST hỗ trợ các Role baseline tái sử dụng.
 
-Các profile đại diện ban đầu SHOULD bao gồm:
+Các role đại diện ban đầu SHOULD bao gồm:
 
 ```text
 frontend-engineer
@@ -399,13 +399,13 @@ second-brain
 
 ---
 
-## REQ-PRO-002 — Profile compose Preset
+## REQ-PRO-002 — Role compose Preset
 
 **Mức ưu tiên:** P0
 
-Profile MUST chủ yếu compose các Preset.
+Role MUST chủ yếu compose các Preset.
 
-Profile SHOULD NOT phụ thuộc trực tiếp vào implementation của Publisher.
+Role SHOULD NOT phụ thuộc trực tiếp vào implementation của Publisher.
 
 ---
 
@@ -413,19 +413,19 @@ Profile SHOULD NOT phụ thuộc trực tiếp vào implementation của Publish
 
 **Mức ưu tiên:** P0
 
-Profile composition SHOULD được ưu tiên hơn profile inheritance.
+Role composition SHOULD được ưu tiên hơn role inheritance.
 
 Nếu inheritance được hỗ trợ, nó SHOULD luôn nông.
 
 ---
 
-## REQ-PRO-004 — Khả năng tái sử dụng Profile
+## REQ-PRO-004 — Khả năng tái sử dụng Role
 
 **Mức ưu tiên:** P0
 
-Một Profile MUST có thể tái sử dụng trên nhiều project.
+Một Role MUST có thể tái sử dụng trên nhiều project.
 
-Technology stack riêng của project MUST NOT đòi hỏi phải định nghĩa lại Profile.
+Technology stack riêng của project MUST NOT đòi hỏi phải định nghĩa lại Role.
 
 ---
 
@@ -445,16 +445,16 @@ agent-plugins.yaml
 
 ---
 
-## REQ-PRJ-002 — Chọn Profile cho Project
+## REQ-PRJ-002 — Chọn Role cho Project
 
 **Mức ưu tiên:** P0
 
-Một project MUST có khả năng chọn một Profile.
+Một project MUST có khả năng chọn một Role.
 
 Ví dụ:
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 ```
 
 ---
@@ -613,7 +613,7 @@ Với cùng:
 ```text
 catalog
 project manifest
-profile
+role
 presets
 policy
 version constraints
@@ -632,7 +632,7 @@ Về mặt khái niệm, resolver MUST xử lý:
 ```text
 Project
 ↓
-Profile
+Role
 ↓
 Presets
 ↓
@@ -741,7 +741,7 @@ Mọi capability implementation được chọn MUST có thể truy vết qua:
 
 ```text
 Project
-→ Profile
+→ Role
 → Preset
 → Capability
 → Implementation
@@ -1211,7 +1211,7 @@ CLI SHOULD hỗ trợ tìm kiếm trên:
 ```text
 capabilities
 presets
-profiles
+roles
 publishers
 packages
 components
@@ -1331,7 +1331,7 @@ packages
 components
 capabilities
 presets
-profiles
+roles
 policies
 ```
 
@@ -1665,7 +1665,7 @@ Package
 Component
 Capability
 Preset
-Profile
+Role
 Policy
 Project
 Resolver
@@ -1767,7 +1767,7 @@ V1 MUST hỗ trợ workflow khái niệm sau:
 
 2. Select or define:
 
-   profile
+   role
    presets
    target
    policy
@@ -1801,7 +1801,7 @@ Package
 Component
 Capability
 Preset
-Profile
+Role
 Policy
 Project
 Resolution
@@ -1853,7 +1853,7 @@ Việc ingest toàn bộ mọi component của publisher là KHÔNG bắt buộc
 
 ---
 
-# 33. Phạm vi profile của V1
+# 33. Phạm vi role của V1
 
 V1 SHOULD bao gồm tối thiểu:
 
@@ -1864,7 +1864,7 @@ product-manager
 second-brain
 ```
 
-Các profile này nên kiểm chứng rằng composition model hoạt động trên những use case khác nhau đáng kể.
+Các role này nên kiểm chứng rằng composition model hoạt động trên những use case khác nhau đáng kể.
 
 ---
 
@@ -1881,7 +1881,7 @@ V1 không nên được coi là hoàn chỉnh về mặt chức năng cho đến
 
 ✓ presets compose capabilities
 
-✓ profiles compose presets
+✓ roles compose presets
 
 ✓ policy can reject candidates
 
@@ -1901,7 +1901,7 @@ V1 không nên được coi là hoàn chỉnh về mặt chức năng cho đến
 
 ✓ automated resolver tests pass
 
-✓ at least four representative profiles resolve successfully
+✓ at least four representative roles resolve successfully
 ```
 
 ---
@@ -2021,7 +2021,7 @@ Các yêu cầu cốt lõi có thể được tóm tắt như sau:
 ```text
 Declare intent
       ↓
-Compose reusable profiles and presets
+Compose reusable roles and presets
       ↓
 Normalize into capabilities
       ↓

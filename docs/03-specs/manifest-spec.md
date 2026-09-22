@@ -65,7 +65,7 @@ raw plugin installation list
 Preferred:
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 
 presets:
   - stacks/nextjs
@@ -138,7 +138,7 @@ metadata:
   name: mealops
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   presets:
     - stacks/nextjs
@@ -252,7 +252,7 @@ should not change selected implementations.
 Core V1 fields:
 
 ```text
-profile
+role
 presets
 capabilities
 policy
@@ -264,7 +264,7 @@ Conceptually:
 
 ```yaml
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
   presets: []
   capabilities: {}
   policy: default
@@ -284,7 +284,7 @@ apiVersion: agent-plugins.dev/v1alpha1
 kind: Project
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   targets:
     - claude-code
@@ -306,7 +306,7 @@ metadata:
   name: mealops
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   presets:
     - stacks/nextjs
@@ -321,32 +321,32 @@ spec:
 
 ---
 
-# 12. Profile
+# 12. Role
 
-`spec.profile` selects one reusable Profile.
+`spec.role` selects one reusable Role.
 
 Example:
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 ```
 
-The Profile establishes role-level baseline intent.
+The Role establishes baseline intent for the person working.
 
 ---
 
-# 13. Profile Cardinality
+# 13. Role Cardinality
 
 V1 should support:
 
 ```text
-zero or one Profile
+zero or one Role
 ```
 
 Not:
 
 ```text
-multiple Profiles
+multiple Roles
 ```
 
 by default.
@@ -365,9 +365,9 @@ For mixed needs, use additional Presets.
 
 ---
 
-# 14. Optional Profile
+# 14. Optional Role
 
-A project may omit Profile and compose entirely from Presets or explicit Capabilities.
+A project may omit Role and compose entirely from Presets or explicit Capabilities.
 
 Example:
 
@@ -385,20 +385,20 @@ At least one source of Capability intent must exist.
 
 ---
 
-# 15. Profile Must Exist
+# 15. Role Must Exist
 
-The Profile reference must resolve to the active distribution.
+The Role reference must resolve to the active distribution.
 
 Invalid:
 
 ```yaml
-profile: nonexistent-role
+role: nonexistent-role
 ```
 
 Diagnostic:
 
 ```text
-UNKNOWN_PROFILE
+UNKNOWN_ROLE
 ```
 
 ---
@@ -465,19 +465,19 @@ No duplicate should create duplicate semantic behavior.
 
 ---
 
-# 19. Project Presets vs Profile Presets
+# 19. Project Presets vs Role Presets
 
 Effective Presets are conceptually:
 
 ```text
-Profile Presets
+Role Presets
 +
 Project Presets
 ```
 
 They are expanded together before Capability Resolution.
 
-Project Presets do not replace Profile Presets unless explicitly modeled in the future.
+Project Presets do not replace Role Presets unless explicitly modeled in the future.
 
 ---
 
@@ -553,7 +553,7 @@ This keeps all explicit exceptions together.
 Normal composition:
 
 ```text
-Profile
+Role
 +
 Presets
 ```
@@ -787,7 +787,7 @@ rather than silently producing an invalid graph.
 
 # 34. Duplicate Enable
 
-If a Capability is already inherited from a Profile or Preset and also enabled explicitly:
+If a Capability is already inherited from a Role or Preset and also enabled explicitly:
 
 ```text
 deduplicate semantic requirement
@@ -970,7 +970,7 @@ The normal consumer should not need to know Publisher names.
 Capability intent is built from:
 
 ```text
-Profile
+Role
    +
 Project Presets
    +
@@ -1153,7 +1153,7 @@ poor explainability
 Reuse should happen through:
 
 ```text
-Profiles
+Roles
 Presets
 Policies
 ```
@@ -1200,7 +1200,7 @@ V1 should not perform arbitrary environment-variable interpolation in semantic f
 Avoid:
 
 ```yaml
-profile: ${AGENT_PROFILE}
+role: ${AGENT_ROLE}
 ```
 
 because hidden environment state can make Resolution non-reproducible.
@@ -1270,7 +1270,7 @@ kind:
 metadata:
 
 spec:
-  profile:
+  role:
   presets:
   policy:
   targets:
@@ -1338,7 +1338,7 @@ array structure
 Validate:
 
 ```text
-Profile exists
+Role exists
 
 Preset exists
 
@@ -1384,7 +1384,7 @@ spec:
     - claude-code
 ```
 
-because no Profile, Preset, or Capability intent exists.
+because no Role, Preset, or Capability intent exists.
 
 Possible exception:
 
@@ -1396,7 +1396,7 @@ could be supported later if useful.
 
 ---
 
-# 65. Profile-Only Project
+# 65. Role-Only Project
 
 Valid:
 
@@ -1405,13 +1405,13 @@ apiVersion: agent-plugins.dev/v1alpha1
 kind: Project
 
 spec:
-  profile: backend-engineer
+  role: backend-engineer
 
   targets:
     - claude-code
 ```
 
-Profile provides Capability intent.
+Role provides Capability intent.
 
 ---
 
@@ -1479,7 +1479,7 @@ There is nothing meaningful to resolve.
 
 # 69. Manifest Reference IDs
 
-Profile:
+Role:
 
 ```text
 frontend-engineer
@@ -1519,7 +1519,7 @@ Each field uses the canonical domain identifier for its entity.
 
 ---
 
-# 70. Profile Example
+# 70. Role Example
 
 ```yaml
 apiVersion: agent-plugins.dev/v1alpha1
@@ -1529,7 +1529,7 @@ metadata:
   name: web-app
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   targets:
     - claude-code
@@ -1547,7 +1547,7 @@ metadata:
   name: mealops
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   presets:
     - stacks/nextjs
@@ -1572,7 +1572,7 @@ metadata:
   name: api-service
 
 spec:
-  profile: backend-engineer
+  role: backend-engineer
 
   presets:
     - stacks/typescript
@@ -1597,7 +1597,7 @@ metadata:
   name: product-workspace
 
 spec:
-  profile: product-manager
+  role: product-manager
 
   presets:
     - knowledge/research
@@ -1621,7 +1621,7 @@ metadata:
   name: personal-knowledge-system
 
 spec:
-  profile: second-brain
+  role: second-brain
 
   presets:
     - knowledge/research
@@ -1644,7 +1644,7 @@ apiVersion: agent-plugins.dev/v1alpha1
 kind: Project
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   targets:
     - claude-code
@@ -1664,7 +1664,7 @@ apiVersion: agent-plugins.dev/v1alpha1
 kind: Project
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   targets:
     - claude-code
@@ -1686,7 +1686,7 @@ apiVersion: agent-plugins.dev/v1alpha1
 kind: Project
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   targets:
     - claude-code
@@ -1709,7 +1709,7 @@ metadata:
   name: custom-web-app
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   presets:
     - stacks/nextjs
@@ -1769,7 +1769,7 @@ Conceptually:
 ```text
 Project
 
-profile:
+role:
   frontend-engineer
 
 presets:
@@ -1835,7 +1835,7 @@ A default Target could cause surprising behavior when multi-runtime support appe
 Therefore:
 
 ```text
-Profile may default
+Role may default
 Policy may default
 Target should remain explicit
 ```
@@ -1844,9 +1844,9 @@ Recommended.
 
 ---
 
-# 83. Profile Default
+# 83. Role Default
 
-V1 should not default a Profile.
+V1 should not default a Role.
 
 The system cannot safely assume:
 
@@ -1856,7 +1856,7 @@ software-engineer
 
 for every consumer.
 
-`ap init` may recommend or interactively select one, but the resulting manifest should contain the explicit Profile.
+`ap init` may recommend or interactively select one, but the resulting manifest should contain the explicit Role.
 
 ---
 
@@ -1933,7 +1933,7 @@ resolved concrete state
 Changes that may require re-resolution include:
 
 ```text
-Profile change
+Role change
 
 Preset change
 
@@ -1963,7 +1963,7 @@ The Project Lockfile may contain a digest of normalized resolution-relevant mani
 For example, hash:
 
 ```text
-profile
+role
 presets
 policy
 targets
@@ -1982,7 +1982,7 @@ This helps distinguish semantic changes from cosmetic edits.
 
 ---
 
-# 89. Manifest Change: Profile
+# 89. Manifest Change: Role
 
 Example:
 
@@ -2250,7 +2250,7 @@ A future organization may want shared configuration.
 Prefer reusable:
 
 ```text
-Profiles
+Roles
 Presets
 Policies
 ```
@@ -2412,7 +2412,7 @@ metadata:
   description?: string
 
 spec:
-  profile?: ProfileId
+  role?: RoleId
 
   presets?: PresetId[]
 
@@ -2439,7 +2439,7 @@ This is descriptive, not the actual JSON Schema.
 The manifest must contain at least one of:
 
 ```text
-profile
+role
 
 preset
 
@@ -2520,7 +2520,7 @@ Preset:
 engineering/security
 ```
 
-Profile:
+Role:
 
 ```text
 frontend-engineer
@@ -2541,7 +2541,7 @@ UNSUPPORTED_API_VERSION
 
 UNKNOWN_FIELD
 
-UNKNOWN_PROFILE
+UNKNOWN_ROLE
 
 UNKNOWN_PRESET
 
@@ -2573,7 +2573,7 @@ MULTI_TARGET_NOT_SUPPORTED
 Diagnostics should include paths such as:
 
 ```text
-spec.profile
+spec.role
 
 spec.presets[1]
 
@@ -2599,7 +2599,7 @@ Example:
   "apiVersion": "agent-plugins.dev/v1alpha1",
   "kind": "Project",
   "spec": {
-    "profile": "frontend-engineer",
+    "role": "frontend-engineer",
     "targets": ["claude-code"]
   }
 }
@@ -2628,7 +2628,7 @@ agent-plugins.yaml
 Conceptual flow:
 
 ```text
-select Profile
+select Role
 ↓
 select optional Presets
 ↓
@@ -2681,13 +2681,13 @@ Removing a Project Preset should edit:
 spec.presets
 ```
 
-Removing an inherited Profile Capability may require adding:
+Removing an inherited Role Capability may require adding:
 
 ```text
 spec.overrides.capabilities.disable
 ```
 
-The CLI should preserve the semantic model rather than flattening the Profile.
+The CLI should preserve the semantic model rather than flattening the Role.
 
 ---
 
@@ -2711,7 +2711,7 @@ Example:
 engineering.testing.tdd
 
 Required by:
-profile frontend-engineer
+role frontend-engineer
 → preset engineering/core
 
 Implementation:
@@ -2785,21 +2785,21 @@ actual runtime state
 
 ---
 
-# 134. Manifest vs Profile
+# 134. Manifest vs Role
 
 Manifest selects:
 
 ```text
-Profile
+Role
 ```
 
-Profile defines:
+Role defines:
 
 ```text
 reusable role baseline
 ```
 
-Do not inline Profile contents into every Manifest.
+Do not inline Role contents into every Manifest.
 
 ---
 
@@ -2914,7 +2914,7 @@ must not affect normalized Resolution input.
 Normalized Manifest fingerprint should include:
 
 ```text
-profile
+role
 
 presets
 
@@ -2966,7 +2966,7 @@ apiVersion: agent-plugins.dev/v1alpha1
 kind: Project
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   targets:
     - claude-code
@@ -2984,7 +2984,7 @@ metadata:
   name: web-platform
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   presets:
     - stacks/nextjs
@@ -3008,7 +3008,7 @@ metadata:
   name: backend-service
 
 spec:
-  profile: backend-engineer
+  role: backend-engineer
 
   presets:
     - stacks/typescript
@@ -3022,7 +3022,7 @@ spec:
 
 ---
 
-# 146. Example — No Profile
+# 146. Example — No Role
 
 ```yaml
 apiVersion: agent-plugins.dev/v1alpha1
@@ -3052,7 +3052,7 @@ apiVersion: agent-plugins.dev/v1alpha1
 kind: Project
 
 spec:
-  profile: backend-engineer
+  role: backend-engineer
 
   targets:
     - claude-code
@@ -3072,7 +3072,7 @@ apiVersion: agent-plugins.dev/v1alpha1
 kind: Project
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   targets:
     - claude-code
@@ -3092,7 +3092,7 @@ apiVersion: agent-plugins.dev/v1alpha1
 kind: Project
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   targets:
     - claude-code
@@ -3123,7 +3123,7 @@ publisher selection leaks into consumer intent
 
 duplicate workflows become likely
 
-Profiles/Presets are bypassed
+Roles/Presets are bypassed
 
 Resolver loses semantic context
 ```
@@ -3185,12 +3185,12 @@ Core Resolution must remain deterministic and declarative.
 
 ---
 
-# 154. Invalid Example — Multiple Competing Profiles
+# 154. Invalid Example — Multiple Competing Roles
 
 Avoid:
 
 ```yaml
-profiles:
+roles:
   - frontend-engineer
   - backend-engineer
   - product-manager
@@ -3199,7 +3199,7 @@ profiles:
 Use:
 
 ```text
-one Profile
+one Role
 +
 additional Presets
 ```
@@ -3231,7 +3231,7 @@ Capability over Publisher
 
 composition over inheritance
 
-Profile for role
+Role for who is working
 
 Preset for reusable composition
 
@@ -3253,7 +3253,7 @@ Avoid:
 ```text
 large plugin arrays
 
-publisher-specific Profiles
+publisher-specific Roles
 
 publisher-specific Presets
 
@@ -3295,7 +3295,7 @@ targets
 Additionally, at least one semantic intent source is required:
 
 ```text
-profile
+role
 
 preset
 
@@ -3309,7 +3309,7 @@ Capability enable override
 ```text
 metadata
 
-spec.profile
+spec.role
 
 spec.presets
 
@@ -3331,7 +3331,7 @@ default
 V1 should not require:
 
 ```text
-multiple Profiles
+multiple Roles
 
 nested manifest inheritance
 
@@ -3345,7 +3345,7 @@ inline Policy definitions
 
 version pinning in Project manifest
 
-task-level profiles
+task-level roles
 
 automatic stack detection fields
 
@@ -3395,9 +3395,9 @@ The Project Manifest must preserve:
 
 4. It does not contain generated runtime state.
 
-5. It selects at most one Profile in V1.
+5. It selects at most one Role in V1.
 
-6. Profiles and Presets remain reusable external entities.
+6. Roles and Presets remain reusable external entities.
 
 7. Policy is selected by reference.
 
@@ -3430,7 +3430,7 @@ metadata:
   name: my-project
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   presets:
     - stacks/nextjs
@@ -3461,7 +3461,7 @@ metadata:
   name: my-project
 
 spec:
-  profile: frontend-engineer
+  role: frontend-engineer
 
   presets:
     - stacks/nextjs

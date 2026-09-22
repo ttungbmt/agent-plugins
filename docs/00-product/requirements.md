@@ -373,19 +373,19 @@ Preset A
 
 **Priority:** P1
 
-Users SHOULD be able to add or remove presets from a project without redefining a profile.
+Users SHOULD be able to add or remove presets from a project without redefining a role.
 
 ---
 
-# 6. Profile Requirements
+# 6. Role Requirements
 
-## REQ-PRO-001 — Profile Model
+## REQ-PRO-001 — Role Model
 
 **Priority:** P0
 
-The system MUST support role-based Profiles.
+The system MUST support reusable Role baselines.
 
-Initial representative profiles SHOULD include:
+Initial representative roles SHOULD include:
 
 ```text
 frontend-engineer
@@ -399,13 +399,13 @@ second-brain
 
 ---
 
-## REQ-PRO-002 — Profiles Compose Presets
+## REQ-PRO-002 — Roles Compose Presets
 
 **Priority:** P0
 
-Profiles MUST primarily compose Presets.
+Roles MUST primarily compose Presets.
 
-Profiles SHOULD NOT directly depend on Publisher implementations.
+Roles SHOULD NOT directly depend on Publisher implementations.
 
 ---
 
@@ -413,19 +413,19 @@ Profiles SHOULD NOT directly depend on Publisher implementations.
 
 **Priority:** P0
 
-Profile composition SHOULD be preferred over profile inheritance.
+Role composition SHOULD be preferred over role inheritance.
 
 If inheritance is supported, it SHOULD remain shallow.
 
 ---
 
-## REQ-PRO-004 — Profile Reusability
+## REQ-PRO-004 — Role Reusability
 
 **Priority:** P0
 
-A Profile MUST be reusable across multiple projects.
+A Role MUST be reusable across multiple projects.
 
-Project-specific technology stacks MUST NOT require redefining the Profile.
+Project-specific technology stacks MUST NOT require redefining the Role.
 
 ---
 
@@ -445,16 +445,16 @@ agent-plugins.yaml
 
 ---
 
-## REQ-PRJ-002 — Project Profile Selection
+## REQ-PRJ-002 — Project Role Selection
 
 **Priority:** P0
 
-A project MUST be able to select a Profile.
+A project MUST be able to select a Role.
 
 Example:
 
 ```yaml
-profile: frontend-engineer
+role: frontend-engineer
 ```
 
 ---
@@ -613,7 +613,7 @@ Given identical:
 ```text
 catalog
 project manifest
-profile
+role
 presets
 policy
 version constraints
@@ -632,7 +632,7 @@ The resolver MUST conceptually process:
 ```text
 Project
 ↓
-Profile
+Role
 ↓
 Presets
 ↓
@@ -741,7 +741,7 @@ Every selected capability implementation MUST be traceable through:
 
 ```text
 Project
-→ Profile
+→ Role
 → Preset
 → Capability
 → Implementation
@@ -1211,7 +1211,7 @@ The CLI SHOULD support search across:
 ```text
 capabilities
 presets
-profiles
+roles
 publishers
 packages
 components
@@ -1331,7 +1331,7 @@ packages
 components
 capabilities
 presets
-profiles
+roles
 policies
 ```
 
@@ -1665,7 +1665,7 @@ Package
 Component
 Capability
 Preset
-Profile
+Role
 Policy
 Project
 Resolver
@@ -1767,7 +1767,7 @@ V1 MUST support the following conceptual workflow:
 
 2. Select or define:
 
-   profile
+   role
    presets
    target
    policy
@@ -1801,7 +1801,7 @@ Package
 Component
 Capability
 Preset
-Profile
+Role
 Policy
 Project
 Resolution
@@ -1853,7 +1853,7 @@ Full ingestion of every publisher component is NOT required.
 
 ---
 
-# 33. V1 Profile Scope
+# 33. V1 Role Scope
 
 V1 SHOULD include at least:
 
@@ -1864,7 +1864,7 @@ product-manager
 second-brain
 ```
 
-These profiles should validate that the composition model works across significantly different use cases.
+These roles should validate that the composition model works across significantly different use cases.
 
 ---
 
@@ -1881,7 +1881,7 @@ V1 should not be considered functionally complete until all of the following are
 
 ✓ presets compose capabilities
 
-✓ profiles compose presets
+✓ roles compose presets
 
 ✓ policy can reject candidates
 
@@ -1901,7 +1901,7 @@ V1 should not be considered functionally complete until all of the following are
 
 ✓ automated resolver tests pass
 
-✓ at least four representative profiles resolve successfully
+✓ at least four representative roles resolve successfully
 ```
 
 ---
@@ -2021,7 +2021,7 @@ The core requirements can be summarized as:
 ```text
 Declare intent
       ↓
-Compose reusable profiles and presets
+Compose reusable roles and presets
       ↓
 Normalize into capabilities
       ↓

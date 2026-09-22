@@ -14,7 +14,7 @@ CLI là giao diện chính hướng tới con người và tự động hóa, d�
 
 - khám phá package;
 - quản lý cấu hình project;
-- chọn Profile và Preset;
+- chọn Role và Preset;
 - resolve dependency;
 - đánh giá policy;
 - tạo và cập nhật lockfile;
@@ -216,9 +216,9 @@ Ví dụ:
 ```bash
 agent-plugins catalog list
 
-agent-plugins profile show frontend
+agent-plugins role show frontend
 
-agent-plugins resolve --profile frontend
+agent-plugins resolve --role frontend
 
 agent-plugins build --target claude
 
@@ -253,7 +253,7 @@ agent-plugins
 │   ├── list
 │   └── show
 │
-├── profile
+├── role
 │   ├── list
 │   └── show
 │
@@ -315,7 +315,7 @@ init
  ↓
 inspect catalog
  ↓
-select profile / preset
+select role / preset
  ↓
 resolve
  ↓
@@ -372,7 +372,7 @@ Chế độ tương tác MAY hỏi về:
 
 ```text
 Project name
-Default profile
+Default role
 Target runtimes
 Configuration location
 Lockfile preference
@@ -419,7 +419,7 @@ Ví dụ:
 
 ```bash
 agent-plugins init \
-  --profile frontend \
+  --role frontend \
   --target claude \
   --target codex \
   --yes
@@ -535,14 +535,14 @@ CLI MUST NOT ngụ ý rằng Preset là runtime target.
 
 ---
 
-# 17. `profile`
+# 17. `role`
 
-Kiểm tra các Profile.
+Kiểm tra các Role.
 
 ```bash
-agent-plugins profile list
+agent-plugins role list
 
-agent-plugins profile show frontend
+agent-plugins role show frontend
 ```
 
 Output SHOULD giải thích sự kế thừa và kết hợp.
@@ -569,19 +569,19 @@ Policies:
 
 ---
 
-# 18. Kiểm tra Profile hiệu lực
+# 18. Kiểm tra Role hiệu lực
 
-CLI SHOULD hỗ trợ kiểm tra Profile hiệu lực (effective Profile) sau khi áp dụng kế thừa.
+CLI SHOULD hỗ trợ kiểm tra Role hiệu lực (effective Role) sau khi áp dụng kế thừa.
 
 Ví dụ:
 
 ```bash
-agent-plugins profile show frontend --resolved
+agent-plugins role show frontend --resolved
 ```
 
 Điều này trả lời câu hỏi:
 
-> Profile này thực sự đại diện cho cấu hình nào?
+> Role này thực sự đại diện cho cấu hình nào?
 
 Nó MUST NOT thực hiện render qua Target Adapter.
 
@@ -595,10 +595,10 @@ Nó MUST NOT thực hiện render qua Target Adapter.
 agent-plugins resolve
 ```
 
-Với Profile tường minh:
+Với Role tường minh:
 
 ```bash
-agent-plugins resolve --profile frontend
+agent-plugins resolve --role frontend
 ```
 
 Resolution MUST sử dụng các quy tắc được định nghĩa bởi `resolution-spec.md`.
@@ -610,7 +610,7 @@ Resolution MUST sử dụng các quy tắc được định nghĩa bởi `resolu
 Output mặc định SHOULD tóm tắt:
 
 ```text
-Profile: frontend
+Role: frontend
 
 Packages        12
 Skills          34
@@ -649,7 +649,7 @@ Ví dụ:
 ```text
 skill:typescript
   selected because:
-    profile:frontend
+    role:frontend
       → preset:web-core
         → plugin:typescript-suite
           → skill:typescript
@@ -775,7 +775,7 @@ agent-plugins build \
 Kiến trúc:
 
 ```text
-Profile
+Role
    │
    ▼
 Resolver
@@ -953,7 +953,7 @@ Validation SHOULD bao quát:
 - reference;
 - khai báo dependency;
 - ID trùng lặp;
-- kế thừa Profile;
+- kế thừa Role;
 - reference tới Preset;
 - policy;
 - cấu trúc lockfile;
@@ -1417,7 +1417,7 @@ Các tùy chọn toàn cục khuyến nghị:
 
 --config <path>
 
---profile <id>
+--role <id>
 
 --target <id>
 
@@ -2000,8 +2000,8 @@ Mô hình khả dĩ:
 ```text
 repository configuration
         │
-        ├── app A profile
-        ├── app B profile
+        ├── app A role
+        ├── app B role
         └── shared defaults
 ```
 
@@ -2090,7 +2090,7 @@ Completion MAY bao gồm:
 
 - command;
 - flag;
-- Profile ID;
+- Role ID;
 - Preset ID;
 - Target Adapter ID.
 
@@ -2129,9 +2129,9 @@ Ví dụ:
 ```text
 Examples:
 
-  agent-plugins resolve --profile frontend
+  agent-plugins resolve --role frontend
 
-  agent-plugins resolve --profile backend --json
+  agent-plugins resolve --role backend --json
 ```
 
 Phần trợ giúp SHOULD tránh trở thành tài liệu đầy đủ.
@@ -2223,7 +2223,7 @@ plugin:superpowers
 skill:typescript
 agent:code-reviewer
 preset:frontend-core
-profile:frontend
+role:frontend
 ```
 
 ID ngắn MAY được chấp nhận khi không mơ hồ.
@@ -2253,7 +2253,7 @@ Việc chọn target MAY đến từ:
 ```text
 CLI
 Project config
-Profile
+Role
 Default config
 ```
 
@@ -2275,18 +2275,18 @@ agent-plugins build \
 
 ---
 
-# 96. Chọn Profile
+# 96. Chọn Role
 
 Tương tự:
 
 ```bash
-agent-plugins resolve --profile frontend
+agent-plugins resolve --role frontend
 ```
 
 Nếu project định nghĩa:
 
 ```yaml
-defaultProfile: frontend
+defaultRole: frontend
 ```
 
 thì:
@@ -2295,9 +2295,9 @@ thì:
 agent-plugins resolve
 ```
 
-sử dụng Profile đó.
+sử dụng Role đó.
 
-Profile được chọn SHOULD hiển thị trong output verbose hoặc output tóm tắt.
+Role được chọn SHOULD hiển thị trong output verbose hoặc output tóm tắt.
 
 ---
 
@@ -2307,7 +2307,7 @@ CLI MAY cuối cùng hỗ trợ việc bổ sung Preset tạm thời:
 
 ```bash
 agent-plugins resolve \
-  --profile frontend \
+  --role frontend \
   --with security
 ```
 
@@ -2332,7 +2332,7 @@ CLI arguments
 Ví dụ:
 
 ```yaml
-defaultProfile: frontend
+defaultRole: frontend
 
 targets:
   - claude
@@ -2343,7 +2343,7 @@ nên tránh việc yêu cầu:
 
 ```bash
 agent-plugins build \
-  --profile frontend \
+  --role frontend \
   --target claude \
   --target codex
 ```
@@ -2375,8 +2375,8 @@ package show
 preset list
 preset show
 
-profile list
-profile show
+role list
+role show
 
 resolve
 
@@ -2698,7 +2698,7 @@ Ví dụ:
 ```text
 catalog list
 adapter list
-profile list
+role list
 ```
 
 MUST NOT phụ thuộc vào thứ tự liệt kê của filesystem.
@@ -2961,7 +2961,7 @@ tests/
 └── fixtures/
     ├── empty-project/
     ├── basic-project/
-    ├── frontend-profile/
+    ├── frontend-role/
     ├── conflict/
     ├── outdated-lock/
     ├── unsupported-target/
@@ -3058,8 +3058,8 @@ agent-plugins init
 agent-plugins catalog list
 agent-plugins catalog show
 
-agent-plugins profile list
-agent-plugins profile show
+agent-plugins role list
+agent-plugins role show
 
 agent-plugins resolve
 
@@ -3226,7 +3226,7 @@ Sự phân biệt quan trọng nhất là:
 catalog
     discover what exists
 
-profile / preset
+role / preset
     inspect intended composition
 
 resolve
@@ -3370,7 +3370,7 @@ Why is this package here?
 
 Where did it come from?
 
-Which profile selected it?
+Which role selected it?
 
 Which policy affected it?
 
@@ -3561,7 +3561,7 @@ Configuration
 Catalog
  │
  ▼
-Profile / Preset
+Role / Preset
  │
  ▼
 Resolver
@@ -3612,7 +3612,7 @@ CLI điều phối các component này nhưng không định nghĩa lại ngữ 
 
 ```bash
 agent-plugins install \
-  --profile frontend \
+  --role frontend \
   --target claude
 ```
 
@@ -3629,7 +3629,7 @@ Project Configuration
 
 Catalog
 
-↓ resolve profile
+↓ resolve role
 
 Resolver
 
@@ -3680,7 +3680,7 @@ DISCOVER
 catalog
 package
 preset
-profile
+role
 adapter
 source
 

@@ -27,7 +27,7 @@ canonical domain
 schemas
 manifests
 catalog
-profiles
+roles
 presets
 resolver
 policy
@@ -325,7 +325,7 @@ Kiểm thử các ID chuẩn như:
 plugin:superpowers
 skill:typescript
 agent:reviewer
-profile:frontend
+role:frontend
 ```
 
 Các trường hợp MUST bao gồm:
@@ -491,13 +491,13 @@ MUST thất bại một cách deterministic.
 
 ---
 
-# 20. Test Profile
+# 20. Test Role
 
 Kiểm thử:
 
 ```text
-simple Profile
-Profile inheritance
+simple Role
+Role inheritance
 multiple Presets
 package additions
 policy references
@@ -505,7 +505,7 @@ invalid parent
 inheritance cycle
 ```
 
-Việc sinh Effective Profile MUST deterministic.
+Việc sinh Effective Role MUST deterministic.
 
 ---
 
@@ -532,7 +532,7 @@ dependency cycle
 
 conflicting version
 
-Profile inheritance
+Role inheritance
 
 Preset expansion
 
@@ -568,7 +568,7 @@ graph đã resolve SHOULD tương đương và được serialize giống hệt 
 Ví dụ:
 
 ```text
-profile:frontend
+role:frontend
 → preset:web
 → plugin:typescript
 → skill:typescript
@@ -1217,7 +1217,7 @@ Kiểm thử:
 init
 validate
 catalog
-profile
+role
 resolve
 plan
 build
@@ -1593,7 +1593,7 @@ fixtures/canonical/
 ├── simple-agent/
 ├── full-plugin/
 ├── nested-presets/
-├── profile-inheritance/
+├── role-inheritance/
 ├── dependency-conflict/
 ├── policy-denied/
 └── mixed-trust/
@@ -1753,7 +1753,7 @@ Các kịch bản stress MAY bao gồm:
 ```text
 very deep graph
 very wide graph
-many Profiles
+many Roles
 many Presets
 many target artifacts
 ```
@@ -2378,7 +2378,7 @@ Then
 
 ```text
 Given
-  one frontend Profile
+  one frontend Role
 
 When
   build Claude
@@ -2666,7 +2666,7 @@ manifest parser tests
 
 catalog tests
 
-Profile/Preset tests
+Role/Preset tests
 
 resolver tests
 
@@ -3311,7 +3311,7 @@ Tạo:
 tests/fixtures/
 ├── minimal-valid/
 ├── invalid-manifest/
-├── frontend-profile/
+├── frontend-role/
 ├── dependency-cycle/
 ├── policy-denied/
 ├── mixed-trust/
@@ -3329,7 +3329,7 @@ E2E test đầu tiên SHOULD chứng minh:
 
 ```text
 Given
-  a valid first-party frontend Profile
+  a valid first-party frontend Role
 
 When
   the project is resolved

@@ -70,7 +70,7 @@ agent-plugins/
 │       │   │   ├── search/
 │       │   │   ├── explain/
 │       │   │   ├── preset/
-│       │   │   └── profile/
+│       │   │   └── role/
 │       │   │
 │       │   ├── ui/
 │       │   ├── formatters/
@@ -102,7 +102,7 @@ agent-plugins/
 │   │       ├── package.schema.json
 │   │       ├── capability.schema.json
 │   │       ├── preset.schema.json
-│   │       ├── profile.schema.json
+│   │       ├── role.schema.json
 │   │       ├── policy.schema.json
 │   │       ├── project.schema.json
 │   │       └── lockfile.schema.json
@@ -197,7 +197,7 @@ agent-plugins/
 │       ├── browser.yaml
 │       └── obsidian.yaml
 │
-├── profiles/
+├── roles/
 │   ├── software-engineer.yaml
 │   ├── frontend-engineer.yaml
 │   ├── backend-engineer.yaml
@@ -328,7 +328,7 @@ Runtime Code
 Domain Data
 ├── catalog/
 ├── presets/
-├── profiles/
+├── roles/
 ├── policies/
 └── plugins/
 
@@ -560,7 +560,7 @@ package.ts
 component.ts
 capability.ts
 preset.ts
-profile.ts
+role.ts
 project.ts
 policy.ts
 target.ts
@@ -744,7 +744,7 @@ publisher
 package
 capability
 preset
-profile
+role
 policy
 project
 lockfile
@@ -1152,7 +1152,7 @@ synthesis
 knowledge-management
 ```
 
-Hữu ích cho các Profile không liên quan đến coding.
+Hữu ích cho các Role không liên quan đến coding.
 
 ---
 
@@ -1174,19 +1174,19 @@ Nếu một tool tương ứng với một khả năng semantic đơn giản, n�
 
 ---
 
-# 41. profiles/
+# 41. roles/
 
-Profile đại diện cho các vai trò làm việc.
+Role đại diện cho các vai trò làm việc.
 
-Mỗi Profile thường nên là một file YAML.
+Mỗi Role thường nên là một file YAML.
 
 Ví dụ:
 
 ```text
-profiles/frontend-engineer.yaml
+roles/frontend-engineer.yaml
 ```
 
-Profile nên chủ yếu chứa:
+Role nên chủ yếu chứa:
 
 ```text
 preset references
@@ -1197,7 +1197,7 @@ Tránh nhúng lặp đi lặp lại các danh sách capability lớn.
 
 ---
 
-# 42. Đặt tên Profile
+# 42. Đặt tên Role
 
 Sử dụng tên theo vai trò.
 
@@ -1388,7 +1388,7 @@ publishers
 packages
 components
 presets
-profiles
+roles
 ```
 
 ---
@@ -1399,7 +1399,7 @@ Có thể chứa các reverse mapping như:
 
 ```text
 Capability → Presets
-Preset → Profiles
+Preset → Roles
 Component → Capabilities
 Package → Components
 ```
@@ -1974,7 +1974,7 @@ Authoritative:
 ```text
 catalog/
 presets/
-profiles/
+roles/
 policies/
 plugins/native/
 docs/
@@ -2014,7 +2014,7 @@ Consumer state thường tồn tại trong các downstream repository thay vì d
 | `packages/` | Code implementation có thể tái sử dụng | Có |
 | `catalog/` | Metadata hệ sinh thái đã được curate | Có |
 | `presets/` | Các capability composition | Có |
-| `profiles/` | Các composition theo role | Có |
+| `roles/` | Các composition từ Preset | Có |
 | `policies/` | Các rule resolution/governance | Có |
 | `plugins/native/` | Các implementation first-party | Có |
 | `generated/` | Các index/artifact dẫn xuất | Không |
@@ -2064,7 +2064,7 @@ Các thư mục dữ liệu được load bởi các application/core service ph
 ```text
 catalog/
 presets/
-profiles/
+roles/
 policies/
 plugins/native/
         ↓
@@ -2094,7 +2094,7 @@ cho:
 ```text
 filenames
 directory names
-profile IDs
+role IDs
 publisher IDs
 package IDs
 preset names
@@ -2509,7 +2509,7 @@ agent-plugins/
 │   └── capabilities/
 │
 ├── presets/
-├── profiles/
+├── roles/
 ├── policies/
 ├── plugins/
 │   └── native/
@@ -2539,7 +2539,7 @@ Thứ tự implement được khuyến nghị:
 
 5. presets/
 
-6. profiles/
+6. roles/
 
 7. policies/
 
@@ -2639,9 +2639,9 @@ knowledge/synthesis
 
 ---
 
-# 114. Profile của V1
+# 114. Role của V1
 
-Các Profile tiêu biểu ban đầu:
+Các Role tiêu biểu ban đầu:
 
 ```text
 frontend-engineer
@@ -2653,7 +2653,7 @@ product-manager
 second-brain
 ```
 
-Các Profile này kiểm chứng các semantic composition khác nhau.
+Các Role này kiểm chứng các semantic composition khác nhau.
 
 ---
 
@@ -2721,7 +2721,7 @@ publisher names spread everywhere
 
 one folder per hypothetical concept
 
-deep profile inheritance directories
+deep role inheritance directories
 
 duplicate catalog metadata
 
@@ -2749,7 +2749,7 @@ Cấu trúc nên giữ được các bất biến sau:
 
 5. Curated publisher/package/capability metadata stays under catalog.
 
-6. Presets and Profiles never live inside publisher folders.
+6. Presets and Roles never live inside publisher folders.
 
 7. Native implementation source stays under plugins/native.
 
@@ -2803,7 +2803,7 @@ presets/
 > Composition theo role đặt ở đâu?
 
 ```text
-profiles/
+roles/
 ```
 
 > Các rule về trust và governance đặt ở đâu?
@@ -2868,7 +2868,7 @@ Code
 Canonical Domain Data
 ├── catalog/
 ├── presets/
-├── profiles/
+├── roles/
 ├── policies/
 └── plugins/native/
 

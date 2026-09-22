@@ -1,6 +1,6 @@
 # `@agent-plugins/cli`
 
-MVP vertical slice: Profile → Presets → Capabilities → Components → local marketplace →
+MVP vertical slice: Role → Presets → Capabilities → Components → local marketplace →
 installed into Claude Code.
 
 Working consumer project: `/home/ubuntu/workspace/labs/test-agent-plugins`.
@@ -10,7 +10,7 @@ Working consumer project: `/home/ubuntu/workspace/labs/test-agent-plugins`.
 | Command | Writes | Does |
 |---|---|---|
 | `ap validate [--strict]` | nothing | catalog + project config against `@agent-plugins/schemas`; `--strict` promotes warnings |
-| `ap resolve` | nothing | Profile → Capabilities → Components, plus the declared `requires` edges |
+| `ap resolve` | nothing | Role → Capabilities → Components, plus the declared `requires` edges |
 | `ap explain <capability>` | nothing | why one Capability chose the Component it did |
 | `ap audit` | nothing | references found in bodies but **not declared** in the catalog |
 | `ap sync [--verify] [--force] [--materialize=M]` | project | full pipeline; skips whatever is already done |
@@ -21,9 +21,9 @@ Working consumer project: `/home/ubuntu/workspace/labs/test-agent-plugins`.
 ## Pipeline
 
 ```
-1 load catalog      catalog/ presets/ profiles/ policies/  (authoritative)
+1 load catalog      catalog/ presets/ roles/ policies/  (authoritative)
                     every manifest validated against packages/schemas/
-2 expand profile    profile → presets → Capability set
+2 expand role       role → presets → Capability set
 3 select            one Component per Capability, cardinality enforced
 4 closure           declared `requires`, transitively
 5 policy gate       deny hook/mcp/lsp → COMPONENT_ACTIVATION_UNSUPPORTED
