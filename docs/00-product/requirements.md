@@ -68,13 +68,13 @@ Architecturally supported but not necessarily implemented in V1.
 
 # 3. Core Domain Requirements
 
-## REQ-DOM-001 — Provider Model
+## REQ-DOM-001 — Publisher Model
 
 **Priority:** P0
 
-The system MUST represent a Provider as an external or first-party source of agent tooling.
+The system MUST represent a Publisher as an external or first-party source of agent tooling.
 
-A Provider MUST have:
+A Publisher MUST have:
 
 ```text
 stable ID
@@ -101,9 +101,9 @@ agent-plugins
 
 **Priority:** P0
 
-The system MUST represent a Package as an installable or distributable unit provided by a Provider.
+The system MUST represent a Package as an installable or distributable unit provided by a Publisher.
 
-A Package MUST reference exactly one Provider.
+A Package MUST reference exactly one Publisher.
 
 A Package SHOULD include:
 
@@ -143,7 +143,7 @@ The domain model MUST allow additional component types to be added later.
 
 **Priority:** P0
 
-The system MUST represent capabilities independently from providers and packages.
+The system MUST represent capabilities independently from publishers and packages.
 
 A Capability MUST have:
 
@@ -166,7 +166,7 @@ engineering.testing.tdd
 
 **Priority:** P0
 
-Capability IDs MUST remain independent of provider names.
+Capability IDs MUST remain independent of publisher names.
 
 Valid:
 
@@ -314,7 +314,7 @@ other presets
 
 **Priority:** P0
 
-Presets SHOULD reference capabilities rather than provider-specific components.
+Presets SHOULD reference capabilities rather than publisher-specific components.
 
 Preferred:
 
@@ -405,7 +405,7 @@ second-brain
 
 Profiles MUST primarily compose Presets.
 
-Profiles SHOULD NOT directly depend on Provider implementations.
+Profiles SHOULD NOT directly depend on Publisher implementations.
 
 ---
 
@@ -590,15 +590,15 @@ where appropriate.
 
 **Priority:** P1
 
-Policy SHOULD be able to allow or reject experimental providers or components.
+Policy SHOULD be able to allow or reject experimental publishers or components.
 
 ---
 
-## REQ-POL-006 — Provider Preference
+## REQ-POL-006 — Publisher Preference
 
 **Priority:** P1
 
-Policy SHOULD support provider or trust-class preference during resolution.
+Policy SHOULD support publisher or trust-class preference during resolution.
 
 ---
 
@@ -746,7 +746,7 @@ Project
 → Capability
 → Implementation
 → Package
-→ Provider
+→ Publisher
 ```
 
 ---
@@ -800,11 +800,11 @@ backend-engineer
 
 # 11. Catalog Requirements
 
-## REQ-CAT-001 — Catalog Provider Registry
+## REQ-CAT-001 — Catalog Publisher Registry
 
 **Priority:** P0
 
-The catalog MUST register supported Providers.
+The catalog MUST register supported Publishers.
 
 ---
 
@@ -833,7 +833,7 @@ The catalog MUST be validated before resolution.
 Validation MUST detect at least:
 
 ```text
-unknown providers
+unknown publishers
 unknown packages
 invalid implementation references
 duplicate IDs
@@ -846,7 +846,7 @@ invalid capability references
 
 **Priority:** P0
 
-Provider support MUST NOT imply automatic inclusion of every upstream component.
+Publisher support MUST NOT imply automatic inclusion of every upstream component.
 
 Catalog curation MAY select only a subset of discovered components.
 
@@ -862,11 +862,11 @@ The system MUST define an abstraction for discovering external package and compo
 
 ---
 
-## REQ-SRC-002 — Provider-Specific Discovery
+## REQ-SRC-002 — Publisher-Specific Discovery
 
 **Priority:** P1
 
-Provider-specific adapters SHOULD be supported where generic discovery is insufficient.
+Publisher-specific adapters SHOULD be supported where generic discovery is insufficient.
 
 Examples:
 
@@ -963,7 +963,7 @@ The project lockfile MUST record sufficient metadata to reproduce resolved state
 At minimum:
 
 ```text
-provider
+publisher
 package
 component
 capability
@@ -1070,11 +1070,11 @@ Applying an update SHOULD explicitly update the relevant distribution or project
 
 # 16. Provenance Requirements
 
-## REQ-PRV-001 — Provider Provenance
+## REQ-PRV-001 — Publisher Provenance
 
 **Priority:** P0
 
-Every external package MUST retain its upstream Provider identity.
+Every external package MUST retain its upstream Publisher identity.
 
 ---
 
@@ -1212,7 +1212,7 @@ The CLI SHOULD support search across:
 capabilities
 presets
 profiles
-providers
+publishers
 packages
 components
 ```
@@ -1305,7 +1305,7 @@ The system SHOULD distinguish between state managed by `agent-plugins` and state
 
 **Priority:** P0
 
-`ap sync` MUST NOT implicitly upgrade external provider versions unless explicitly configured to do so.
+`ap sync` MUST NOT implicitly upgrade external publisher versions unless explicitly configured to do so.
 
 ---
 
@@ -1326,7 +1326,7 @@ All authoritative manifest types MUST have machine-readable schemas or equivalen
 The system MUST validate references between:
 
 ```text
-providers
+publishers
 packages
 components
 capabilities
@@ -1525,7 +1525,7 @@ target-specific rendering
 The architecture SHOULD allow new:
 
 ```text
-providers
+publishers
 component types
 capability domains
 targets
@@ -1660,7 +1660,7 @@ Core concepts MUST have canonical documentation.
 At minimum:
 
 ```text
-Provider
+Publisher
 Package
 Component
 Capability
@@ -1796,7 +1796,7 @@ V1 MUST support the following conceptual workflow:
 The following domain entities MUST be supported in V1:
 
 ```text
-Provider
+Publisher
 Package
 Component
 Capability
@@ -1834,11 +1834,11 @@ CLI foundation
 
 ---
 
-# 32. V1 Provider Scope
+# 32. V1 Publisher Scope
 
-V1 SHOULD demonstrate integration with multiple provider types.
+V1 SHOULD demonstrate integration with multiple publisher types.
 
-Recommended providers:
+Recommended publishers:
 
 ```text
 Superpowers
@@ -1849,7 +1849,7 @@ wshobson/agents
 agent-plugins native
 ```
 
-Full ingestion of every provider component is NOT required.
+Full ingestion of every publisher component is NOT required.
 
 ---
 
@@ -1875,7 +1875,7 @@ V1 should not be considered functionally complete until all of the following are
 ```text
 ✓ project manifest validates
 
-✓ providers/packages/components can be represented
+✓ publishers/packages/components can be represented
 
 ✓ capabilities can map to multiple implementations
 
@@ -1985,7 +1985,7 @@ REQ-RES-003
 ↓
 
 Use Case:
-Frontend Engineer with multiple TDD providers
+Frontend Engineer with multiple TDD publishers
 
 ↓
 

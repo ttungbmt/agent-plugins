@@ -194,7 +194,7 @@ Update Engine không chịu trách nhiệm cho:
 - chạy package hook;
 - chọn tùy ý các package mới hơn nằm ngoài các ràng buộc đã cấu hình;
 - âm thầm thay đổi cấu hình project;
-- chọn một Provider khác mà không có lý giải từ resolver;
+- chọn một Publisher khác mà không có lý giải từ resolver;
 - tự động chấp nhận các mức trust mới;
 - tự động bỏ qua Policy.
 
@@ -293,7 +293,7 @@ upgraded
 downgraded
 revision-changed
 source-changed
-provider-changed
+publisher-changed
 metadata-changed
 unchanged
 ```
@@ -736,16 +736,16 @@ Dependency mới được đưa vào MUST xuất hiện trong Update Plan.
 
 ---
 
-# 32. Update và việc lựa chọn Provider
+# 32. Update và việc lựa chọn Publisher
 
-Nếu nhiều provider cùng thỏa mãn một capability, một bản cập nhật MUST NOT tùy tiện chuyển đổi provider.
+Nếu nhiều publisher cùng thỏa mãn một capability, một bản cập nhật MUST NOT tùy tiện chuyển đổi publisher.
 
-Việc thay đổi provider đòi hỏi lý giải từ resolver.
+Việc thay đổi publisher đòi hỏi lý giải từ resolver.
 
 Ví dụ:
 
 ```text
-provider:
+publisher:
   mattpocock
 →
   first-party
@@ -755,17 +755,17 @@ phải được báo cáo một cách tường minh.
 
 ---
 
-# 33. Phân loại thay đổi Provider
+# 33. Phân loại thay đổi Publisher
 
-Các thay đổi provider SHOULD được coi là có tác động cao hơn các bản cập nhật phiên bản thông thường.
+Các thay đổi publisher SHOULD được coi là có tác động cao hơn các bản cập nhật phiên bản thông thường.
 
 Loại thay đổi được khuyến nghị:
 
 ```text
-provider-changed
+publisher-changed
 ```
 
-Chúng SHOULD yêu cầu review tường minh trừ khi cấu hình project chủ đích cho phép tự động chuyển đổi provider.
+Chúng SHOULD yêu cầu review tường minh trừ khi cấu hình project chủ đích cho phép tự động chuyển đổi publisher.
 
 ---
 
@@ -1088,7 +1088,7 @@ Trước khi áp dụng, bản xem trước dễ đọc cho con người SHOULD 
 ```text
 package changes
 source changes
-provider changes
+publisher changes
 transitive changes
 capability changes
 trust changes
@@ -1336,7 +1336,7 @@ all packages
 one package
 multiple packages
 one source
-one Provider
+one Publisher
 one Profile-derived subtree
 ```
 
@@ -1364,15 +1364,15 @@ Dependency cascade MAY ảnh hưởng tới các dependency khác nếu cần.
 
 ---
 
-# 67. Update theo phạm vi Provider
+# 67. Update theo phạm vi Publisher
 
 Tương lai:
 
 ```bash
-agent-plugins update --provider mattpocock
+agent-plugins update --publisher mattpocock
 ```
 
-có thể cập nhật các package từ Provider đó.
+có thể cập nhật các package từ Publisher đó.
 
 Điều này SHOULD không thuộc V1 trừ khi cần thiết.
 
@@ -1550,7 +1550,7 @@ UPDATE_RESOLUTION_CONFLICT
 
 UPDATE_SOURCE_CHANGED
 
-UPDATE_PROVIDER_CHANGED
+UPDATE_PUBLISHER_CHANGED
 
 UPDATE_TRUST_DOWNGRADE
 
@@ -2216,7 +2216,7 @@ Cách nhóm được khuyến nghị:
 ```text
 critical security/trust changes
 
-source/provider changes
+source/publisher changes
 
 direct package changes
 
@@ -2367,16 +2367,16 @@ update:
 
 ---
 
-# 132. Policy Update cho Provider
+# 132. Policy Update cho Publisher
 
 Ví dụ:
 
 ```yaml
 update:
-  providerChange: require-approval
+  publisherChange: require-approval
 ```
 
-Việc chuyển đổi provider không được xử lý như một bản patch thường lệ.
+Việc chuyển đổi publisher không được xử lý như một bản patch thường lệ.
 
 ---
 
@@ -2555,7 +2555,7 @@ search ranking
 community popularity
 ```
 
-trừ khi một provider-selection policy tường minh trong tương lai quy định metadata như vậy.
+trừ khi một publisher-selection policy tường minh trong tương lai quy định metadata như vậy.
 
 ---
 
@@ -2661,7 +2661,7 @@ interface UpdateChange {
     | "downgraded"
     | "revision-changed"
     | "source-changed"
-    | "provider-changed"
+    | "publisher-changed"
 
   before?: ResolvedPackage
 
@@ -2781,7 +2781,7 @@ resolution conflict
 
 source change
 
-provider change
+publisher change
 
 trust downgrade
 
@@ -3025,7 +3025,7 @@ automatic update PR generation
 
 auto-merge
 
-provider auto-switching
+publisher auto-switching
 
 complex update policies
 

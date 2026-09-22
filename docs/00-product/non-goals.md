@@ -34,7 +34,7 @@ mega-plugin
 ├── all hooks
 ├── all commands
 ├── all MCP servers
-└── all providers
+└── all publishers
 ```
 
 This would reintroduce:
@@ -77,7 +77,7 @@ over raw catalog size.
 
 ---
 
-# 3. Not a Replacement for Upstream Providers
+# 3. Not a Replacement for Upstream Publishers
 
 `agent-plugins` does not aim to replace projects such as:
 
@@ -108,7 +108,7 @@ rather than becoming a replacement implementation.
 
 # 4. Not a Fork of Every Third-Party Project
 
-The project should not copy or fork every external provider into the repository.
+The project should not copy or fork every external publisher into the repository.
 
 Avoid:
 
@@ -163,7 +163,7 @@ overlay engine
 patch merging
 patch rebasing
 automatic conflict repair
-provider-specific patch DSL
+publisher-specific patch DSL
 ```
 
 These features introduce significant maintenance complexity.
@@ -296,11 +296,11 @@ should be supported by architecture extension points, not necessarily implemente
 
 ---
 
-# 12. No Support for Every Provider in V1
+# 12. No Support for Every Publisher in V1
 
 V1 should not attempt to index the entire agent ecosystem.
 
-The first provider set should be representative rather than exhaustive.
+The first publisher set should be representative rather than exhaustive.
 
 For example:
 
@@ -313,18 +313,18 @@ wshobson
 native
 ```
 
-The objective is to prove the provider abstraction, not maximize provider count.
+The objective is to prove the publisher abstraction, not maximize publisher count.
 
 ---
 
 # 13. No Automatic Import of Every Upstream Component
 
-Supporting a provider does not mean every component from that provider must become part of the curated catalog.
+Supporting a publisher does not mean every component from that publisher must become part of the curated catalog.
 
 Example:
 
 ```text
-Provider contains 300 components
+Publisher contains 300 components
 ```
 
 The project may initially curate only:
@@ -333,7 +333,7 @@ The project may initially curate only:
 20 relevant components
 ```
 
-Provider discovery and catalog curation are separate concerns.
+Publisher discovery and catalog curation are separate concerns.
 
 ---
 
@@ -379,7 +379,7 @@ V1 should not attempt to answer automatically:
 ```text
 What is the perfect profile for me?
 Which plugins should I install?
-Which provider is objectively best?
+Which publisher is objectively best?
 ```
 
 The initial system should provide curated presets and profiles.
@@ -477,7 +477,7 @@ Avoid V1 features such as:
 star ratings
 community voting
 popularity ranking
-provider leaderboard
+publisher leaderboard
 ```
 
 Trust and curation should initially be explicit project-maintained metadata.
@@ -505,7 +505,7 @@ Default implementation priority may exist, but it should remain contextual and e
 
 # 23. No Automatic Trust
 
-External providers should not automatically become trusted simply because they are popular or public.
+External publishers should not automatically become trusted simply because they are popular or public.
 
 Trust remains a curated policy decision.
 
@@ -633,7 +633,7 @@ planning workflow
 review workflow
 ```
 
-remain implemented by their selected components/providers.
+remain implemented by their selected components/publishers.
 
 The resolver selects them; it does not replace them.
 
@@ -719,7 +719,7 @@ Resolution should choose components, not transform them.
 
 # 35. No Automatic Upstream Updates
 
-The system should not silently update providers to the latest version.
+The system should not silently update publishers to the latest version.
 
 Avoid:
 
@@ -849,7 +849,7 @@ Project configuration represents repository-specific needs.
 
 ---
 
-# 43. No Provider-Specific Profiles
+# 43. No Publisher-Specific Profiles
 
 Avoid:
 
@@ -859,13 +859,13 @@ ecc-backend-engineer
 matt-frontend-engineer
 ```
 
-Profiles should depend on capabilities and presets, not providers.
+Profiles should depend on capabilities and presets, not publishers.
 
-Provider choice belongs to resolution.
+Publisher choice belongs to resolution.
 
 ---
 
-# 44. No Provider-Specific Presets by Default
+# 44. No Publisher-Specific Presets by Default
 
 Avoid presets such as:
 
@@ -877,7 +877,7 @@ all-matt
 
 for normal capability composition.
 
-Provider-oriented presets may exist for diagnostics or compatibility purposes, but they should not be the primary user abstraction.
+Publisher-oriented presets may exist for diagnostics or compatibility purposes, but they should not be the primary user abstraction.
 
 ---
 
@@ -1017,7 +1017,7 @@ capability taxonomy
 preferred implementations
 trust classification
 security-sensitive changes
-provider integration
+publisher integration
 ```
 
 Automation should assist maintainers, not remove review from critical decisions.
@@ -1072,7 +1072,7 @@ licensing marketplace infrastructure
 
 `agent-plugins` may define a useful internal capability vocabulary.
 
-It does not need to convince every upstream provider to adopt the same schema.
+It does not need to convince every upstream publisher to adopt the same schema.
 
 Source adapters exist precisely because external ecosystems will remain heterogeneous.
 
@@ -1083,7 +1083,7 @@ Source adapters exist precisely because external ecosystems will remain heteroge
 The V1 boundary should remain approximately:
 
 ```text
-Provider
+Publisher
 Package
 Component
 Capability
@@ -1140,7 +1140,7 @@ Plugin marketplace ratings
 Community reviews
 
 Context optimization engine
-Provider health scoring
+Publisher health scoring
 Security scoring
 
 Signed package infrastructure

@@ -270,7 +270,7 @@ Implement types for:
 Package
 Component
 Capability
-Provider
+Publisher
 Source
 
 Skill
@@ -1349,7 +1349,7 @@ prefers:
   - capability: typescript-analysis
 ```
 
-Resolver MAY eventually choose providers.
+Resolver MAY eventually choose publishers.
 
 Example:
 
@@ -1357,7 +1357,7 @@ Example:
 Capability:
   code-review
 
-Providers:
+Publishers:
   first-party/reviewer
   vendor/ecc-reviewer
   community/reviewer
@@ -1367,7 +1367,7 @@ This feature SHOULD NOT be implemented until package resolution is stable.
 
 ---
 
-# 25. Phase 19 — Provider Selection
+# 25. Phase 19 — Publisher Selection
 
 ## Goal
 
@@ -1390,18 +1390,18 @@ Example:
 ```text
 capability: typescript-best-practices
 
-provider:
+publisher:
   mattpocock
 ```
 
 or:
 
 ```text
-provider:
+publisher:
   first-party
 ```
 
-Provider selection MUST remain deterministic.
+Publisher selection MUST remain deterministic.
 
 ---
 
@@ -1510,7 +1510,7 @@ Where did this come from?
 
 Which Profile selected it?
 
-Which Provider supplied it?
+Which Publisher supplied it?
 
 Which target files were generated?
 
@@ -2325,7 +2325,7 @@ preset library
 
 first-party capability library
 
-provider selection foundations
+publisher selection foundations
 ```
 
 Goal:

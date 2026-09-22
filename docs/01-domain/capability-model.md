@@ -4,7 +4,7 @@
 
 This document defines the canonical capability model used by `agent-plugins`.
 
-A **Capability** represents a provider-independent semantic ability that an agent environment can provide.
+A **Capability** represents a publisher-independent semantic ability that an agent environment can provide.
 
 Examples:
 
@@ -27,7 +27,7 @@ Capability
     ↓
 Implementation
     ↓
-Provider Package / Component
+Publisher Package / Component
 ```
 
 The capability model exists so that users, profiles, presets, and projects can describe **what they need** without directly depending on **who implements it**.
@@ -69,7 +69,7 @@ rather than:
 superpowers/test-driven-development
 ```
 
-This creates a stable semantic boundary above fast-moving providers.
+This creates a stable semantic boundary above fast-moving publishers.
 
 ---
 
@@ -93,7 +93,7 @@ A Capability is **not** responsible for:
 ```text
 installation
 source discovery
-provider fetching
+publisher fetching
 runtime file generation
 package download
 ```
@@ -122,7 +122,7 @@ ecc.tdd
 claude.tdd
 ```
 
-Provider names and runtime names must not normally appear in Capability IDs.
+Publisher names and runtime names must not normally appear in Capability IDs.
 
 ---
 
@@ -187,7 +187,7 @@ They should not mirror:
 
 ```text
 repository folder structures
-provider naming conventions
+publisher naming conventions
 runtime configuration formats
 temporary implementation details
 ```
@@ -331,7 +331,7 @@ what the capability provides
 not:
 
 ```text
-how a particular provider implements it
+how a particular publisher implements it
 ```
 
 ---
@@ -400,7 +400,7 @@ Multiple implementations may provide complementary functionality.
 
 # 14. Cardinality Is Semantic
 
-Cardinality belongs to the Capability, not to a Provider.
+Cardinality belongs to the Capability, not to a Publisher.
 
 For example:
 
@@ -417,9 +417,9 @@ cardinality: one
 regardless of whether there are:
 
 ```text
-2 providers
-5 providers
-20 providers
+2 publishers
+5 publishers
+20 publishers
 ```
 
 The number of available implementations does not determine cardinality.
@@ -517,7 +517,7 @@ engineering.review
 
 However, multi-capability mappings should be used carefully.
 
-Capabilities should not be collapsed merely because one provider combines them in one Component.
+Capabilities should not be collapsed merely because one publisher combines them in one Component.
 
 ---
 
@@ -538,11 +538,11 @@ The catalog should not create:
 engineering.super-workflow
 ```
 
-simply because one provider bundles those behaviors together.
+simply because one publisher bundles those behaviors together.
 
 Instead it should map the Component to the appropriate semantic capabilities where justified.
 
-The Capability model must remain independent from provider packaging.
+The Capability model must remain independent from publisher packaging.
 
 ---
 
@@ -949,7 +949,7 @@ The selected implementation becomes the **active owner** of that capability.
 
 ---
 
-# 35. Capability Ownership Does Not Mean Provider Ownership
+# 35. Capability Ownership Does Not Mean Publisher Ownership
 
 For example:
 
@@ -971,7 +971,7 @@ This does not mean:
 Superpowers permanently owns the capability
 ```
 
-The Capability remains provider-independent.
+The Capability remains publisher-independent.
 
 Another Project or Policy may resolve differently.
 
@@ -1183,7 +1183,7 @@ should remain separate.
 
 # 47. Capability Merging Rule
 
-Do not create separate Capabilities merely because providers use different terms.
+Do not create separate Capabilities merely because publishers use different terms.
 
 For example:
 
@@ -1212,10 +1212,10 @@ They do not need to be implementation-identical.
 Example:
 
 ```text
-Provider A:
+Publisher A:
 test-driven-development
 
-Provider B:
+Publisher B:
 tdd-workflow
 ```
 
@@ -1385,7 +1385,7 @@ For example:
 engineering.testing.tdd
 ```
 
-still represents meaningful user intent even if a specific provider is removed.
+still represents meaningful user intent even if a specific publisher is removed.
 
 This separation is central to long-term stability.
 
@@ -1450,7 +1450,7 @@ catalog
 policy
 target
 version
-provider state
+publisher state
 ```
 
 ---
@@ -1568,7 +1568,7 @@ Examples of soft preference signals:
 
 ```text
 catalog priority
-provider preference
+publisher preference
 official-source preference
 curated-source preference
 target-specific preference
@@ -1604,7 +1604,7 @@ If multiple candidates remain equally preferred, the resolver must use a documen
 Possible deterministic final tie-breakers may include:
 
 ```text
-canonical provider ID
+canonical publisher ID
 canonical package ID
 canonical component ID
 ```
@@ -1691,7 +1691,7 @@ Why was this candidate selected?
 
 Which package must be installed?
 
-Which provider owns that package?
+Which publisher owns that package?
 ```
 
 ---
@@ -1709,7 +1709,7 @@ Capability:
 engineering.testing.tdd
 
 Implementation provenance:
-provider: superpowers
+publisher: superpowers
 package: superpowers
 repository: ...
 version: ...
@@ -2027,7 +2027,7 @@ When an implementation changes, the system should be able to identify affected c
 Example:
 
 ```text
-Provider update
+Publisher update
     ↓
 Component changed
     ↓
@@ -2117,7 +2117,7 @@ Preset
 Profile
 ```
 
-Provider identity should be secondary.
+Publisher identity should be secondary.
 
 ---
 
@@ -2162,7 +2162,7 @@ Families are represented through namespace hierarchy rather than a separate firs
 
 # 88. Capability Variant
 
-Avoid creating variants merely for provider differences.
+Avoid creating variants merely for publisher differences.
 
 Bad:
 
@@ -2263,7 +2263,7 @@ Capabilities themselves should generally not have trust classifications.
 Trust belongs to:
 
 ```text
-Provider
+Publisher
 Package
 Component
 Implementation
@@ -2306,7 +2306,7 @@ Capability
 → selected implementation
 → Component
 → Package
-→ Provider
+→ Publisher
 → immutable version
 ```
 
@@ -2415,7 +2415,7 @@ Component exists
 
 Component belongs to a valid Package
 
-Package belongs to a valid Provider
+Package belongs to a valid Publisher
 
 target metadata is valid
 
@@ -2461,7 +2461,7 @@ Before adding a new Capability, ask:
 
 3. Is there already a Capability with equivalent meaning?
 
-4. Is this semantic or provider-specific?
+4. Is this semantic or publisher-specific?
 
 5. Is this semantic or runtime-specific?
 
@@ -2627,7 +2627,7 @@ with different implementations.
 
 ---
 
-# 107. Anti-Pattern — Provider-Coupled Capability
+# 107. Anti-Pattern — Publisher-Coupled Capability
 
 Avoid:
 
@@ -2690,7 +2690,7 @@ That belongs in a Preset or Profile.
 
 ---
 
-# 110. Anti-Pattern — Provider Package Equals Capability
+# 110. Anti-Pattern — Publisher Package Equals Capability
 
 Avoid assuming:
 
@@ -2710,7 +2710,7 @@ Capabilities should remain semantic.
 
 Not every upstream Component deserves a canonical Capability.
 
-A provider may expose:
+A publisher may expose:
 
 ```text
 highly specific helper skill
@@ -2745,7 +2745,7 @@ explanation
 
 # 113. Anti-Pattern — Capability Monolith
 
-Avoid making Capabilities so broad that provider overlap becomes meaningless.
+Avoid making Capabilities so broad that publisher overlap becomes meaningless.
 
 Example:
 
@@ -2794,18 +2794,18 @@ engineering.testing.tdd
 from:
 
 ```text
-Provider A
+Publisher A
 ```
 
 to:
 
 ```text
-Provider B
+Publisher B
 ```
 
 that change should be visible.
 
-Provider independence does not justify hidden implementation churn.
+Publisher independence does not justify hidden implementation churn.
 
 ---
 
@@ -3058,7 +3058,7 @@ The capability model must preserve the following invariants:
 ```text
 1. A Capability describes semantic intent.
 
-2. Capability IDs are provider-independent.
+2. Capability IDs are publisher-independent.
 
 3. Capability IDs are target-independent.
 
@@ -3068,7 +3068,7 @@ The capability model must preserve the following invariants:
 
 6. Profiles primarily compose Presets.
 
-7. Multiple providers may implement one Capability.
+7. Multiple publishers may implement one Capability.
 
 8. Cardinality belongs to the Capability.
 
@@ -3084,7 +3084,7 @@ The capability model must preserve the following invariants:
 
 14. Capability graphs must remain valid and acyclic.
 
-15. Provider changes should not require consumer intent changes.
+15. Publisher changes should not require consumer intent changes.
 
 16. Implementation changes must remain explainable.
 
@@ -3295,7 +3295,7 @@ available
 # 136. Capability Model in the Overall System
 
 ```text
-Providers
+Publishers
     ↓
 Packages
     ↓
@@ -3333,19 +3333,19 @@ Capability is the semantic pivot between external ecosystem structure and consum
 The model is successful when:
 
 ```text
-users can request functionality without knowing provider names
+users can request functionality without knowing publisher names
 
-profiles remain stable when providers change
+profiles remain stable when publishers change
 
 overlapping implementations can be resolved predictably
 
 capability conflicts are explicit
 
-provider updates can be analyzed semantically
+publisher updates can be analyzed semantically
 
 multiple runtimes can use the same capability intent
 
-catalog maintainers can introduce new providers without redesigning profiles
+catalog maintainers can introduce new publishers without redesigning profiles
 
 every selected implementation can be explained
 ```
@@ -3354,4 +3354,4 @@ every selected implementation can be explained
 
 # 138. Capability Model in One Sentence
 
-> **A Capability is a stable, provider-independent expression of user intent that can have multiple concrete implementations, explicit cardinality and dependencies, deterministic resolution rules, and full traceability from semantic requirement to locked runtime component.**
+> **A Capability is a stable, publisher-independent expression of user intent that can have multiple concrete implementations, explicit cardinality and dependencies, deterministic resolution rules, and full traceability from semantic requirement to locked runtime component.**

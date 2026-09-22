@@ -320,7 +320,7 @@ frontend-engineer
 
 Profile expansion produces Preset requirements.
 
-Profile expansion must not resolve provider implementations.
+Profile expansion must not resolve publisher implementations.
 
 ---
 
@@ -612,10 +612,10 @@ Incorrect:
 
 ```text
 Preset A
-→ resolve TDD Provider A
+→ resolve TDD Publisher A
 
 Preset B
-→ resolve TDD Provider B
+→ resolve TDD Publisher B
 
 merge later
 ```
@@ -745,7 +745,7 @@ Candidate
 ├── capability
 ├── component
 ├── package
-├── provider
+├── publisher
 ├── priority
 ├── status
 ├── targetCompatibility
@@ -965,7 +965,7 @@ Example:
 
 ```text
 Candidate:
-provider-a/security-review
+publisher-a/security-review
 
 Rejected:
 trust level community is denied by strict policy
@@ -1328,7 +1328,7 @@ Potential preference sources:
 ```text
 existing lock
 
-policy provider preference
+policy publisher preference
 
 target-specific preference
 
@@ -1973,7 +1973,7 @@ selected component
 For each Package, retain:
 
 ```text
-Provider
+Publisher
 
 source
 
@@ -2060,7 +2060,7 @@ The consumer Resolver should normally choose from versions approved by:
 catalog.lock
 ```
 
-not from the entire remote provider history.
+not from the entire remote publisher history.
 
 This separates:
 
@@ -2252,7 +2252,7 @@ another eligible candidate has stronger lock preference
 
 ```text
 Candidate:
-community-provider/...#skill:tdd
+community-publisher/...#skill:tdd
 
 Outcome:
 rejected
@@ -2484,7 +2484,7 @@ Capabilities associated with those Components
 
 resolved version
 
-Provider provenance
+Publisher provenance
 ```
 
 ---
@@ -2504,7 +2504,7 @@ canonical capability ID
 Packages:
 
 ```text
-provider ID
+publisher ID
 then package ID
 ```
 
@@ -2785,14 +2785,14 @@ Examples:
 ```text
 update package version only
 
-update one Provider
+update one Publisher
 
 update one Capability implementation
 
 update all curated dependencies
 ```
 
-V1 may initially support a simpler global/provider update workflow.
+V1 may initially support a simpler global/publisher update workflow.
 
 ---
 
@@ -3250,7 +3250,7 @@ Conceptually:
 ```text
 ResolvedPackage
 
-provider
+publisher
 
 package
 
@@ -3778,7 +3778,7 @@ override TDD → ECC
 Policy:
 
 ```text
-deny ECC provider
+deny ECC publisher
 ```
 
 Result:
@@ -4009,7 +4009,7 @@ TDD → Superpowers
 New catalog includes:
 
 ```text
-Provider X
+Publisher X
 priority 120
 ```
 
@@ -4022,7 +4022,7 @@ preserve Superpowers
 Explicit update:
 
 ```text
-Provider X may become selected
+Publisher X may become selected
 ```
 
 if eligible.
@@ -4398,7 +4398,7 @@ This ordering should remain stable unless deliberately changed through architect
 # 182. Resolution Rules Summary
 
 ```text
-Request capabilities, not providers.
+Request capabilities, not publishers.
 
 Expand all semantic requirements before selecting implementations.
 

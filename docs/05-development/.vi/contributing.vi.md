@@ -640,7 +640,7 @@ search ranking
 không được trở thành:
 
 ```text
-provider resolution ranking
+publisher resolution ranking
 ```
 
 nếu không có một đặc tả resolver tường minh.
@@ -2160,7 +2160,7 @@ Nên dùng:
 
 ```text
 Problem:
-Users cannot inspect why a provider was selected.
+Users cannot inspect why a publisher was selected.
 ```
 
 thay vì:

@@ -167,7 +167,7 @@ Use Capability when answering:
 
 > What can the agent environment do?
 
-Capability is the primary abstraction between user intent and provider implementation.
+Capability is the primary abstraction between user intent and publisher implementation.
 
 ---
 
@@ -317,7 +317,7 @@ A **Policy** defines constraints used during resolution and materialization.
 Policies may govern:
 
 ```text
-provider trust
+publisher trust
 allowed sources
 hooks
 commands
@@ -340,7 +340,7 @@ The **Catalog** is the curated set of metadata known to the resolver.
 It contains:
 
 ```text
-Providers
+Publishers
 Packages
 Capabilities
 Implementation mappings
@@ -833,7 +833,7 @@ agent-plugins.lock
 Example:
 
 ```text
-provider
+publisher
 repository
 version
 commit
@@ -878,7 +878,7 @@ Do not use `official` as a synonym for first-party.
 
 **Third-Party** means maintained outside the `agent-plugins` project.
 
-A third-party provider may still be:
+A third-party publisher may still be:
 
 ```text
 official
@@ -957,7 +957,7 @@ review requirements
 
 # 46. Official
 
-**Official** means the Package or Provider is published by the organization responsible for the target ecosystem or product.
+**Official** means the Package or Publisher is published by the organization responsible for the target ecosystem or product.
 
 Example:
 
@@ -1203,7 +1203,7 @@ Project
 → Capability
 → Implementation
 → Package
-→ Provider
+→ Publisher
 ```
 
 ---
@@ -1444,7 +1444,7 @@ Actual State
 Use singular nouns for entity names:
 
 ```text
-Provider
+Publisher
 Package
 Component
 Capability
@@ -1572,7 +1572,7 @@ Avoid using:
 preset
 ```
 
-for provider-specific package lists unless explicitly intended.
+for publisher-specific package lists unless explicitly intended.
 
 Avoid using:
 
@@ -1610,10 +1610,10 @@ when semantic composition is meant.
 
 # 83. Common Distinctions
 
-## Provider vs Package
+## Publisher vs Package
 
 ```text
-Provider
+Publisher
 → who / where
 
 Package
@@ -1761,7 +1761,7 @@ Component
    ↓
 Package
    ↓
-Provider
+Publisher
 ```
 
 When explaining execution:
@@ -1785,7 +1785,7 @@ Managed State
 External tooling generally follows:
 
 ```text
-Provider
+Publisher
    ↓
 Discovered Package / Component
    ↓
@@ -1808,16 +1808,16 @@ Materialized
 
 | Term | Short Definition |
 |---|---|
-| Provider | Source or publisher of Packages |
+| Publisher | Source or publisher of Packages |
 | Package | Installable/distributable unit |
 | Component | Functional unit inside a Package |
-| Capability | Provider-independent semantic ability |
+| Capability | Publisher-independent semantic ability |
 | Capability Implementation | Component implementing a Capability |
 | Preset | Reusable composition of Capabilities |
 | Profile | Reusable role composed from Presets |
 | Project | Desired configuration of a repository |
 | Policy | Constraints applied during resolution |
-| Catalog | Curated Provider/Package/Capability metadata |
+| Catalog | Curated Publisher/Package/Capability metadata |
 | Resolver | Computes concrete implementations |
 | Resolution | Result of resolution |
 | Candidate | Implementation considered by the Resolver |
@@ -1857,4 +1857,4 @@ If not, reuse the existing terminology.
 
 # 88. Terminology in One Sentence
 
-> **Use Provider for origin, Package for installation, Component for implementation, Capability for intent, Preset for composition, Profile for role, Project for repository needs, Policy for constraints, Resolution for concrete selection, and Target Adapter for runtime materialization.**
+> **Use Publisher for origin, Package for installation, Component for implementation, Capability for intent, Preset for composition, Profile for role, Project for repository needs, Policy for constraints, Resolution for concrete selection, and Target Adapter for runtime materialization.**

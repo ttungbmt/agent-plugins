@@ -169,9 +169,9 @@ Similarly:
 
 ```text
 Code Review
-├── Provider A
-├── Provider B
-└── Provider C
+├── Publisher A
+├── Publisher B
+└── Publisher C
 ```
 
 and:
@@ -363,7 +363,7 @@ What the current project requires
 
 ---
 
-# 8. Upstream Providers Evolve Independently
+# 8. Upstream Publishers Evolve Independently
 
 Community repositories change continuously.
 
@@ -467,7 +467,7 @@ Personal environment
 → allow community plugins
 
 Company environment
-→ allow curated providers only
+→ allow curated publishers only
 
 Enterprise environment
 → forbid executable hooks from external sources
@@ -477,9 +477,9 @@ Installation systems that treat every plugin the same make these policies very d
 
 ---
 
-# 12. Provider Lock-in
+# 12. Publisher Lock-in
 
-Configuration is often tied directly to provider names.
+Configuration is often tied directly to publisher names.
 
 For example:
 
@@ -500,7 +500,7 @@ TDD
 security review
 ```
 
-Provider-dependent configuration creates unnecessary coupling between user intent and implementation.
+Publisher-dependent configuration creates unnecessary coupling between user intent and implementation.
 
 ---
 
@@ -621,7 +621,7 @@ There is no shared model connecting all of these decisions.
 
 # 17. There Is No Standard Capability Vocabulary
 
-Different providers may use different names for the same concept.
+Different publishers may use different names for the same concept.
 
 For example:
 
@@ -677,7 +677,7 @@ should reproduce:
 
 ```text
 same capabilities
-same providers
+same publishers
 same packages
 same versions
 same components
@@ -696,7 +696,7 @@ Teams may want to standardize:
 engineering workflow
 security review
 testing methodology
-approved providers
+approved publishers
 agent behavior
 ```
 
@@ -726,11 +726,11 @@ For example:
 
 ```text
 Personal
-→ allow community providers
+→ allow community publishers
 → allow experimentation
 
 Work
-→ curated providers
+→ curated publishers
 → pinned versions
 → restricted hooks
 
@@ -753,7 +753,7 @@ In reality, many good implementations already exist.
 
 The real problem is:
 
-> There is no consistent abstraction for selecting, composing, resolving, governing, and reproducing capabilities across many providers, projects, roles, and agent runtimes.
+> There is no consistent abstraction for selecting, composing, resolving, governing, and reproducing capabilities across many publishers, projects, roles, and agent runtimes.
 
 ---
 
@@ -787,7 +787,7 @@ Current solutions typically address only one or two of these layers.
 
 # 24. Desired User Experience
 
-Users should not have to understand every provider.
+Users should not have to understand every publisher.
 
 Instead of:
 
@@ -846,7 +846,7 @@ The remaining details should be derivable.
 A team should be able to define:
 
 ```text
-approved providers
+approved publishers
 preferred implementations
 required workflows
 security policies
@@ -859,7 +859,7 @@ without forcing every project to repeat those decisions.
 
 # 27. Desired Maintenance Experience
 
-When an upstream provider changes, maintainers must be able to understand the impact before upgrading.
+When an upstream publisher changes, maintainers must be able to understand the impact before upgrading.
 
 For example:
 
@@ -978,7 +978,7 @@ instead of listing dozens of plugins by hand.
 
 ### Avoid Capability Duplication
 
-When providers overlap, only the appropriate implementation is active.
+When publishers overlap, only the appropriate implementation is active.
 
 ### Reproduce Environments
 
@@ -1002,7 +1002,7 @@ Upstream changes can be reviewed before being applied.
 
 ### Enforce Policy
 
-Users and teams can restrict trusted providers and executable behavior.
+Users and teams can restrict trusted publishers and executable behavior.
 
 ### Support Multiple Runtimes
 
@@ -1014,13 +1014,13 @@ Semantic configuration can gradually be materialized into many different target 
 
 > The AI agent ecosystem offers an increasing number of powerful plugins, skills, agents, and workflows, but users lack a scalable way to compose them into consistent environments.
 
-Manual installation leads to configuration duplication, capability overlap, provider coupling, context bloat, security ambiguity, update risk, and poor reproducibility.
+Manual installation leads to configuration duplication, capability overlap, publisher coupling, context bloat, security ambiguity, update risk, and poor reproducibility.
 
 `agent-plugins` exists to address the layer between **discovering agent tooling** and **operating a consistent agent environment in practice**.
 
 The core problem is therefore:
 
-> **How can users declare the capabilities they need, compose them by role and project, deterministically resolve overlapping implementations, apply trust policies, and reproduce configurations across multiple agent runtimes without being tightly coupled to any specific plugin provider?**
+> **How can users declare the capabilities they need, compose them by role and project, deterministically resolve overlapping implementations, apply trust policies, and reproduce configurations across multiple agent runtimes without being tightly coupled to any specific plugin publisher?**
 
 ---
 

@@ -24,7 +24,7 @@ Manifest nên luôn:
 - ngắn gọn,
 - dễ đọc với con người,
 - được quản lý phiên bản (version-controlled),
-- mặc định độc lập với provider,
+- mặc định độc lập với publisher,
 - mang tính tất định (deterministic),
 - có thể được máy kiểm tra (machine-validatable).
 
@@ -36,7 +36,7 @@ Thông thường nó không chứa:
 - commit upstream bất biến,
 - file runtime được sinh ra,
 - danh mục component được phát hiện,
-- metadata đầy đủ của provider.
+- metadata đầy đủ của publisher.
 
 Những thứ đó thuộc về Catalog, Lockfile hoặc trạng thái Target.
 
@@ -892,9 +892,9 @@ Nó không sửa đổi ánh xạ hoặc độ ưu tiên mặc định của Cat
 
 ---
 
-# 40. Override theo Provider
+# 40. Override theo Publisher
 
-Việc chọn Provider nên diễn ra gián tiếp thông qua override implementation Component.
+Việc chọn Publisher nên diễn ra gián tiếp thông qua override implementation Component.
 
 Nên dùng:
 
@@ -907,7 +907,7 @@ implementations:
 Tránh dùng một cấu trúc riêng như:
 
 ```yaml
-providers:
+publishers:
   tdd: superpowers
 ```
 
@@ -945,23 +945,23 @@ plugins:
 
 làm mô hình manifest chính.
 
-Việc chọn Provider và Package nên là output của Resolver.
+Việc chọn Publisher và Package nên là output của Resolver.
 
 ---
 
-# 43. Không dùng danh sách Provider làm trạng thái mong muốn
+# 43. Không dùng danh sách Publisher làm trạng thái mong muốn
 
 Tránh dùng:
 
 ```yaml
-providers:
+publishers:
   - superpowers
   - ecc
 ```
 
 trừ khi cấu hình nguồn khả dụng trong một manifest nâng cao ở tương lai.
 
-Consumer thông thường không cần biết tên Provider.
+Consumer thông thường không cần biết tên Publisher.
 
 ---
 
@@ -2774,7 +2774,7 @@ Nó không phải nguồn có thẩm quyền cho:
 ```text
 Catalog semantics
 
-Provider versions
+Publisher versions
 
 Component discovery
 
@@ -3105,7 +3105,7 @@ spec:
 
 ---
 
-# 150. Ví dụ không hợp lệ — Manifest lấy Provider làm trung tâm
+# 150. Ví dụ không hợp lệ — Manifest lấy Publisher làm trung tâm
 
 Tránh dùng:
 
@@ -3119,7 +3119,7 @@ plugins:
 Lý do:
 
 ```text
-provider selection leaks into consumer intent
+publisher selection leaks into consumer intent
 
 duplicate workflows become likely
 
@@ -3227,7 +3227,7 @@ Manifest nên tuân theo:
 ```text
 intent over implementation
 
-Capability over Provider
+Capability over Publisher
 
 composition over inheritance
 
@@ -3253,9 +3253,9 @@ Tránh:
 ```text
 large plugin arrays
 
-provider-specific Profiles
+publisher-specific Profiles
 
-provider-specific Presets
+publisher-specific Presets
 
 manual package version pins
 
@@ -3339,7 +3339,7 @@ remote manifest imports
 
 arbitrary Package installation
 
-arbitrary Provider enable lists
+arbitrary Publisher enable lists
 
 inline Policy definitions
 
@@ -3389,7 +3389,7 @@ Project Manifest phải bảo toàn:
 ```text
 1. It expresses desired semantic intent.
 
-2. It remains provider-independent by default.
+2. It remains publisher-independent by default.
 
 3. It does not contain resolved Package versions.
 
@@ -3480,7 +3480,7 @@ spec:
 Định dạng này thành công khi người dùng có thể hiểu một Project mà không cần biết:
 
 ```text
-which Provider wins
+which Publisher wins
 
 which Package version is installed
 
@@ -3495,4 +3495,4 @@ trong khi Resolver vẫn có đủ thông tin ngữ nghĩa để xác định t�
 
 # 165. Manifest trong một câu
 
-> **`agent-plugins.yaml` là một mô tả ngắn gọn, mang tính khai báo về vai trò của project, composition capability có thể tái sử dụng, governance policy, runtime target và các ngoại lệ tường minh—để lại việc lựa chọn cụ thể provider, component, package và phiên bản cho quá trình resolution tất định và lockfile.**
+> **`agent-plugins.yaml` là một mô tả ngắn gọn, mang tính khai báo về vai trò của project, composition capability có thể tái sử dụng, governance policy, runtime target và các ngoại lệ tường minh—để lại việc lựa chọn cụ thể publisher, component, package và phiên bản cho quá trình resolution tất định và lockfile.**

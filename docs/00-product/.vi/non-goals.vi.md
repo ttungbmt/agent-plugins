@@ -34,7 +34,7 @@ mega-plugin
 ├── all hooks
 ├── all commands
 ├── all MCP servers
-└── all providers
+└── all publishers
 ```
 
 Điều này sẽ tái tạo lại:
@@ -77,7 +77,7 @@ hơn là kích thước catalog thuần túy.
 
 ---
 
-# 3. Không thay thế các upstream provider
+# 3. Không thay thế các upstream publisher
 
 `agent-plugins` không nhằm thay thế các project như:
 
@@ -108,7 +108,7 @@ thay vì trở thành một implementation thay thế.
 
 # 4. Không fork mọi third-party project
 
-Project không nên sao chép hoặc fork mọi external provider vào repository.
+Project không nên sao chép hoặc fork mọi external publisher vào repository.
 
 Tránh:
 
@@ -163,7 +163,7 @@ overlay engine
 patch merging
 patch rebasing
 automatic conflict repair
-provider-specific patch DSL
+publisher-specific patch DSL
 ```
 
 Những tính năng này mang lại độ phức tạp bảo trì đáng kể.
@@ -296,11 +296,11 @@ nên được hỗ trợ thông qua các extension point của kiến trúc, kh�
 
 ---
 
-# 12. Không hỗ trợ mọi provider trong V1
+# 12. Không hỗ trợ mọi publisher trong V1
 
 V1 không nên cố index toàn bộ agent ecosystem.
 
-Tập provider đầu tiên nên mang tính đại diện thay vì đầy đủ.
+Tập publisher đầu tiên nên mang tính đại diện thay vì đầy đủ.
 
 Ví dụ:
 
@@ -313,18 +313,18 @@ wshobson
 native
 ```
 
-Mục tiêu là chứng minh provider abstraction, không phải tối đa hóa số lượng provider.
+Mục tiêu là chứng minh publisher abstraction, không phải tối đa hóa số lượng publisher.
 
 ---
 
 # 13. Không tự động import mọi upstream component
 
-Hỗ trợ một provider không có nghĩa là mọi component từ provider đó phải trở thành một phần của curated catalog.
+Hỗ trợ một publisher không có nghĩa là mọi component từ publisher đó phải trở thành một phần của curated catalog.
 
 Ví dụ:
 
 ```text
-Provider contains 300 components
+Publisher contains 300 components
 ```
 
 Ban đầu project có thể chỉ curate:
@@ -333,7 +333,7 @@ Ban đầu project có thể chỉ curate:
 20 relevant components
 ```
 
-Provider discovery và catalog curation là hai mối quan tâm riêng biệt.
+Publisher discovery và catalog curation là hai mối quan tâm riêng biệt.
 
 ---
 
@@ -379,7 +379,7 @@ V1 không nên cố tự động trả lời:
 ```text
 What is the perfect profile for me?
 Which plugins should I install?
-Which provider is objectively best?
+Which publisher is objectively best?
 ```
 
 Hệ thống ban đầu nên cung cấp các preset và profile được curate.
@@ -477,7 +477,7 @@ Tránh các tính năng V1 như:
 star ratings
 community voting
 popularity ranking
-provider leaderboard
+publisher leaderboard
 ```
 
 Ban đầu trust và curation nên là metadata tường minh do project duy trì.
@@ -505,7 +505,7 @@ Có thể tồn tại implementation priority mặc định, nhưng nó nên lu�
 
 # 23. Không tự động trust
 
-External provider không nên tự động trở thành trusted chỉ vì chúng phổ biến hoặc công khai.
+External publisher không nên tự động trở thành trusted chỉ vì chúng phổ biến hoặc công khai.
 
 Trust vẫn là một quyết định policy được curate.
 
@@ -633,7 +633,7 @@ planning workflow
 review workflow
 ```
 
-vẫn được implement bởi các component/provider đã được chọn.
+vẫn được implement bởi các component/publisher đã được chọn.
 
 Resolver chọn chúng; nó không thay thế chúng.
 
@@ -719,7 +719,7 @@ Resolution nên chọn component, không biến đổi chúng.
 
 # 35. Không tự động update upstream
 
-Hệ thống không nên âm thầm update provider lên phiên bản mới nhất.
+Hệ thống không nên âm thầm update publisher lên phiên bản mới nhất.
 
 Tránh:
 
@@ -849,7 +849,7 @@ Cấu hình project đại diện cho các nhu cầu riêng của repository.
 
 ---
 
-# 43. Không có profile gắn với provider
+# 43. Không có profile gắn với publisher
 
 Tránh:
 
@@ -859,13 +859,13 @@ ecc-backend-engineer
 matt-frontend-engineer
 ```
 
-Profile nên phụ thuộc vào capability và preset, không phải provider.
+Profile nên phụ thuộc vào capability và preset, không phải publisher.
 
-Việc chọn provider thuộc về resolution.
+Việc chọn publisher thuộc về resolution.
 
 ---
 
-# 44. Mặc định không có preset gắn với provider
+# 44. Mặc định không có preset gắn với publisher
 
 Tránh các preset như:
 
@@ -877,7 +877,7 @@ all-matt
 
 cho capability composition thông thường.
 
-Các preset hướng provider có thể tồn tại cho mục đích chẩn đoán hoặc tương thích, nhưng không nên là abstraction chính cho người dùng.
+Các preset hướng publisher có thể tồn tại cho mục đích chẩn đoán hoặc tương thích, nhưng không nên là abstraction chính cho người dùng.
 
 ---
 
@@ -1017,7 +1017,7 @@ capability taxonomy
 preferred implementations
 trust classification
 security-sensitive changes
-provider integration
+publisher integration
 ```
 
 Tự động hóa nên hỗ trợ maintainer, không loại bỏ việc review khỏi các quyết định quan trọng.
@@ -1072,7 +1072,7 @@ licensing marketplace infrastructure
 
 `agent-plugins` có thể định nghĩa một capability vocabulary nội bộ hữu ích.
 
-Nó không cần thuyết phục mọi upstream provider áp dụng cùng một schema.
+Nó không cần thuyết phục mọi upstream publisher áp dụng cùng một schema.
 
 Source adapter tồn tại chính vì các external ecosystem sẽ vẫn không đồng nhất.
 
@@ -1083,7 +1083,7 @@ Source adapter tồn tại chính vì các external ecosystem sẽ vẫn không 
 Ranh giới V1 nên được giữ ở mức xấp xỉ:
 
 ```text
-Provider
+Publisher
 Package
 Component
 Capability
@@ -1140,7 +1140,7 @@ Plugin marketplace ratings
 Community reviews
 
 Context optimization engine
-Provider health scoring
+Publisher health scoring
 Security scoring
 
 Signed package infrastructure

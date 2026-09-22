@@ -68,13 +68,13 @@ Bắt buộc để có một V1 thực tế và đáng tin cậy.
 
 # 3. Yêu cầu về core domain
 
-## REQ-DOM-001 — Mô hình Provider
+## REQ-DOM-001 — Mô hình Publisher
 
 **Mức ưu tiên:** P0
 
-Hệ thống MUST biểu diễn Provider như một nguồn agent tooling bên ngoài hoặc first-party.
+Hệ thống MUST biểu diễn Publisher như một nguồn agent tooling bên ngoài hoặc first-party.
 
-Một Provider MUST có:
+Một Publisher MUST có:
 
 ```text
 stable ID
@@ -101,9 +101,9 @@ agent-plugins
 
 **Mức ưu tiên:** P0
 
-Hệ thống MUST biểu diễn Package như một đơn vị có thể cài đặt hoặc phân phối được cung cấp bởi một Provider.
+Hệ thống MUST biểu diễn Package như một đơn vị có thể cài đặt hoặc phân phối được cung cấp bởi một Publisher.
 
-Một Package MUST tham chiếu đúng một Provider.
+Một Package MUST tham chiếu đúng một Publisher.
 
 Một Package SHOULD bao gồm:
 
@@ -143,7 +143,7 @@ Domain model MUST cho phép bổ sung thêm các loại component khác sau này
 
 **Mức ưu tiên:** P0
 
-Hệ thống MUST biểu diễn capability độc lập với provider và package.
+Hệ thống MUST biểu diễn capability độc lập với publisher và package.
 
 Một Capability MUST có:
 
@@ -166,7 +166,7 @@ engineering.testing.tdd
 
 **Mức ưu tiên:** P0
 
-Capability ID MUST luôn độc lập với tên provider.
+Capability ID MUST luôn độc lập với tên publisher.
 
 Hợp lệ:
 
@@ -314,7 +314,7 @@ other presets
 
 **Mức ưu tiên:** P0
 
-Preset SHOULD tham chiếu capability thay vì các component gắn với provider cụ thể.
+Preset SHOULD tham chiếu capability thay vì các component gắn với publisher cụ thể.
 
 Nên dùng:
 
@@ -405,7 +405,7 @@ second-brain
 
 Profile MUST chủ yếu compose các Preset.
 
-Profile SHOULD NOT phụ thuộc trực tiếp vào implementation của Provider.
+Profile SHOULD NOT phụ thuộc trực tiếp vào implementation của Publisher.
 
 ---
 
@@ -590,15 +590,15 @@ review
 
 **Mức ưu tiên:** P1
 
-Policy SHOULD có khả năng cho phép hoặc từ chối các provider hoặc component thử nghiệm.
+Policy SHOULD có khả năng cho phép hoặc từ chối các publisher hoặc component thử nghiệm.
 
 ---
 
-## REQ-POL-006 — Provider Preference
+## REQ-POL-006 — Publisher Preference
 
 **Mức ưu tiên:** P1
 
-Policy SHOULD hỗ trợ ưu tiên provider hoặc trust class trong quá trình resolution.
+Policy SHOULD hỗ trợ ưu tiên publisher hoặc trust class trong quá trình resolution.
 
 ---
 
@@ -746,7 +746,7 @@ Project
 → Capability
 → Implementation
 → Package
-→ Provider
+→ Publisher
 ```
 
 ---
@@ -800,11 +800,11 @@ backend-engineer
 
 # 11. Yêu cầu về Catalog
 
-## REQ-CAT-001 — Catalog Provider Registry
+## REQ-CAT-001 — Catalog Publisher Registry
 
 **Mức ưu tiên:** P0
 
-Catalog MUST đăng ký các Provider được hỗ trợ.
+Catalog MUST đăng ký các Publisher được hỗ trợ.
 
 ---
 
@@ -833,7 +833,7 @@ Catalog MUST được validate trước khi resolution.
 Validation MUST phát hiện tối thiểu:
 
 ```text
-unknown providers
+unknown publishers
 unknown packages
 invalid implementation references
 duplicate IDs
@@ -846,7 +846,7 @@ invalid capability references
 
 **Mức ưu tiên:** P0
 
-Việc hỗ trợ một provider MUST NOT ngụ ý tự động bao gồm mọi upstream component.
+Việc hỗ trợ một publisher MUST NOT ngụ ý tự động bao gồm mọi upstream component.
 
 Catalog curation MAY chỉ chọn một tập con của các component đã được khám phá.
 
@@ -862,11 +862,11 @@ Hệ thống MUST định nghĩa một abstraction để khám phá metadata c�
 
 ---
 
-## REQ-SRC-002 — Discovery riêng theo provider
+## REQ-SRC-002 — Discovery riêng theo publisher
 
 **Mức ưu tiên:** P1
 
-Các adapter riêng cho từng provider SHOULD được hỗ trợ ở những nơi generic discovery không đủ.
+Các adapter riêng cho từng publisher SHOULD được hỗ trợ ở những nơi generic discovery không đủ.
 
 Ví dụ:
 
@@ -963,7 +963,7 @@ Project lockfile MUST ghi lại đủ metadata để tái tạo resolved state.
 Tối thiểu:
 
 ```text
-provider
+publisher
 package
 component
 capability
@@ -1070,11 +1070,11 @@ Việc áp dụng một update SHOULD cập nhật một cách tường minh dis
 
 # 16. Yêu cầu về Provenance
 
-## REQ-PRV-001 — Provider Provenance
+## REQ-PRV-001 — Publisher Provenance
 
 **Mức ưu tiên:** P0
 
-Mọi external package MUST giữ lại danh tính upstream Provider của nó.
+Mọi external package MUST giữ lại danh tính upstream Publisher của nó.
 
 ---
 
@@ -1212,7 +1212,7 @@ CLI SHOULD hỗ trợ tìm kiếm trên:
 capabilities
 presets
 profiles
-providers
+publishers
 packages
 components
 ```
@@ -1305,7 +1305,7 @@ Hệ thống SHOULD phân biệt giữa state do `agent-plugins` quản lý và 
 
 **Mức ưu tiên:** P0
 
-`ap sync` MUST NOT ngầm upgrade version của external provider trừ khi được cấu hình tường minh để làm vậy.
+`ap sync` MUST NOT ngầm upgrade version của external publisher trừ khi được cấu hình tường minh để làm vậy.
 
 ---
 
@@ -1326,7 +1326,7 @@ Tất cả các loại authoritative manifest MUST có schema máy đọc đư�
 Hệ thống MUST validate các tham chiếu giữa:
 
 ```text
-providers
+publishers
 packages
 components
 capabilities
@@ -1525,7 +1525,7 @@ target-specific rendering
 Kiến trúc SHOULD cho phép bổ sung mới:
 
 ```text
-providers
+publishers
 component types
 capability domains
 targets
@@ -1660,7 +1660,7 @@ Các core concept MUST có tài liệu chuẩn (canonical documentation).
 Tối thiểu:
 
 ```text
-Provider
+Publisher
 Package
 Component
 Capability
@@ -1796,7 +1796,7 @@ V1 MUST hỗ trợ workflow khái niệm sau:
 Các domain entity sau MUST được hỗ trợ trong V1:
 
 ```text
-Provider
+Publisher
 Package
 Component
 Capability
@@ -1834,11 +1834,11 @@ CLI foundation
 
 ---
 
-# 32. Phạm vi provider của V1
+# 32. Phạm vi publisher của V1
 
-V1 SHOULD minh họa việc tích hợp với nhiều loại provider.
+V1 SHOULD minh họa việc tích hợp với nhiều loại publisher.
 
-Các provider được khuyến nghị:
+Các publisher được khuyến nghị:
 
 ```text
 Superpowers
@@ -1849,7 +1849,7 @@ wshobson/agents
 agent-plugins native
 ```
 
-Việc ingest toàn bộ mọi component của provider là KHÔNG bắt buộc.
+Việc ingest toàn bộ mọi component của publisher là KHÔNG bắt buộc.
 
 ---
 
@@ -1875,7 +1875,7 @@ V1 không nên được coi là hoàn chỉnh về mặt chức năng cho đến
 ```text
 ✓ project manifest validates
 
-✓ providers/packages/components can be represented
+✓ publishers/packages/components can be represented
 
 ✓ capabilities can map to multiple implementations
 
@@ -1985,7 +1985,7 @@ REQ-RES-003
 ↓
 
 Use Case:
-Frontend Engineer with multiple TDD providers
+Frontend Engineer with multiple TDD publishers
 
 ↓
 

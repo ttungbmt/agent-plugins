@@ -1,7 +1,7 @@
 # Đặc tả Catalog
 
 **Trạng thái:** Ghi chú thiết kế — đi trước hiện thực. Văn xuôi ở đây mô tả hành vi dự định, không phải hợp đồng.  
-**Hợp đồng chuẩn tắc:** `packages/schemas/schemas/{provider,package,capability}.schema.json` (source-of-truth.md §16, §55)
+**Hợp đồng chuẩn tắc:** `packages/schemas/schemas/{publisher,package,capability}.schema.json` (source-of-truth.md §16, §55)
 
 ## Tổng quan
 
@@ -12,7 +12,7 @@ Catalog là lớp metadata được tuyển chọn (curated), kết nối các h
 Catalog trả lời các câu hỏi:
 
 ```text
-Which Providers are recognized?
+Which Publishers are recognized?
 
 Which Packages are supported?
 
@@ -31,7 +31,7 @@ Catalog phải luôn:
 - con người có thể review được,
 - máy có thể validate được,
 - deterministic,
-- nhận biết Provider (provider-aware),
+- nhận biết Publisher (publisher-aware),
 - hướng capability (capability-oriented),
 - độc lập với các project sử dụng nó.
 
@@ -46,7 +46,7 @@ Catalog không phải là project manifest và không được chứa ý định
 ```text
 catalog directory structure
 
-Provider manifests
+Publisher manifests
 
 Package manifests
 
@@ -92,7 +92,7 @@ Cấu trúc chuẩn là:
 
 ```text
 catalog/
-├── providers/
+├── publishers/
 │   ├── superpowers.yaml
 │   ├── mattpocock.yaml
 │   ├── ecc.yaml
@@ -122,7 +122,7 @@ catalog/
 Catalog bao gồm ba lớp entity có thẩm quyền (authoritative):
 
 ```text
-Provider
+Publisher
 Package
 Capability
 ```
@@ -136,7 +136,7 @@ Inventory Component của bên thứ ba thường được khám phá (discover)
 Có thẩm quyền (authoritative):
 
 ```text
-catalog/providers/
+catalog/publishers/
 catalog/packages/
 catalog/capabilities/
 ```
@@ -158,7 +158,7 @@ catalog.lock
 Chiều phụ thuộc là:
 
 ```text
-Provider / Package Metadata
+Publisher / Package Metadata
         +
 Source Discovery
         +
@@ -179,7 +179,7 @@ Cấu trúc khuyến nghị:
 
 ```yaml
 apiVersion: agent-plugins.dev/v1alpha1
-kind: Provider
+kind: Publisher
 
 metadata:
   id: superpowers
@@ -192,7 +192,7 @@ spec:
 Các kind được hỗ trợ trong V1:
 
 ```text
-Provider
+Publisher
 Package
 Capability
 ```
@@ -230,7 +230,7 @@ Nó không thay đổi danh tính ngữ nghĩa (semantic identity) của entity.
 Các giá trị được phép trong V1:
 
 ```text
-Provider
+Publisher
 Package
 Capability
 ```
@@ -286,9 +286,9 @@ Khi đã ổn định, việc thay đổi ID nên được xử lý như một m
 
 ---
 
-# 9. Provider ID
+# 9. Publisher ID
 
-Provider ID sử dụng kebab-case chữ thường.
+Publisher ID sử dụng kebab-case chữ thường.
 
 Ví dụ:
 
@@ -307,7 +307,7 @@ Pattern khuyến nghị:
 ^[a-z0-9]+(?:-[a-z0-9]+)*$
 ```
 
-Provider ID là duy nhất trên toàn cục trong Catalog.
+Publisher ID là duy nhất trên toàn cục trong Catalog.
 
 ---
 
@@ -324,10 +324,10 @@ frontend-design
 ecc
 ```
 
-Danh tính Package chuẩn được giới hạn phạm vi (scoped) theo Provider:
+Danh tính Package chuẩn được giới hạn phạm vi (scoped) theo Publisher:
 
 ```text
-<provider-id>/<package-id>
+<publisher-id>/<package-id>
 ```
 
 Ví dụ:
@@ -336,7 +336,7 @@ Ví dụ:
 anthropic/frontend-design
 ```
 
-Về mặt kỹ thuật, hai Provider có thể expose các Package có cùng ID cục bộ.
+Về mặt kỹ thuật, hai Publisher có thể expose các Package có cùng ID cục bộ.
 
 ---
 
@@ -359,7 +359,7 @@ Pattern khuyến nghị:
 ^[a-z0-9]+(?:-[a-z0-9]+)*(?:\.[a-z0-9]+(?:-[a-z0-9]+)*)+$
 ```
 
-Thông thường, Capability ID không được chứa tên Provider hoặc tên Target.
+Thông thường, Capability ID không được chứa tên Publisher hoặc tên Target.
 
 ---
 
@@ -370,7 +370,7 @@ Một tham chiếu Component chuẩn phải không mơ hồ trên toàn cục.
 Cú pháp khái niệm khuyến nghị:
 
 ```text
-<provider>/<package>#<type>:<name>
+<publisher>/<package>#<type>:<name>
 ```
 
 Ví dụ:
@@ -1094,7 +1094,7 @@ Về mặt khái niệm:
 ```json
 {
   "id": "superpowers/superpowers#skill:test-driven-development",
-  "provider": "superpowers",
+  "publisher": "superpowers",
   "package": "superpowers",
   "type": "skill",
   "name": "test-driven-development",
@@ -1192,7 +1192,7 @@ Build Catalog
 Thứ tự nạp khuyến nghị:
 
 ```text
-1. Providers
+1. Publishers
 
 2. Packages
 
@@ -1204,7 +1204,7 @@ Thứ tự nạp khuyến nghị:
 bởi vì:
 
 ```text
-Package references Provider
+Package references Publisher
 
 Component references Package
 
@@ -1225,12 +1225,12 @@ Không được dựa vào thứ tự liệt kê thư mục của hệ điều h
 
 ---
 
-# 50. Validation Provider
+# 50. Validation Publisher
 
 Validate:
 
 ```text
-unique Provider ID
+unique Publisher ID
 
 valid ID syntax
 
@@ -1243,7 +1243,7 @@ valid discovery adapter
 valid trust classification
 ```
 
-Nếu discovery của Provider tham chiếu tới một adapter không khả dụng:
+Nếu discovery của Publisher tham chiếu tới một adapter không khả dụng:
 
 ```text
 validation fails
@@ -1256,9 +1256,9 @@ validation fails
 Validate:
 
 ```text
-unique Provider/Package identity
+unique Publisher/Package identity
 
-Provider exists
+Publisher exists
 
 valid source configuration
 
@@ -1367,7 +1367,7 @@ superpowers/superpowers#skill:tdd
 yêu cầu:
 
 ```text
-Provider: superpowers
+Publisher: superpowers
 Package: superpowers
 ```
 
@@ -1375,9 +1375,9 @@ phải tồn tại.
 
 ---
 
-# 57. Validation quan hệ thành viên Provider
+# 57. Validation quan hệ thành viên Publisher
 
-Mọi Package phải resolve tới một Provider hợp lệ.
+Mọi Package phải resolve tới một Publisher hợp lệ.
 
 Chuỗi quan hệ:
 
@@ -1385,7 +1385,7 @@ Chuỗi quan hệ:
 Capability
 → Component
 → Package
-→ Provider
+→ Publisher
 ```
 
 phải luôn có thể duyệt được.
@@ -1475,7 +1475,7 @@ duplicate canonical ID
 
 invalid schema
 
-missing Provider
+missing Publisher
 
 missing Package
 
@@ -1507,7 +1507,7 @@ YAML
 ↓
 Manifest DTO
 ↓
-Normalized Provider / Package / Capability
+Normalized Publisher / Package / Capability
 ↓
 Catalog
 ```
@@ -1523,8 +1523,8 @@ Về mặt khái niệm:
 ```text
 Catalog
 
-providers:
-  Map<ProviderId, Provider>
+publishers:
+  Map<PublisherId, Publisher>
 
 packages:
   Map<PackageRef, Package>
@@ -1554,7 +1554,7 @@ Component → Capabilities
 
 Package → Components
 
-Provider → Packages
+Publisher → Packages
 ```
 
 Các index này nên được dẫn xuất.
@@ -1574,7 +1574,7 @@ Capability → Presets
 
 Preset → Profiles
 
-Provider → Packages
+Publisher → Packages
 ```
 
 Hữu ích cho:
@@ -1632,7 +1632,7 @@ Về mặt khái niệm:
 apiVersion: agent-plugins.dev/v1alpha1
 kind: CatalogLock
 
-providers:
+publishers:
   superpowers:
     packages:
       superpowers:
@@ -1690,7 +1690,7 @@ Về mặt khái niệm:
 ```text
 catalogDigest =
 hash(
-  providers
+  publishers
   packages
   capabilities
   distribution lock
@@ -1707,16 +1707,16 @@ Output Catalog đã chuẩn hóa được sinh ra nên sử dụng thứ tự �
 
 Khuyến nghị:
 
-Provider:
+Publisher:
 
 ```text
-sort by Provider ID
+sort by Publisher ID
 ```
 
 Package:
 
 ```text
-sort by Provider ID, then Package ID
+sort by Publisher ID, then Package ID
 ```
 
 Component:
@@ -1749,7 +1749,7 @@ Các thay đổi Catalog phải diễn ra thông qua các chỉnh sửa có ch�
 Ví dụ:
 
 ```text
-add Provider
+add Publisher
 
 add Package
 
@@ -1766,12 +1766,12 @@ Source discovery không được âm thầm thay đổi các file Catalog có th
 
 ---
 
-# 74. Thêm một Provider
+# 74. Thêm một Publisher
 
 Các bước bắt buộc:
 
 ```text
-1. Create Provider manifest
+1. Create Publisher manifest
 
 2. Create one or more Package manifests
 
@@ -1799,7 +1799,7 @@ Các bước bắt buộc:
 Bắt buộc:
 
 ```text
-Provider exists
+Publisher exists
 
 Package ID selected
 
@@ -1904,9 +1904,9 @@ Capability thay thế nên được ghi lại trong tài liệu.
 
 ---
 
-# 80. Cập nhật Provider
+# 80. Cập nhật Publisher
 
-Việc cập nhật một Provider không tự động thay đổi các ánh xạ Catalog ngữ nghĩa.
+Việc cập nhật một Publisher không tự động thay đổi các ánh xạ Catalog ngữ nghĩa.
 
 Workflow:
 
@@ -1978,7 +1978,7 @@ Không tự động giả định rằng việc đổi tên là tương đương
 
 ---
 
-# 84. Tái cấu trúc repository của Provider
+# 84. Tái cấu trúc repository của Publisher
 
 Nếu cấu trúc thư mục thay đổi mà danh tính ngữ nghĩa của Component không đổi, Source Adapter có thể giữ nguyên các canonical Component ID ổn định khi có thể.
 
@@ -2164,10 +2164,10 @@ Mọi metadata liên quan đến máy phải được biểu diễn dưới dạ
 
 # 95. Đặt tên file
 
-File Provider:
+File Publisher:
 
 ```text
-<provider-id>.yaml
+<publisher-id>.yaml
 ```
 
 File Package:
@@ -2197,7 +2197,7 @@ engineering/testing/tdd.yaml
 Quy tắc ưu tiên cho V1:
 
 ```text
-one Provider per file
+one Publisher per file
 
 one Package per file
 
@@ -2218,14 +2218,14 @@ Các inventory lớn được sinh ra là ngoại lệ.
 
 ---
 
-# 97. Provider có nhiều Package
+# 97. Publisher có nhiều Package
 
-Một Provider có thể có nhiều file Package.
+Một Publisher có thể có nhiều file Package.
 
 Ví dụ:
 
 ```text
-Provider:
+Publisher:
 anthropic
 
 Packages:
@@ -2240,7 +2240,7 @@ Mỗi Package vẫn có thể được tham chiếu độc lập.
 
 # 98. Xung đột tên Package
 
-Nếu hai Provider cùng có:
+Nếu hai Publisher cùng có:
 
 ```text
 core
@@ -2249,12 +2249,12 @@ core
 thì danh tính đầy đủ của chúng vẫn khác nhau:
 
 ```text
-provider-a/core
+publisher-a/core
 
-provider-b/core
+publisher-b/core
 ```
 
-Tính duy nhất của Package ID cục bộ chỉ bắt buộc trong phạm vi một Provider.
+Tính duy nhất của Package ID cục bộ chỉ bắt buộc trong phạm vi một Publisher.
 
 ---
 
@@ -2262,7 +2262,7 @@ Tính duy nhất của Package ID cục bộ chỉ bắt buộc trong phạm vi 
 
 Capability ID là duy nhất trên toàn cục.
 
-Không có giới hạn phạm vi theo Provider.
+Không có giới hạn phạm vi theo Publisher.
 
 Do đó:
 
@@ -2386,7 +2386,7 @@ pnpm generate:catalog
 nên:
 
 ```text
-load Provider/Package metadata
+load Publisher/Package metadata
 
 read catalog.lock
 
@@ -2452,7 +2452,7 @@ CI nên phát hiện điều này.
 Với cùng các đầu vào giống hệt nhau:
 
 ```text
-Provider manifests
+Publisher manifests
 
 Package manifests
 
@@ -2529,7 +2529,7 @@ manifest parsing
 known format parsing
 ```
 
-thay vì thực thi tooling của provider.
+thay vì thực thi tooling của publisher.
 
 ---
 
@@ -2540,7 +2540,7 @@ Source adapter nên định nghĩa hành vi xử lý symlink một cách determi
 Khuyến nghị:
 
 ```text
-do not follow symlinks outside the checked-out provider root
+do not follow symlinks outside the checked-out publisher root
 ```
 
 trừ khi được yêu cầu tường minh và được xử lý an toàn.
@@ -2596,11 +2596,11 @@ Các chỉ số như vậy có thể một ngày nào đó hỗ trợ việc rev
 
 ---
 
-# 117. Ví dụ Provider ban đầu
+# 117. Ví dụ Publisher ban đầu
 
 ```yaml
 apiVersion: agent-plugins.dev/v1alpha1
-kind: Provider
+kind: Publisher
 
 metadata:
   id: superpowers
@@ -2634,7 +2634,7 @@ metadata:
   name: Superpowers
 
 spec:
-  provider: superpowers
+  publisher: superpowers
 
   source:
     path: .
@@ -2749,7 +2749,7 @@ metadata:
   name: Second Brain
 
 spec:
-  provider: agent-plugins
+  publisher: agent-plugins
 
   source:
     path: plugins/native/second-brain
@@ -2768,7 +2768,7 @@ spec:
 Về mặt khái niệm, Catalog đã chuẩn hóa được lắp ghép từ:
 
 ```text
-Provider Manifests
+Publisher Manifests
 
         +
 
@@ -2865,7 +2865,7 @@ Các mã ban đầu khuyến nghị:
 ```text
 INVALID_MANIFEST
 
-DUPLICATE_PROVIDER
+DUPLICATE_PUBLISHER
 
 DUPLICATE_PACKAGE
 
@@ -2873,7 +2873,7 @@ DUPLICATE_CAPABILITY
 
 DUPLICATE_COMPONENT
 
-UNKNOWN_PROVIDER
+UNKNOWN_PUBLISHER
 
 UNKNOWN_PACKAGE
 
@@ -2883,7 +2883,7 @@ UNKNOWN_CAPABILITY
 
 INVALID_CAPABILITY_ID
 
-INVALID_PROVIDER_ID
+INVALID_PUBLISHER_ID
 
 INVALID_PACKAGE_ID
 
@@ -2911,7 +2911,7 @@ MISSING_IMPLEMENTATION
 Ngoài schema validation, CI nên kiểm tra các điều kiện chất lượng như:
 
 ```text
-unused Provider
+unused Publisher
 
 Package with zero Components
 
@@ -2935,7 +2935,7 @@ Việc tuyển chọn Catalog nên ưu tiên:
 ```text
 semantic clarity
 
-small representative provider set
+small representative publisher set
 
 explicit overlap modeling
 
@@ -2953,7 +2953,7 @@ maximum component count
 
 automatic inclusion
 
-provider popularity
+publisher popularity
 
 taxonomy completeness
 ```
@@ -2962,7 +2962,7 @@ taxonomy completeness
 
 # 130. Được tuyển chọn không có nghĩa là đầy đủ
 
-Một Provider có thể expose:
+Một Publisher có thể expose:
 
 ```text
 300 Components
@@ -3035,7 +3035,7 @@ documentation link
 Ví dụ:
 
 ```text
-new Provider
+new Publisher
 
 new Package
 
@@ -3111,7 +3111,7 @@ Tooling dành cho maintainer về sau nên hỗ trợ diff ngữ nghĩa.
 Ví dụ:
 
 ```text
-Provider added
+Publisher added
 
 Package version changed
 
@@ -3173,7 +3173,7 @@ all Capability graphs acyclic
 
 all mapped Components exist
 
-all Packages belong to Providers
+all Packages belong to Publishers
 
 all generated inventory deterministic
 
@@ -3187,7 +3187,7 @@ all initial V1 Profiles resolve successfully
 Catalog nên cung cấp fixture bao phủ các trường hợp:
 
 ```text
-TDD with multiple competing Providers
+TDD with multiple competing Publishers
 
 Capability with cardinality many
 
@@ -3206,7 +3206,7 @@ Package containing selected and suppressed Components
 
 # 140. Phạm vi Catalog V1
 
-Các Provider ban đầu:
+Các Publisher ban đầu:
 
 ```text
 superpowers
@@ -3273,7 +3273,7 @@ product-manager
 second-brain
 ```
 
-với sự chồng lấn provider có ý nghĩa.
+với sự chồng lấn publisher có ý nghĩa.
 
 ---
 
@@ -3282,7 +3282,7 @@ với sự chồng lấn provider có ý nghĩa.
 Catalog sẵn sàng cho V1 khi:
 
 ```text
-Provider manifests validate
+Publisher manifests validate
 
 Package manifests validate
 
@@ -3305,7 +3305,7 @@ representative Profiles resolve successfully
 
 ---
 
-# 144. Anti-Pattern của Catalog — Kết hợp lấy Provider làm trung tâm
+# 144. Anti-Pattern của Catalog — Kết hợp lấy Publisher làm trung tâm
 
 Tránh:
 
@@ -3323,7 +3323,7 @@ Capability
 → implementations
 ```
 
-chứ không khuyến khích các gói provider làm abstraction chính.
+chứ không khuyến khích các gói publisher làm abstraction chính.
 
 ---
 
@@ -3390,7 +3390,7 @@ remain discovered but uncurated
 
 ---
 
-# 149. Anti-Pattern của Catalog — Tên Provider trong Capability ID
+# 149. Anti-Pattern của Catalog — Tên Publisher trong Capability ID
 
 Tránh:
 
@@ -3478,15 +3478,15 @@ Canonical ID phải tường minh.
 Catalog phải đảm bảo:
 
 ```text
-1. Every Provider has a stable canonical ID.
+1. Every Publisher has a stable canonical ID.
 
-2. Every Package belongs to exactly one Provider.
+2. Every Package belongs to exactly one Publisher.
 
 3. Every Component belongs to exactly one Package.
 
 4. Every Capability has one canonical semantic ID.
 
-5. Capability IDs are provider-independent.
+5. Capability IDs are publisher-independent.
 
 6. Capability IDs are target-independent.
 
@@ -3514,7 +3514,7 @@ Catalog phải đảm bảo:
 # 154. Tóm tắt quy trình xử lý Catalog
 
 ```text
-Provider Manifests
+Publisher Manifests
       │
       ├───────────────┐
       ▼               │
@@ -3549,7 +3549,7 @@ Discovered Components │
 # 155. Mô hình tư duy tối giản về Catalog
 
 ```text
-Provider
+Publisher
    ↓
 Package
    ↓
@@ -3574,4 +3574,4 @@ what a Project selects
 
 # 156. Catalog trong một câu
 
-> **Catalog của `agent-plugins` là một ánh xạ mang tính khai báo, được tuyển chọn và được quản lý phiên bản, từ các Provider và Package tới các Component đã chuẩn hóa và các Capability độc lập với provider, trong đó các version bên ngoài được ghim riêng và mọi ánh xạ ngữ nghĩa đều được validate trước khi trở thành ứng viên của Resolver.**
+> **Catalog của `agent-plugins` là một ánh xạ mang tính khai báo, được tuyển chọn và được quản lý phiên bản, từ các Publisher và Package tới các Component đã chuẩn hóa và các Capability độc lập với publisher, trong đó các version bên ngoài được ghim riêng và mọi ánh xạ ngữ nghĩa đều được validate trước khi trở thành ứng viên của Resolver.**

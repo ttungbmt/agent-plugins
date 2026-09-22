@@ -254,4 +254,4 @@ collecting both; the second half is not built.
 
 `ecosystem` materialization, `allowOverlap`, `allowExecutables`, `disableGlobal`, global
 scope (`sync -g`), sparse/blobless fetch, more than one package per project, more than one
-target adapter, cardinality conflict between two providers.
+target adapter, cardinality conflict between two publishers.

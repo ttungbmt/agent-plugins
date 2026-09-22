@@ -98,7 +98,7 @@ agent-plugins/
 │   │   ├── package.json
 │   │   ├── src/
 │   │   └── schemas/
-│   │       ├── provider.schema.json
+│   │       ├── publisher.schema.json
 │   │       ├── package.schema.json
 │   │       ├── capability.schema.json
 │   │       ├── preset.schema.json
@@ -130,7 +130,7 @@ agent-plugins/
 │           └── index.ts
 │
 ├── catalog/
-│   ├── providers/
+│   ├── publishers/
 │   │   ├── superpowers.yaml
 │   │   ├── mattpocock.yaml
 │   │   ├── ecc.yaml
@@ -301,7 +301,7 @@ agent-plugins/
 │   └── decisions/
 │       └── adr/
 │           ├── 0001-capability-based-resolution.md
-│           ├── 0002-provider-package-component.md
+│           ├── 0002-publisher-package-component.md
 │           ├── 0003-composition-over-inheritance.md
 │           ├── 0004-no-addon-entity.md
 │           ├── 0005-source-target-adapters.md
@@ -555,7 +555,7 @@ Chứa các domain type đã normalize.
 Ví dụ:
 
 ```text
-provider.ts
+publisher.ts
 package.ts
 component.ts
 capability.ts
@@ -651,7 +651,7 @@ Sở hữu:
 policy evaluation
 trust rules
 component restrictions
-provider restrictions
+publisher restrictions
 policy decisions
 ```
 
@@ -740,7 +740,7 @@ Các thay đổi đặc thù của target thuộc về target adapter.
 Nó nên bao gồm schema cho các manifest canonical.
 
 ```text
-provider
+publisher
 package
 capability
 preset
@@ -769,7 +769,7 @@ Về lâu dài, schema theo từng version có thể sử dụng:
 ```text
 schemas/
 └── v1alpha1/
-    ├── provider.schema.json
+    ├── publisher.schema.json
     ├── capability.schema.json
     └── ...
 ```
@@ -819,18 +819,18 @@ agent-skills/
 Không tạo:
 
 ```text
-provider-a/
-provider-b/
-provider-c/
+publisher-a/
+publisher-b/
+publisher-c/
 ```
 
 nếu cả ba đều dùng cùng một format generic.
 
 ---
 
-# 25. Source Adapter đặc thù cho provider
+# 25. Source Adapter đặc thù cho publisher
 
-Chỉ sử dụng thư mục đặc thù cho provider khi cần thiết.
+Chỉ sử dụng thư mục đặc thù cho publisher khi cần thiết.
 
 Ví dụ:
 
@@ -839,7 +839,7 @@ superpowers/
 ecc/
 ```
 
-Một adapter đặc thù cho provider nên thích ứng với cấu trúc provider bất thường thay vì mã hóa các quyết định semantic capability.
+Một adapter đặc thù cho publisher nên thích ứng với cấu trúc publisher bất thường thay vì mã hóa các quyết định semantic capability.
 
 ---
 
@@ -896,23 +896,23 @@ Cấu trúc:
 
 ```text
 catalog/
-├── providers/
+├── publishers/
 ├── packages/
 └── capabilities/
 ```
 
 ---
 
-# 29. catalog/providers/
+# 29. catalog/publishers/
 
-Chứa các định nghĩa Provider.
+Chứa các định nghĩa Publisher.
 
-Ưu tiên mỗi Provider một file.
+Ưu tiên mỗi Publisher một file.
 
 Ví dụ:
 
 ```text
-catalog/providers/
+catalog/publishers/
 ├── superpowers.yaml
 ├── mattpocock.yaml
 ├── ecc.yaml
@@ -920,7 +920,7 @@ catalog/providers/
 └── wshobson.yaml
 ```
 
-File Provider nên chứa metadata về source và provenance, không phải danh sách component lớn.
+File Publisher nên chứa metadata về source và provenance, không phải danh sách component lớn.
 
 ---
 
@@ -940,7 +940,7 @@ catalog/packages/
 Một định nghĩa package có thể chỉ định:
 
 ```text
-provider
+publisher
 source
 version constraints
 target metadata
@@ -1068,7 +1068,7 @@ lightweight.yaml
 rigorous.yaml
 ```
 
-Tránh các file đặc thù cho provider như:
+Tránh các file đặc thù cho publisher như:
 
 ```text
 superpowers.yaml
@@ -1097,7 +1097,7 @@ Capabilities
 other Presets
 ```
 
-Chúng thường không nên tham chiếu đến implementation của provider.
+Chúng thường không nên tham chiếu đến implementation của publisher.
 
 ---
 
@@ -1269,7 +1269,7 @@ Metadata vẫn nên sử dụng:
 ownership: first-party
 ```
 
-Điều này tránh nhầm lẫn với các provider bên ngoài vốn có thể tự gọi package của họ là "official".
+Điều này tránh nhầm lẫn với các publisher bên ngoài vốn có thể tự gọi package của họ là "official".
 
 ---
 
@@ -1358,7 +1358,7 @@ Chứa metadata Component đã normalize được discover từ các upstream so
 Nó có thể bao gồm:
 
 ```text
-provider
+publisher
 package
 component ID
 component type
@@ -1384,7 +1384,7 @@ Nó có thể kết hợp:
 ```text
 capabilities
 aliases
-providers
+publishers
 packages
 components
 presets
@@ -1541,7 +1541,7 @@ Cấu trúc có thể có:
 fixtures/
 ├── catalogs/
 ├── projects/
-├── providers/
+├── publishers/
 ├── upstream/
 ├── locks/
 └── targets/
@@ -1619,7 +1619,7 @@ trust filtering
 security-sensitive components
 deny behavior
 review behavior
-provider preference
+publisher preference
 ```
 
 ---
@@ -1938,7 +1938,7 @@ Logic validation có thể tái sử dụng vẫn nên nằm trong các package.
 
 # 83. tools/update/
 
-Tooling của maintainer cho việc update upstream provider.
+Tooling của maintainer cho việc update upstream publisher.
 
 Ví dụ:
 
@@ -2095,7 +2095,7 @@ cho:
 filenames
 directory names
 profile IDs
-provider IDs
+publisher IDs
 package IDs
 preset names
 policy IDs
@@ -2149,9 +2149,9 @@ presets/engineering/security.yaml
 
 ---
 
-# 92. Đặt tên Provider
+# 92. Đặt tên Publisher
 
-Provider ID:
+Publisher ID:
 
 ```text
 superpowers
@@ -2169,12 +2169,12 @@ Không sử dụng tên hiển thị làm tham chiếu ổn định.
 
 # 93. Đặt tên Package
 
-Package ID nên ổn định trong phạm vi Provider.
+Package ID nên ổn định trong phạm vi Publisher.
 
 Tham chiếu canonical có thể sử dụng:
 
 ```text
-provider/package
+publisher/package
 ```
 
 Ví dụ:
@@ -2192,7 +2192,7 @@ Tham chiếu Component canonical nên luôn không mơ hồ trên phạm vi toà
 Cú pháp khái niệm:
 
 ```text
-provider/package#type:name
+publisher/package#type:name
 ```
 
 Ví dụ:
@@ -2471,7 +2471,7 @@ Tránh expose các thư mục distribution nội bộ như:
 
 ```text
 catalog/
-providers/
+publishers/
 packages/
 ```
 
@@ -2504,7 +2504,7 @@ agent-plugins/
 │   └── target-adapters/
 │
 ├── catalog/
-│   ├── providers/
+│   ├── publishers/
 │   ├── packages/
 │   └── capabilities/
 │
@@ -2568,9 +2568,9 @@ Repository nên phát triển song song với chức năng đã được impleme
 
 ---
 
-# 111. Dữ liệu Provider của V1
+# 111. Dữ liệu Publisher của V1
 
-Các provider manifest ban đầu có thể bao gồm:
+Các publisher manifest ban đầu có thể bao gồm:
 
 ```text
 superpowers
@@ -2581,7 +2581,7 @@ wshobson
 agent-plugins
 ```
 
-Tập này nhằm kiểm chứng các kiểu provider khác nhau thay vì tối đa hóa độ bao phủ hệ sinh thái.
+Tập này nhằm kiểm chứng các kiểu publisher khác nhau thay vì tối đa hóa độ bao phủ hệ sinh thái.
 
 ---
 
@@ -2717,7 +2717,7 @@ Tránh:
 ```text
 too many top-level folders
 
-provider names spread everywhere
+publisher names spread everywhere
 
 one folder per hypothetical concept
 
@@ -2747,9 +2747,9 @@ Cấu trúc nên giữ được các bất biến sau:
 
 4. Target-specific behavior stays in target adapters.
 
-5. Curated provider/package/capability metadata stays under catalog.
+5. Curated publisher/package/capability metadata stays under catalog.
 
-6. Presets and Profiles never live inside provider folders.
+6. Presets and Profiles never live inside publisher folders.
 
 7. Native implementation source stays under plugins/native.
 
@@ -2776,10 +2776,10 @@ Cấu trúc nên giữ được các bất biến sau:
 
 Khi đặt câu hỏi:
 
-> Provider metadata đặt ở đâu?
+> Publisher metadata đặt ở đâu?
 
 ```text
-catalog/providers/
+catalog/publishers/
 ```
 
 > Package metadata đặt ở đâu?

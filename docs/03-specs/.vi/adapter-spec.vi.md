@@ -6,7 +6,7 @@
 
 Tài liệu này định nghĩa các hợp đồng (contract) Source Adapter và Target Adapter cho `agent-plugins`.
 
-Source Adapter chuẩn hóa các dữ kiện upstream thành inventory Provider, Package và Component. Target Adapter chuyển đổi trạng thái Resolution và Lock đã được validate thành runtime state được quản lý.
+Source Adapter chuẩn hóa các dữ kiện upstream thành inventory Publisher, Package và Component. Target Adapter chuyển đổi trạng thái Resolution và Lock đã được validate thành runtime state được quản lý.
 
 Đây là một hợp đồng triển khai V1 được đề xuất, không phải tài liệu về một SDK đã tồn tại. MUST, SHOULD và MAY biểu thị hành vi bắt buộc, được khuyến nghị và tùy chọn. V1 yêu cầu một target, `claude-code`; các runtime khác là phần mở rộng trong tương lai.
 
@@ -96,13 +96,13 @@ interface SourceAdapter {
 | Integrity | Thuật toán và đối tượng được định nghĩa chính xác cho mọi digest hiện có |
 | Diagnostics | Các lỗi có cấu trúc, cảnh báo và mức độ đầy đủ của inventory |
 
-Discovery có thể trích xuất metadata của Provider nhưng MUST NOT ghi đè độ tin cậy hoặc quyền sở hữu đã được tuyển chọn. Các phần mở rộng riêng theo source có thể giữ lại metadata không xác định; chúng không được âm thầm trở thành cấu hình có thể thực thi.
+Discovery có thể trích xuất metadata của Publisher nhưng MUST NOT ghi đè độ tin cậy hoặc quyền sở hữu đã được tuyển chọn. Các phần mở rộng riêng theo source có thể giữ lại metadata không xác định; chúng không được âm thầm trở thành cấu hình có thể thực thi.
 
 Một lần quét chưa đầy đủ không phải là một inventory rỗng có thẩm quyền và MUST NOT kích hoạt việc gỡ bỏ các Component đã được khám phá trước đó.
 
 ### 3.2 Tách biệt transport và định dạng
 
-Ưu tiên cơ chế thu thập Git/filesystem dùng chung với các trình đọc định dạng (format reader) có thể tái sử dụng như `claude-marketplace` và `agent-skills`. Các reader riêng cho Provider chỉ hợp lý khi có khác biệt về cấu trúc mà reader tổng quát không thể biểu đạt.
+Ưu tiên cơ chế thu thập Git/filesystem dùng chung với các trình đọc định dạng (format reader) có thể tái sử dụng như `claude-marketplace` và `agent-skills`. Các reader riêng cho Publisher chỉ hợp lý khi có khác biệt về cấu trúc mà reader tổng quát không thể biểu đạt.
 
 Một repository có thể cung cấp nhiều Package. Thư mục con của Package là một phần của định danh source. Các mục marketplace là tham chiếu cần kiểm tra, không phải bằng chứng rằng nội dung được tham chiếu đã được tải xuống hoặc đáng tin cậy. Các tham chiếu đệ quy yêu cầu duyệt có giới hạn, phát hiện chu trình và provenance riêng biệt.
 

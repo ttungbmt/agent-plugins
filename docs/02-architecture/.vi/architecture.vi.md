@@ -9,7 +9,7 @@ Tài liệu này định nghĩa kiến trúc hệ thống của `agent-plugins`.
 Kiến trúc được thiết kế để hỗ trợ product model cốt lõi:
 
 ```text
-Provider
+Publisher
    ↓
 Package
    ↓
@@ -34,7 +34,7 @@ Hệ thống cần luôn:
 - deterministic,
 - có khả năng giải thích,
 - reproducible,
-- độc lập với provider,
+- độc lập với publisher,
 - độc lập với target ở tầng core,
 - có thể mở rộng mà không cần độ phức tạp framework không cần thiết.
 
@@ -53,7 +53,7 @@ capability-first configuration
 
 reusable presets and profiles
 
-provider-independent user intent
+publisher-independent user intent
 
 deterministic resolution
 
@@ -73,7 +73,7 @@ multi-runtime extensibility
 Kiến trúc cũng phải tránh:
 
 ```text
-provider logic leaking into profiles
+publisher logic leaking into profiles
 
 runtime-specific concepts leaking into the domain
 
@@ -147,7 +147,7 @@ Core model không nên phụ thuộc vào các hệ thống bên ngoài.
 ┌──────────────────────────────────────────┐
 │               Core Domain                │
 │                                          │
-│ Provider                                 │
+│ Publisher                                 │
 │ Package                                  │
 │ Component                                │
 │ Capability                               │
@@ -189,7 +189,7 @@ Core domain không được phụ thuộc vào:
 Claude Code
 Codex
 GitHub APIs
-filesystem layout of an upstream provider
+filesystem layout of an upstream publisher
 oclif
 Ink
 specific YAML libraries
@@ -251,7 +251,7 @@ Domain Layer chứa semantic model và các business rule deterministic.
 Các khái niệm chính:
 
 ```text
-Provider
+Publisher
 Package
 Component
 Capability
@@ -410,7 +410,7 @@ cho các application/core service có thể tái sử dụng.
 
 # 11. Source Integration Layer
 
-Source Integration Layer hiểu các hệ sinh thái provider bên ngoài.
+Source Integration Layer hiểu các hệ sinh thái publisher bên ngoài.
 
 Ví dụ:
 
@@ -487,7 +487,7 @@ Implementation cụ thể có thể khác.
 Về mặt khái niệm, output đã normalize nên bao gồm:
 
 ```text
-Provider metadata
+Publisher metadata
 
 Packages
 
@@ -504,7 +504,7 @@ Raw compatibility metadata
 
 ---
 
-# 14. Source Adapter generic và Source Adapter đặc thù cho provider
+# 14. Source Adapter generic và Source Adapter đặc thù cho publisher
 
 Ưu tiên adapter generic khi có thể.
 
@@ -517,7 +517,7 @@ claude-marketplace
 agent-skills
 ```
 
-Adapter đặc thù cho provider phù hợp khi cấu trúc upstream đủ khác biệt.
+Adapter đặc thù cho publisher phù hợp khi cấu trúc upstream đủ khác biệt.
 
 Ví dụ:
 
@@ -526,7 +526,7 @@ superpowers
 ecc
 ```
 
-Hệ thống không nên tạo một custom adapter cho mỗi provider khi không cần thiết.
+Hệ thống không nên tạo một custom adapter cho mỗi publisher khi không cần thiết.
 
 ---
 
@@ -561,7 +561,7 @@ Catalog đại diện cho tập hợp đã được curate mà resolver có th�
 Nội dung canonical:
 
 ```text
-Providers
+Publishers
 
 Packages
 
@@ -579,7 +579,7 @@ Catalog có thể tham chiếu đến các Component đã được discover mà 
 Catalog xác định:
 
 ```text
-which providers are recognized
+which publishers are recognized
 
 which packages are supported
 
@@ -604,7 +604,7 @@ Các thư mục authoritative được khuyến nghị:
 
 ```text
 catalog/
-├── providers/
+├── publishers/
 ├── packages/
 └── capabilities/
 ```
@@ -636,7 +636,7 @@ cho mọi item upstream của third-party.
 Index được generate có thể được tạo lại từ:
 
 ```text
-provider source configuration
+publisher source configuration
 +
 source adapters
 +
@@ -1066,7 +1066,7 @@ Ví dụ:
 
 ```text
 Candidate
-├── provider trust
+├── publisher trust
 ├── ownership
 ├── component type
 ├── security metadata
@@ -1305,7 +1305,7 @@ catalog.lock
 Nó có thể pin:
 
 ```text
-provider
+publisher
 package
 version
 commit
@@ -1333,7 +1333,7 @@ Capability
 → Implementation
 → Component
 → Package
-→ Provider
+→ Publisher
 → Version / Commit
 ```
 
@@ -1431,7 +1431,7 @@ Profile semantics
 
 Preset composition
 
-provider priority
+publisher priority
 ```
 
 ---
@@ -1719,7 +1719,7 @@ packages/schemas
 Kiểm tra:
 
 ```text
-provider exists
+publisher exists
 
 package exists
 
@@ -1753,7 +1753,7 @@ invalid dependency graph
 Kiểm tra các rule như:
 
 ```text
-provider-specific capability IDs forbidden
+publisher-specific capability IDs forbidden
 
 invalid cardinality combinations
 
@@ -1900,7 +1900,7 @@ presets
 
 profiles
 
-providers
+publishers
 
 packages
 
@@ -1973,7 +1973,7 @@ Consumer Managed State
 Ví dụ:
 
 ```text
-catalog/providers/
+catalog/publishers/
 catalog/packages/
 catalog/capabilities/
 presets/
@@ -2013,7 +2013,7 @@ agent-plugins/
 │   └── target-adapters/
 │
 ├── catalog/
-│   ├── providers/
+│   ├── publishers/
 │   ├── packages/
 │   └── capabilities/
 │
@@ -2103,7 +2103,7 @@ serialization contracts
 Các schema có thể có:
 
 ```text
-provider.schema.json
+publisher.schema.json
 package.schema.json
 capability.schema.json
 preset.schema.json
@@ -2380,7 +2380,7 @@ Regenerate Derived Artifacts
 Impact analysis nên kết nối:
 
 ```text
-Provider Change
+Publisher Change
     ↓
 Package Change
     ↓
@@ -2595,7 +2595,7 @@ archive
 Provenance nên được truyền qua toàn bộ pipeline.
 
 ```text
-Provider
+Publisher
     ↓
 Package
     ↓
@@ -2838,7 +2838,7 @@ git diff --exit-code
 Hệ thống phải giữ được:
 
 ```text
-1. Core capabilities are provider-independent.
+1. Core capabilities are publisher-independent.
 
 2. Core capabilities are target-independent.
 
@@ -2941,7 +2941,7 @@ Superpowers
 ECC
 ```
 
-Matt Pocock và các provider khác có thể sử dụng adapter generic khi có thể.
+Matt Pocock và các publisher khác có thể sử dụng adapter generic khi có thể.
 
 ---
 
@@ -3031,7 +3031,7 @@ Các ADR ban đầu:
 ```text
 0001-capability-based-resolution.md
 
-0002-provider-package-component.md
+0002-publisher-package-component.md
 
 0003-composition-over-inheritance.md
 

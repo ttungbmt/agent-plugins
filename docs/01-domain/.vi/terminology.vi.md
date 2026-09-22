@@ -96,7 +96,7 @@ bao giờ được gọi là provider.
 
 # 3. Package
 
-**Package** là đơn vị có thể cài đặt hoặc phân phối do một Provider cung cấp.
+**Package** là đơn vị có thể cài đặt hoặc phân phối do một Publisher cung cấp.
 
 Ví dụ:
 
@@ -166,7 +166,7 @@ Dùng Capability khi trả lời câu hỏi:
 
 > Agent environment có thể làm được gì?
 
-Capability là abstraction chính nằm giữa intent của người dùng và implementation của provider.
+Capability là abstraction chính nằm giữa intent của người dùng và implementation của publisher.
 
 ---
 
@@ -316,7 +316,7 @@ Dùng Project khi trả lời câu hỏi:
 Policy có thể quản lý:
 
 ```text
-provider trust
+publisher trust
 allowed sources
 hooks
 commands
@@ -339,7 +339,7 @@ Dùng Policy khi trả lời câu hỏi:
 Nó chứa:
 
 ```text
-Providers
+Publishers
 Packages
 Capabilities
 Implementation mappings
@@ -832,7 +832,7 @@ agent-plugins.lock
 Ví dụ:
 
 ```text
-provider
+publisher
 repository
 version
 commit
@@ -877,7 +877,7 @@ Không dùng `official` như một từ đồng nghĩa với first-party.
 
 **Third-Party** nghĩa là được maintain bên ngoài project `agent-plugins`.
 
-Một third-party provider vẫn có thể là:
+Một third-party publisher vẫn có thể là:
 
 ```text
 official
@@ -956,7 +956,7 @@ review requirements
 
 # 46. Official
 
-**Official** nghĩa là Package hoặc Provider được phát hành bởi tổ chức chịu trách nhiệm cho target ecosystem hoặc sản phẩm đó.
+**Official** nghĩa là Package hoặc Publisher được phát hành bởi tổ chức chịu trách nhiệm cho target ecosystem hoặc sản phẩm đó.
 
 Ví dụ:
 
@@ -1202,7 +1202,7 @@ Project
 → Capability
 → Implementation
 → Package
-→ Provider
+→ Publisher
 ```
 
 ---
@@ -1443,7 +1443,7 @@ Actual State
 Dùng danh từ số ít cho tên entity:
 
 ```text
-Provider
+Publisher
 Package
 Component
 Capability
@@ -1571,7 +1571,7 @@ Tránh dùng:
 preset
 ```
 
-cho danh sách package đặc thù của provider, trừ khi có chủ đích rõ ràng.
+cho danh sách package đặc thù của publisher, trừ khi có chủ đích rõ ràng.
 
 Tránh dùng:
 
@@ -1609,10 +1609,10 @@ khi ý muốn nói là semantic composition.
 
 # 83. Các phân biệt thường gặp
 
-## Provider vs Package
+## Publisher vs Package
 
 ```text
-Provider
+Publisher
 → who / where
 
 Package
@@ -1760,7 +1760,7 @@ Component
    ↓
 Package
    ↓
-Provider
+Publisher
 ```
 
 Khi giải thích quá trình thực thi:
@@ -1784,7 +1784,7 @@ Managed State
 External tooling thường đi theo vòng đời:
 
 ```text
-Provider
+Publisher
    ↓
 Discovered Package / Component
    ↓
@@ -1807,16 +1807,16 @@ Materialized
 
 | Thuật ngữ | Định nghĩa ngắn |
 |---|---|
-| Provider | Nguồn hoặc nhà phát hành các Package |
+| Publisher | Nguồn hoặc nhà phát hành các Package |
 | Package | Đơn vị có thể cài đặt/phân phối |
 | Component | Đơn vị chức năng bên trong một Package |
-| Capability | Khả năng ngữ nghĩa độc lập với provider |
+| Capability | Khả năng ngữ nghĩa độc lập với publisher |
 | Capability Implementation | Component implement một Capability |
 | Preset | Composition có thể tái sử dụng gồm các Capability |
 | Profile | Role có thể tái sử dụng được compose từ các Preset |
 | Project | Configuration mong muốn của một repository |
 | Policy | Các ràng buộc được áp dụng trong quá trình resolution |
-| Catalog | Metadata đã được curate về Provider/Package/Capability |
+| Catalog | Metadata đã được curate về Publisher/Package/Capability |
 | Resolver | Tính toán ra các implementation cụ thể |
 | Resolution | Kết quả của quá trình resolution |
 | Candidate | Implementation được Resolver xem xét |
@@ -1856,4 +1856,4 @@ Nếu không, hãy tái sử dụng thuật ngữ hiện có.
 
 # 88. Thuật ngữ trong một câu
 
-> **Dùng Provider cho nguồn gốc, Package cho việc cài đặt, Component cho implementation, Capability cho intent, Preset cho composition, Profile cho role, Project cho nhu cầu của repository, Policy cho ràng buộc, Resolution cho lựa chọn cụ thể, và Target Adapter cho việc materialize vào runtime.**
+> **Dùng Publisher cho nguồn gốc, Package cho việc cài đặt, Component cho implementation, Capability cho intent, Preset cho composition, Profile cho role, Project cho nhu cầu của repository, Policy cho ràng buộc, Resolution cho lựa chọn cụ thể, và Target Adapter cho việc materialize vào runtime.**

@@ -57,7 +57,7 @@ trust rules
 
 ownership rules
 
-Provider restrictions
+Publisher restrictions
 
 Package restrictions
 
@@ -225,7 +225,7 @@ Those are desired-state decisions.
 Policy may instead say:
 
 ```text
-TDD implementations from untrusted Providers are denied
+TDD implementations from untrusted Publishers are denied
 ```
 
 The distinction is:
@@ -285,7 +285,7 @@ The Resolver applies the complete precedence rules.
 A Policy Evaluator may consider normalized metadata such as:
 
 ```text
-Provider
+Publisher
 
 Package
 
@@ -516,9 +516,9 @@ less specific rule
 Example:
 
 ```text
-all community providers → deny
+all community publishers → deny
 
-specific provider X → allow
+specific publisher X → allow
 ```
 
 However, exception semantics can become dangerous.
@@ -707,7 +707,7 @@ Policy may decide how to treat each level.
 
 # 28. Baseline Trust
 
-Catalog Provider or Package metadata may define baseline trust.
+Catalog Publisher or Package metadata may define baseline trust.
 
 Example:
 
@@ -738,7 +738,7 @@ Component trust
 >
 Package trust
 >
-Provider baseline trust
+Publisher baseline trust
 ```
 
 Only explicit canonical metadata should refine trust.
@@ -762,7 +762,7 @@ Component annotation
 
 Package annotation
 
-Provider baseline
+Publisher baseline
 ```
 
 Policy does not rewrite provenance; it evaluates the resulting classification.
@@ -871,39 +871,39 @@ spec:
 
 ---
 
-# 36. Provider Rules
+# 36. Publisher Rules
 
-Policy may restrict Providers directly.
+Policy may restrict Publishers directly.
 
 Example:
 
 ```yaml
-providers:
+publishers:
   deny:
-    - provider-x
+    - publisher-x
 ```
 
 This allows governance independent from trust class.
 
 ---
 
-# 37. Provider Allowlist
+# 37. Publisher Allowlist
 
 A highly restrictive Policy may use:
 
 ```yaml
-providers:
+publishers:
   allow:
     - agent-plugins
     - anthropic
     - superpowers
 ```
 
-If `allow` exists, Providers outside the allowlist are denied.
+If `allow` exists, Publishers outside the allowlist are denied.
 
 ---
 
-# 38. Provider Rule Recommendation
+# 38. Publisher Rule Recommendation
 
 Avoid configuring both large:
 
@@ -922,7 +922,7 @@ lists unnecessarily.
 If both are supported, recommended semantics:
 
 ```text
-Provider must be in allowlist if allowlist exists
+Publisher must be in allowlist if allowlist exists
 AND
 must not be in denylist
 ```
@@ -944,10 +944,10 @@ Example:
 ```yaml
 packages:
   deny:
-    - provider-x/unsafe-tools
+    - publisher-x/unsafe-tools
 ```
 
-This is more specific than Provider-level rules.
+This is more specific than Publisher-level rules.
 
 ---
 
@@ -960,7 +960,7 @@ Example:
 ```yaml
 components:
   deny:
-    - provider/package#hook:post-tool-use
+    - publisher/package#hook:post-tool-use
 ```
 
 This provides precise governance without blocking an entire Package.
@@ -1256,7 +1256,7 @@ prefer official
 
 prefer curated
 
-prefer certain Providers
+prefer certain Publishers
 ```
 
 Preference must remain separate from prohibition.
@@ -1282,13 +1282,13 @@ It does not automatically deny levels absent from the list unless the trust allo
 
 ---
 
-# 56. Provider Preference
+# 56. Publisher Preference
 
 Example:
 
 ```yaml
 preferences:
-  providers:
+  publishers:
     - agent-plugins
     - anthropic
 ```
@@ -1409,7 +1409,7 @@ Recommended order per Candidate:
 ```text
 1. Availability
 
-2. Explicit Provider/Package/Component deny
+2. Explicit Publisher/Package/Component deny
 
 3. Trust eligibility
 
@@ -1637,7 +1637,7 @@ Example:
 POLICY_DENIED
 
 Component:
-provider-x/package-x#mcp:external-system
+publisher-x/package-x#mcp:external-system
 
 Policy:
 strict
@@ -1656,7 +1656,7 @@ Example:
 POLICY_APPROVAL_REQUIRED
 
 Component:
-provider-x/package-x#hook:post-tool-use
+publisher-x/package-x#hook:post-tool-use
 
 Policy:
 default
@@ -1707,7 +1707,7 @@ spec:
       - official
       - curated
 
-  providers:
+  publishers:
     deny: []
 
   packages:
@@ -1852,7 +1852,7 @@ spec:
 A future enterprise Policy may include:
 
 ```text
-Provider allowlist
+Publisher allowlist
 
 Package allowlist
 
@@ -1927,7 +1927,7 @@ external network access
 → review
 ```
 
-This should use normalized factual metadata rather than Provider-specific rules when possible.
+This should use normalized factual metadata rather than Publisher-specific rules when possible.
 
 ---
 
@@ -2139,25 +2139,25 @@ This is separate from Component activation.
 
 ---
 
-# 93. Provider-Level Risk
+# 93. Publisher-Level Risk
 
-Blocking an entire Provider is appropriate when:
+Blocking an entire Publisher is appropriate when:
 
 ```text
 organization forbids source
 
-Provider trust is revoked
+Publisher trust is revoked
 
 supply-chain incident occurs
 ```
 
-Do not duplicate per-Component deny rules if Provider-level denial expresses the real constraint.
+Do not duplicate per-Component deny rules if Publisher-level denial expresses the real constraint.
 
 ---
 
 # 94. Trust Revocation
 
-If a Provider changes from:
+If a Publisher changes from:
 
 ```text
 curated
@@ -2248,7 +2248,7 @@ Rules should match canonical normalized fields.
 Examples:
 
 ```text
-Provider ID
+Publisher ID
 
 Package ref
 
@@ -2381,7 +2381,7 @@ valid trust values
 
 valid outcomes
 
-valid Provider refs
+valid Publisher refs
 
 valid Package refs
 
@@ -2394,12 +2394,12 @@ no duplicate references
 
 ---
 
-# 107. Unknown Provider in Policy
+# 107. Unknown Publisher in Policy
 
 Example:
 
 ```yaml
-providers:
+publishers:
   deny:
     - does-not-exist
 ```
@@ -2407,7 +2407,7 @@ providers:
 Recommended:
 
 ```text
-UNKNOWN_PROVIDER
+UNKNOWN_PUBLISHER
 ```
 
 unless Policy intentionally supports future/unavailable references.
@@ -2438,7 +2438,7 @@ UNKNOWN_COMPONENT
 
 for exact Component rules that do not resolve.
 
-This catches stale Policy after Provider updates.
+This catches stale Policy after Publisher updates.
 
 ---
 
@@ -2468,7 +2468,7 @@ prompt
 Example:
 
 ```yaml
-providers:
+publishers:
   allow:
     - superpowers
 
@@ -2497,7 +2497,7 @@ allowed trust:
 - curated
 ```
 
-but Provider-specific rules explicitly allow a `community` Provider, V1 should not use this as an exemption.
+but Publisher-specific rules explicitly allow a `community` Publisher, V1 should not use this as an exemption.
 
 Trust hard constraint remains active.
 
@@ -2509,7 +2509,7 @@ If exceptions are needed later, define them explicitly rather than accidentally.
 
 Trust policy should usually use explicit allowed trust levels.
 
-For Provider/Package/Component exact rules:
+For Publisher/Package/Component exact rules:
 
 ```text
 not mentioned
@@ -2520,18 +2520,18 @@ unless an explicit allowlist is present.
 
 ---
 
-# 114. Provider Allowlist Semantics
+# 114. Publisher Allowlist Semantics
 
 If:
 
 ```yaml
-providers:
+publishers:
   allow:
     - anthropic
     - superpowers
 ```
 
-then every other Provider is denied.
+then every other Publisher is denied.
 
 This should be obvious from schema/docs.
 
@@ -2542,14 +2542,14 @@ This should be obvious from schema/docs.
 An explicit:
 
 ```yaml
-providers:
+publishers:
   allow: []
 ```
 
 would mean:
 
 ```text
-allow no Providers
+allow no Publishers
 ```
 
 which is probably not intended.
@@ -2581,8 +2581,8 @@ Missing sections should have documented neutral defaults.
 Example:
 
 ```text
-providers missing
-→ no Provider-specific restriction
+publishers missing
+→ no Publisher-specific restriction
 
 packages missing
 → no Package-specific restriction
@@ -2700,7 +2700,7 @@ Example:
 
 ```text
 Candidate:
-Provider X / TDD
+Publisher X / TDD
 
 Policy:
 strict
@@ -2789,7 +2789,7 @@ Generated indexes may later support this.
 
 # 128. Security-Sensitive Change Detection
 
-When a Provider update introduces:
+When a Publisher update introduces:
 
 ```text
 new Hook
@@ -3047,7 +3047,7 @@ Useful for work or controlled environments.
 Future:
 
 ```text
-approved Provider allowlist
+approved Publisher allowlist
 
 no community
 
@@ -3131,13 +3131,13 @@ fail until explicit approval mechanism exists
 
 ---
 
-# 146. Example — Provider Denial
+# 146. Example — Publisher Denial
 
 Candidate:
 
 ```text
-Provider:
-provider-x
+Publisher:
+publisher-x
 
 Trust:
 curated
@@ -3146,7 +3146,7 @@ curated
 Policy:
 
 ```text
-provider-x → deny
+publisher-x → deny
 ```
 
 Result:
@@ -3155,7 +3155,7 @@ Result:
 Candidate rejected
 ```
 
-Provider-specific denial is stronger than trust eligibility.
+Publisher-specific denial is stronger than trust eligibility.
 
 ---
 
@@ -3164,7 +3164,7 @@ Provider-specific denial is stronger than trust eligibility.
 Existing lock:
 
 ```text
-TDD → Community Provider
+TDD → Community Publisher
 ```
 
 Old Policy:
@@ -3230,7 +3230,7 @@ TDD → Candidate X
 Policy:
 
 ```text
-Candidate X Provider denied
+Candidate X Publisher denied
 ```
 
 Result:
@@ -3309,7 +3309,7 @@ Recommended categories:
 ```text
 trust
 
-providers
+publishers
 
 packages
 
@@ -3347,7 +3347,7 @@ spec:
       - official
       - curated
 
-  providers:
+  publishers:
     allow: []
     deny: []
 
@@ -3377,7 +3377,7 @@ spec:
       - official
       - curated
 
-    providers: []
+    publishers: []
 ```
 
 The final V1 schema may omit unused fields.
@@ -3391,7 +3391,7 @@ To avoid premature complexity, initial V1 may support only:
 ```text
 trust.allowed
 
-providers.deny
+publishers.deny
 
 packages.deny
 
@@ -3405,7 +3405,7 @@ lifecycle.deprecated
 
 preferences.trust
 
-preferences.providers
+preferences.publishers
 ```
 
 Add richer security facts once real Component metadata supports them.
@@ -3459,7 +3459,7 @@ evaluate.ts
 
 trust.ts
 
-providers.ts
+publishers.ts
 
 components.ts
 
@@ -3548,7 +3548,7 @@ allow
 
 preference:
 trustRank: 2
-providerRank: 1
+publisherRank: 1
 ```
 
 Resolver combines this deterministically.
@@ -3579,7 +3579,7 @@ Conceptually:
 PolicyPreference
 
 trustRank
-providerRank
+publisherRank
 ```
 
 Resolver may compare them lexicographically in a documented order.
@@ -3641,7 +3641,7 @@ Example:
 
 ```text
 Candidate:
-provider/package#mcp:github
+publisher/package#mcp:github
 
 Policy:
 default
@@ -3670,7 +3670,7 @@ POLICY_DENIED
 
 POLICY_APPROVAL_REQUIRED
 
-POLICY_PROVIDER_DENIED
+POLICY_PUBLISHER_DENIED
 
 POLICY_PACKAGE_DENIED
 
@@ -3718,7 +3718,7 @@ where applicable.
 ```text
 Candidate denied:
 
-provider/package#mcp:external
+publisher/package#mcp:external
 
 Required by:
 security-review-agent
@@ -3744,7 +3744,7 @@ Potential warnings:
 ```text
 Policy allows no trust levels
 
-Provider allowlist makes all current Capabilities unresolvable
+Publisher allowlist makes all current Capabilities unresolvable
 
 Preference references denied trust level
 
@@ -3782,7 +3782,7 @@ allowed trust
 
 denied trust
 
-Provider denial
+Publisher denial
 
 Package denial
 
@@ -3926,7 +3926,7 @@ strict
 
 ---
 
-# 180. Policy Anti-Pattern — Provider Preference as Capability Mapping
+# 180. Policy Anti-Pattern — Publisher Preference as Capability Mapping
 
 Avoid hardcoding:
 
@@ -3944,7 +3944,7 @@ Catalog priority
 
 or explicit Project override.
 
-Policy may prefer Provider classes, but should not become another semantic mapping layer.
+Policy may prefer Publisher classes, but should not become another semantic mapping layer.
 
 ---
 
@@ -3953,7 +3953,7 @@ Policy may prefer Provider classes, but should not become another semantic mappi
 Avoid many Projects each defining:
 
 ```text
-allow this Provider
+allow this Publisher
 deny this hook
 ```
 
@@ -4106,7 +4106,7 @@ named Policies
 
 allowed trust levels
 
-Provider denial
+Publisher denial
 
 Package denial
 
@@ -4120,7 +4120,7 @@ deprecated lifecycle rule
 
 trust preference
 
-Provider preference
+Publisher preference
 
 structured Policy decisions
 
@@ -4168,7 +4168,7 @@ strict can reject community Candidate
 
 default can allow community Candidate
 
-Policy can reject a specific Provider
+Policy can reject a specific Publisher
 
 Policy can reject a specific Component
 
@@ -4198,7 +4198,7 @@ For each Candidate:
 ```text
 Candidate
    ↓
-Provider / Package / Component explicit restrictions
+Publisher / Package / Component explicit restrictions
    ↓
 Trust
    ↓

@@ -1191,7 +1191,7 @@ Các hệ sinh thái package cộng đồng có thể chứa các tên tương t
 CLI SHOULD hiển thị:
 
 ```text
-provider
+publisher
 source
 trust level
 ```
@@ -1760,7 +1760,7 @@ Một artifact được sinh ra SHOULD có thể truy vết ngược về:
 ```text
 canonical component
 package
-provider
+publisher
 source
 revision
 adapter

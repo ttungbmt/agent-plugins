@@ -8,7 +8,7 @@ The use cases validate whether the product model can work across different:
 
 - user roles,
 - project types,
-- providers,
+- publishers,
 - capability combinations,
 - trust policies,
 - runtime targets,
@@ -77,7 +77,7 @@ A contributor responsible for maintaining the curated ecosystem.
 Responsibilities include:
 
 ```text
-adding providers
+adding publishers
 registering packages
 mapping capabilities
 reviewing upstream changes
@@ -92,7 +92,7 @@ A person or team responsible for common:
 
 ```text
 policies
-approved providers
+approved publishers
 security requirements
 shared presets
 ```
@@ -210,7 +210,7 @@ frontend.typescript
 
 into appropriate implementations.
 
-The user does not need to manually know which providers implement each capability.
+The user does not need to manually know which publishers implement each capability.
 
 ## Related Requirements
 
@@ -333,7 +333,7 @@ Potential implementations may come from:
 native agent-plugins
 Matt Pocock
 ECC
-other curated providers
+other curated publishers
 ```
 
 ## Expected Outcome
@@ -401,7 +401,7 @@ engineering.domain-modeling
 
 ## Expected Outcome
 
-The profile should combine relevant capabilities from different providers without requiring the Product Manager to understand their repository structure.
+The profile should combine relevant capabilities from different publishers without requiring the Product Manager to understand their repository structure.
 
 ---
 
@@ -528,7 +528,7 @@ REQ-PRJ-003
 
 ---
 
-# 9. UC-007 — Multiple Providers Offer TDD
+# 9. UC-007 — Multiple Publishers Offer TDD
 
 ## Actor
 
@@ -747,8 +747,8 @@ backend-engineer
 → engineering/security
 
 Candidates:
-Provider A — rejected: community source
-Provider B — rejected: community source
+Publisher A — rejected: community source
+Publisher B — rejected: community source
 ```
 
 The resolver must not silently remove the capability.
@@ -867,7 +867,7 @@ highest implementation priority
 Package:
 superpowers
 
-Provider:
+Publisher:
 superpowers
 ```
 
@@ -966,7 +966,7 @@ ap sync
 The system restores the same resolved:
 
 ```text
-providers
+publishers
 packages
 components
 versions
@@ -1203,7 +1203,7 @@ REQ-SEC-004
 
 ---
 
-# 21. UC-019 — Upgrade a Provider Intentionally
+# 21. UC-019 — Upgrade a Publisher Intentionally
 
 ## Actor
 
@@ -1237,7 +1237,7 @@ Project lockfiles should not silently change until projects explicitly reconcile
 
 ---
 
-# 22. UC-020 — Add a New Provider
+# 22. UC-020 — Add a New Publisher
 
 ## Actor
 
@@ -1251,10 +1251,10 @@ Integrate a new upstream ecosystem.
 
 A new repository provides useful agent skills.
 
-The maintainer adds provider metadata:
+The maintainer adds publisher metadata:
 
 ```text
-catalog/providers/new-provider.yaml
+catalog/publishers/new-publisher.yaml
 ```
 
 and appropriate source adapter configuration.
@@ -1264,7 +1264,7 @@ and appropriate source adapter configuration.
 The system can:
 
 ```text
-identify the provider
+identify the publisher
 discover packages
 discover components
 retain provenance
@@ -1283,7 +1283,7 @@ REQ-NFR-005
 
 ---
 
-# 23. UC-021 — Curate Only Part of a Large Provider
+# 23. UC-021 — Curate Only Part of a Large Publisher
 
 ## Actor
 
@@ -1291,7 +1291,7 @@ Catalog Maintainer
 
 ## Goal
 
-Use a useful subset of a provider without exposing everything.
+Use a useful subset of a publisher without exposing everything.
 
 ## Scenario
 
@@ -1316,7 +1316,7 @@ Source discovery may identify all components.
 
 The curated catalog references only the approved subset.
 
-Supporting a provider must not imply enabling its entire catalog.
+Supporting a publisher must not imply enabling its entire catalog.
 
 ## Related Requirements
 
@@ -1335,11 +1335,11 @@ Catalog Maintainer
 
 ## Goal
 
-Normalize different provider terminology.
+Normalize different publisher terminology.
 
 ## Scenario
 
-Providers expose:
+Publishers expose:
 
 ```text
 test-driven-development
@@ -1357,7 +1357,7 @@ engineering.testing.tdd
 
 Profiles and presets reference only the canonical capability.
 
-Provider-specific terminology remains isolated within catalog mapping.
+Publisher-specific terminology remains isolated within catalog mapping.
 
 ## Related Requirements
 
@@ -1430,7 +1430,7 @@ Previously:
 
 ```text
 knowledge.synthesis
-→ Provider A
+→ Publisher A
 ```
 
 A new native implementation becomes preferred.
@@ -1448,7 +1448,7 @@ Profiles and project manifests remain unchanged.
 
 Only the implementation mapping and subsequent lockfiles change.
 
-This validates provider independence.
+This validates publisher independence.
 
 ---
 
@@ -1653,7 +1653,7 @@ REQ-PRE-003
 
 ---
 
-# 31. UC-029 — Team Restricts Providers
+# 31. UC-029 — Team Restricts Publishers
 
 ## Actor
 
@@ -1661,7 +1661,7 @@ Organization Maintainer
 
 ## Goal
 
-Prevent projects from resolving against unapproved providers.
+Prevent projects from resolving against unapproved publishers.
 
 ## Scenario
 
@@ -1670,7 +1670,7 @@ Organization policy allows:
 ```text
 first-party
 official
-approved curated providers
+approved curated publishers
 ```
 
 but denies:
@@ -1700,7 +1700,7 @@ Developer
 
 ## Goal
 
-Find functionality without knowing provider names.
+Find functionality without knowing publisher names.
 
 ## Scenario
 
@@ -1850,7 +1850,7 @@ Example:
   Run: ap sync
 
 ✗ Package unavailable
-  provider-x/package-y
+  publisher-x/package-y
 
 ✗ Unsupported capability
   target does not support external hook
@@ -2009,7 +2009,7 @@ The component cannot become active without satisfying the required review proces
 The resolver should identify:
 
 ```text
-provider
+publisher
 package
 component
 hook
@@ -2284,7 +2284,7 @@ REQ-SYNC-004
 
 ---
 
-# 47. UC-045 — A Provider Changes Internal Structure
+# 47. UC-045 — A Publisher Changes Internal Structure
 
 ## Actor
 
@@ -2296,7 +2296,7 @@ Adapt to upstream changes without modifying the entire domain model.
 
 ## Scenario
 
-An upstream provider changes:
+An upstream publisher changes:
 
 ```text
 folder structure
@@ -2347,7 +2347,7 @@ This validates the target adapter boundary.
 
 ---
 
-# 49. UC-047 — Provider Implementation Is Removed
+# 49. UC-047 — Publisher Implementation Is Removed
 
 ## Actor
 
@@ -2392,7 +2392,7 @@ Catalog Maintainer
 
 ## Goal
 
-Change provider implementation without changing consumer intent.
+Change publisher implementation without changing consumer intent.
 
 ## Scenario
 
@@ -2400,14 +2400,14 @@ Current mapping:
 
 ```text
 engineering.architecture
-→ Provider A
+→ Publisher A
 ```
 
 New curated decision:
 
 ```text
 engineering.architecture
-→ Provider B
+→ Publisher B
 ```
 
 ## Expected Outcome
@@ -2479,11 +2479,11 @@ debugging
 frontend design
 ```
 
-A provider package exposes many unrelated capabilities.
+A publisher package exposes many unrelated capabilities.
 
 ## Expected Outcome
 
-Where the target/provider packaging model allows it, only required components should become active.
+Where the target/publisher packaging model allows it, only required components should become active.
 
 If the installation unit necessarily contains additional inactive components, the system should distinguish:
 
@@ -2570,7 +2570,7 @@ debugging
 planning
 ```
 
-but TDD is owned by another provider.
+but TDD is owned by another publisher.
 
 ## Expected Outcome
 
@@ -2861,7 +2861,7 @@ The following matrix summarizes the major areas exercised by the use cases.
 | Reproducibility | UC-014, UC-015, UC-040 |
 | Lockfile drift | UC-016 |
 | Updates | UC-017, UC-018, UC-019 |
-| Provider integration | UC-020, UC-021, UC-045 |
+| Publisher integration | UC-020, UC-021, UC-045 |
 | Capability normalization | UC-022 |
 | Native plugins | UC-023, UC-024 |
 | Target compatibility | UC-025, UC-026, UC-046 |
@@ -2874,7 +2874,7 @@ The following matrix summarizes the major areas exercised by the use cases.
 | Target generation | UC-041 |
 | Generated artifacts | UC-042, UC-043 |
 | Managed state | UC-044 |
-| Provider evolution | UC-047, UC-048 |
+| Publisher evolution | UC-047, UC-048 |
 | Composition reuse | UC-049 |
 | Minimal environment | UC-050 |
 | Package/component distinction | UC-051, UC-052 |
@@ -2912,11 +2912,11 @@ UC-015  Idempotent sync
 
 UC-016  Detect manifest/lock drift
 
-UC-017  Check provider update
+UC-017  Check publisher update
 
-UC-020  Add provider
+UC-020  Add publisher
 
-UC-022  Normalize multiple provider implementations
+UC-022  Normalize multiple publisher implementations
 
 UC-023  Native capability
 
@@ -2993,7 +2993,7 @@ Obsidian
       ↓
 Resolve capabilities
       ↓
-Use native + external providers
+Use native + external publishers
       ↓
 No unrelated engineering workflows
       ↓
@@ -3011,7 +3011,7 @@ Use cases should continue to follow these principles:
 ```text
 describe user intent before implementation
 
-capabilities before providers
+capabilities before publishers
 
 profiles before plugin lists
 

@@ -124,7 +124,7 @@ authoritative source wins
 Examples:
 
 ```text
-catalog/providers/
+catalog/publishers/
 catalog/packages/
 catalog/capabilities/
 
@@ -168,24 +168,24 @@ These responsibilities must remain distinct.
 
 ---
 
-# 5. Canonical Provider Metadata
+# 5. Canonical Publisher Metadata
 
 Source of truth:
 
 ```text
-catalog/providers/
+catalog/publishers/
 ```
 
 Example:
 
 ```text
-catalog/providers/superpowers.yaml
+catalog/publishers/superpowers.yaml
 ```
 
-This file owns project-maintained Provider metadata such as:
+This file owns project-maintained Publisher metadata such as:
 
 ```text
-canonical provider ID
+canonical publisher ID
 display name
 ownership classification
 default trust classification
@@ -216,7 +216,7 @@ This owns curated Package-level metadata such as:
 
 ```text
 canonical package ID
-provider relationship
+publisher relationship
 source location
 supported discovery strategy
 version constraints
@@ -361,7 +361,7 @@ Policies own declarative rules for:
 
 ```text
 trust
-provider restrictions
+publisher restrictions
 security-sensitive components
 review requirements
 experimental components
@@ -487,7 +487,7 @@ packages/schemas/
 Schemas define machine-valid structure for:
 
 ```text
-Provider
+Publisher
 Package
 Capability
 Preset
@@ -542,7 +542,7 @@ selected
 Example:
 
 ```text
-Provider contains 300 Components
+Publisher contains 300 Components
 
 300 discovered
 
@@ -666,7 +666,7 @@ Example:
 should preferably be derived from:
 
 ```text
-catalog/providers/
+catalog/publishers/
 catalog/packages/
 plugins/native/
 catalog.lock
@@ -719,7 +719,7 @@ This file is authoritative for the **selected tested upstream baseline** of the 
 It owns concrete pinned information such as:
 
 ```text
-Provider/package version
+Publisher/package version
 
 commit SHA
 
@@ -807,7 +807,7 @@ This is the primary consumer-managed configuration.
 The consumer manifest should not normally duplicate:
 
 ```text
-provider repositories
+publisher repositories
 component inventories
 resolved package versions
 generated target paths
@@ -1219,7 +1219,7 @@ Authoritative Catalog Mapping
 # 47. Full Data Flow
 
 ```text
-                    External Provider
+                    External Publisher
                            │
                            ▼
                     Source Adapter
@@ -1268,7 +1268,7 @@ artifacts                   │
 
 | Data | Source of Truth | Derived From |
 |---|---|---|
-| Provider identity | `catalog/providers/` | Maintainer curation |
+| Publisher identity | `catalog/publishers/` | Maintainer curation |
 | Package identity | `catalog/packages/` | Maintainer curation |
 | Capability identity | `catalog/capabilities/` | Maintainer curation |
 | Capability cardinality | `catalog/capabilities/` | Maintainer decision |
@@ -1589,7 +1589,7 @@ or consumer project lockfiles.
 
 # 59. Update Direction
 
-A provider update should flow:
+A publisher update should flow:
 
 ```text
 Upstream Change
@@ -1681,7 +1681,7 @@ Resolution Diagnostics
 
 Target adapters consume those results.
 
-They must not independently choose alternative providers.
+They must not independently choose alternative publishers.
 
 ---
 
@@ -1730,9 +1730,9 @@ That mapping is curated.
 
 ---
 
-# 65. Provider Metadata Precedence
+# 65. Publisher Metadata Precedence
 
-When normalized upstream metadata and curated Provider metadata overlap:
+When normalized upstream metadata and curated Publisher metadata overlap:
 
 ```text
 curated metadata
@@ -1803,8 +1803,8 @@ depending on semantics.
 For example:
 
 ```text
-Provider baseline classification
-→ catalog/providers/
+Publisher baseline classification
+→ catalog/publishers/
 
 Allowed trust levels
 → policies/
@@ -1930,7 +1930,7 @@ Project-specific preference belongs to:
 Project override
 ```
 
-Policy-level provider preference belongs to:
+Policy-level publisher preference belongs to:
 
 ```text
 Policy
@@ -2306,7 +2306,7 @@ For example:
 ```text
 Policy cannot redefine Capability ID.
 
-Project override cannot rewrite Provider provenance.
+Project override cannot rewrite Publisher provenance.
 
 Target adapter cannot override selected implementation.
 ```
@@ -2324,7 +2324,7 @@ Examples:
 ```text
 edit capability mapping
 
-add Provider
+add Publisher
 
 change Preset composition
 
@@ -2391,12 +2391,12 @@ Core domain code should not directly mutate runtime files.
 
 # 93. Source-of-Truth by Operation
 
-## Add Provider
+## Add Publisher
 
 Modify:
 
 ```text
-catalog/providers/
+catalog/publishers/
 catalog/packages/
 ```
 
@@ -2466,7 +2466,7 @@ and corresponding canonical Package/Capability mappings.
 
 ---
 
-## Update Provider Version
+## Update Publisher Version
 
 Do not rewrite semantic catalog identity.
 
@@ -2586,7 +2586,7 @@ may repeat:
 ```text
 Capability ID
 Preset names
-Provider names
+Publisher names
 ```
 
 This duplication is acceptable because it is derived.
@@ -2598,7 +2598,7 @@ This duplication is acceptable because it is derived.
 Upstream provenance is composed from:
 
 ```text
-canonical Provider/Package identity
+canonical Publisher/Package identity
 +
 discovered upstream facts
 +
@@ -2768,7 +2768,7 @@ If these questions have no clear answer, the data ownership is not yet well desi
 
 | Question | Canonical Location |
 |---|---|
-| Who is this provider? | `catalog/providers/` |
+| Who is this publisher? | `catalog/publishers/` |
 | What package exists? | `catalog/packages/` |
 | What does this capability mean? | `catalog/capabilities/` |
 | Which component implements it? | `catalog/capabilities/` mapping |
@@ -2809,7 +2809,7 @@ The project must preserve the following invariants:
 
 8. Capability semantics live in the Capability Catalog.
 
-9. Provider/package source identity remains separate from capability meaning.
+9. Publisher/package source identity remains separate from capability meaning.
 
 10. Target-specific artifacts are derived from resolved state.
 
@@ -2862,7 +2862,7 @@ Curated Intent
  Managed Runtime
 ```
 
-External providers enter through:
+External publishers enter through:
 
 ```text
 Upstream

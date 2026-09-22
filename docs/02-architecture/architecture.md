@@ -9,7 +9,7 @@ This document defines the system architecture of `agent-plugins`.
 The architecture is designed to support the core product model:
 
 ```text
-Provider
+Publisher
    ↓
 Package
    ↓
@@ -34,7 +34,7 @@ The system should remain:
 - deterministic,
 - explainable,
 - reproducible,
-- provider-independent,
+- publisher-independent,
 - target-independent at the core,
 - extensible without unnecessary framework complexity.
 
@@ -53,7 +53,7 @@ capability-first configuration
 
 reusable presets and profiles
 
-provider-independent user intent
+publisher-independent user intent
 
 deterministic resolution
 
@@ -73,7 +73,7 @@ multi-runtime extensibility
 It must also avoid:
 
 ```text
-provider logic leaking into profiles
+publisher logic leaking into profiles
 
 runtime-specific concepts leaking into the domain
 
@@ -147,7 +147,7 @@ The core model should not depend on external systems.
 ┌──────────────────────────────────────────┐
 │               Core Domain                │
 │                                          │
-│ Provider                                 │
+│ Publisher                                 │
 │ Package                                  │
 │ Component                                │
 │ Capability                               │
@@ -189,7 +189,7 @@ The core domain must not depend on:
 Claude Code
 Codex
 GitHub APIs
-filesystem layout of an upstream provider
+filesystem layout of an upstream publisher
 oclif
 Ink
 specific YAML libraries
@@ -251,7 +251,7 @@ The Domain Layer contains the semantic model and deterministic business rules.
 Primary concepts:
 
 ```text
-Provider
+Publisher
 Package
 Component
 Capability
@@ -410,7 +410,7 @@ to reusable application/core services.
 
 # 11. Source Integration Layer
 
-The Source Integration Layer understands external provider ecosystems.
+The Source Integration Layer understands external publisher ecosystems.
 
 Examples:
 
@@ -487,7 +487,7 @@ The exact implementation may differ.
 Normalized output should conceptually include:
 
 ```text
-Provider metadata
+Publisher metadata
 
 Packages
 
@@ -504,7 +504,7 @@ Raw compatibility metadata
 
 ---
 
-# 14. Generic vs Provider-Specific Source Adapters
+# 14. Generic vs Publisher-Specific Source Adapters
 
 Prefer generic adapters when possible.
 
@@ -517,7 +517,7 @@ claude-marketplace
 agent-skills
 ```
 
-Provider-specific adapters are appropriate when upstream structure is sufficiently unique.
+Publisher-specific adapters are appropriate when upstream structure is sufficiently unique.
 
 Examples:
 
@@ -526,7 +526,7 @@ superpowers
 ecc
 ```
 
-The system should not create one custom adapter per provider without need.
+The system should not create one custom adapter per publisher without need.
 
 ---
 
@@ -561,7 +561,7 @@ The Catalog represents the curated universe available to the resolver.
 Canonical content:
 
 ```text
-Providers
+Publishers
 
 Packages
 
@@ -579,7 +579,7 @@ The Catalog may reference discovered Components without manually duplicating the
 The Catalog determines:
 
 ```text
-which providers are recognized
+which publishers are recognized
 
 which packages are supported
 
@@ -604,7 +604,7 @@ Recommended authoritative directories:
 
 ```text
 catalog/
-├── providers/
+├── publishers/
 ├── packages/
 └── capabilities/
 ```
@@ -636,7 +636,7 @@ for every third-party upstream item.
 The generated index can be recreated from:
 
 ```text
-provider source configuration
+publisher source configuration
 +
 source adapters
 +
@@ -1066,7 +1066,7 @@ Example:
 
 ```text
 Candidate
-├── provider trust
+├── publisher trust
 ├── ownership
 ├── component type
 ├── security metadata
@@ -1305,7 +1305,7 @@ catalog.lock
 It may pin:
 
 ```text
-provider
+publisher
 package
 version
 commit
@@ -1333,7 +1333,7 @@ Capability
 → Implementation
 → Component
 → Package
-→ Provider
+→ Publisher
 → Version / Commit
 ```
 
@@ -1431,7 +1431,7 @@ Profile semantics
 
 Preset composition
 
-provider priority
+publisher priority
 ```
 
 ---
@@ -1719,7 +1719,7 @@ packages/schemas
 Checks:
 
 ```text
-provider exists
+publisher exists
 
 package exists
 
@@ -1753,7 +1753,7 @@ invalid dependency graph
 Checks rules such as:
 
 ```text
-provider-specific capability IDs forbidden
+publisher-specific capability IDs forbidden
 
 invalid cardinality combinations
 
@@ -1900,7 +1900,7 @@ presets
 
 profiles
 
-providers
+publishers
 
 packages
 
@@ -1973,7 +1973,7 @@ Consumer Managed State
 Example:
 
 ```text
-catalog/providers/
+catalog/publishers/
 catalog/packages/
 catalog/capabilities/
 presets/
@@ -2013,7 +2013,7 @@ agent-plugins/
 │   └── target-adapters/
 │
 ├── catalog/
-│   ├── providers/
+│   ├── publishers/
 │   ├── packages/
 │   └── capabilities/
 │
@@ -2103,7 +2103,7 @@ serialization contracts
 Possible schemas:
 
 ```text
-provider.schema.json
+publisher.schema.json
 package.schema.json
 capability.schema.json
 preset.schema.json
@@ -2380,7 +2380,7 @@ This is a maintainer operation.
 Impact analysis should connect:
 
 ```text
-Provider Change
+Publisher Change
     ↓
 Package Change
     ↓
@@ -2595,7 +2595,7 @@ archive
 Provenance should flow through the full pipeline.
 
 ```text
-Provider
+Publisher
     ↓
 Package
     ↓
@@ -2838,7 +2838,7 @@ git diff --exit-code
 The system must preserve:
 
 ```text
-1. Core capabilities are provider-independent.
+1. Core capabilities are publisher-independent.
 
 2. Core capabilities are target-independent.
 
@@ -2941,7 +2941,7 @@ Superpowers
 ECC
 ```
 
-Matt Pocock and other providers may use generic adapters where possible.
+Matt Pocock and other publishers may use generic adapters where possible.
 
 ---
 
@@ -3031,7 +3031,7 @@ Initial ADRs:
 ```text
 0001-capability-based-resolution.md
 
-0002-provider-package-component.md
+0002-publisher-package-component.md
 
 0003-composition-over-inheritance.md
 

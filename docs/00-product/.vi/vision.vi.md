@@ -71,7 +71,7 @@ Capabilities
   ↓
 Resolution
   ↓
-Providers
+Publishers
   ↓
 Runtime-specific installation
 ```
@@ -109,7 +109,7 @@ Trách nhiệm chính của nó là trả lời:
 Project được xây dựng xoay quanh một mô hình capability-first.
 
 ```text
-Provider
+Publisher
    ↓
 Package
    ↓
@@ -128,7 +128,7 @@ Lockfile
 Target Runtime
 ```
 
-Provider cung cấp implementation.
+Publisher cung cấp implementation.
 
 Người dùng làm việc ở mức abstraction cao hơn.
 
@@ -194,7 +194,7 @@ Người dùng nhìn chung nên yêu cầu:
 engineering.testing.tdd
 ```
 
-thay vì tự chọn và cấu hình từng provider.
+thay vì tự chọn và cấu hình từng publisher.
 
 ---
 
@@ -210,7 +210,7 @@ Project nên ưu tiên:
 curation over accumulation
 ```
 
-Một profile chất lượng cao có thể dùng component từ nhiều provider mà không cần cài mọi thứ các provider đó cung cấp.
+Một profile chất lượng cao có thể dùng component từ nhiều publisher mà không cần cài mọi thứ các publisher đó cung cấp.
 
 Ví dụ:
 
@@ -227,14 +227,14 @@ ECC
 Anthropic
 → official integrations
 
-Community providers
+Community publishers
 → specialized capabilities
 
 Native plugins
 → project-owned capabilities
 ```
 
-Mỗi provider nên được dùng ở nơi nó phù hợp nhất.
+Mỗi publisher nên được dùng ở nơi nó phù hợp nhất.
 
 ---
 
@@ -259,7 +259,7 @@ kết quả được ưu tiên có thể là:
 implemented by
 8 components
 from
-4 providers
+4 publishers
 ```
 
 Điều này giúp giảm:
@@ -385,9 +385,9 @@ large monolithic bundles
 
 ---
 
-# 11. Độc lập với provider
+# 11. Độc lập với publisher
 
-Cấu hình của người dùng nên tồn tại được qua những thay đổi của provider.
+Cấu hình của người dùng nên tồn tại được qua những thay đổi của publisher.
 
 Ví dụ, nếu hôm nay:
 
@@ -400,7 +400,7 @@ nhưng sau này xuất hiện một implementation tốt hơn:
 
 ```text
 engineering.testing.tdd
-→ Provider X
+→ Publisher X
 ```
 
 thì project không cần phải viết lại intent của mình.
@@ -439,7 +439,7 @@ Resolution nên xem xét:
 
 ```text
 capability requirements
-provider preference
+publisher preference
 implementation priority
 trust level
 target compatibility
@@ -519,7 +519,7 @@ tái dựng lại cùng một environment.
 
 Khả năng tái tạo nên bao gồm:
 
-- provider,
+- publisher,
 - package,
 - component,
 - version,
@@ -531,7 +531,7 @@ Khả năng tái tạo nên bao gồm:
 
 # 15. Update an toàn và có kiểm soát
 
-Các upstream provider thay đổi liên tục.
+Các upstream publisher thay đổi liên tục.
 
 Do đó update nên là hành động có chủ đích.
 
@@ -544,7 +544,7 @@ ap update --check
 tiếp theo là:
 
 ```text
-Provider changed
+Publisher changed
 
 Added components
 Changed components
@@ -591,14 +591,14 @@ Một personal environment có thể cho phép:
 
 ```text
 community components
-experimental providers
+experimental publishers
 external hooks
 ```
 
 trong khi một enterprise environment có thể yêu cầu:
 
 ```text
-approved providers only
+approved publishers only
 pinned versions
 restricted execution
 no external hooks
@@ -644,7 +644,7 @@ Mỗi runtime nên nhận được các artifact được thiết kế cho nativ
 Hệ thống nên hỗ trợ cả:
 
 ```text
-External providers
+External publishers
 ```
 
 và:
@@ -653,7 +653,7 @@ và:
 Native first-party capabilities
 ```
 
-External provider có thể bao gồm các hệ sinh thái open-source hoặc chính thức đã được khẳng định.
+External publisher có thể bao gồm các hệ sinh thái open-source hoặc chính thức đã được khẳng định.
 
 Native capability nên tồn tại ở những nơi project này thực sự sở hữu hoặc có requirement chuyên biệt.
 
@@ -691,7 +691,7 @@ Capability layer nên tương đối ổn định hơn.
 Ví dụ:
 
 ```text
-Provider implementation changes
+Publisher implementation changes
          ↓
 
 engineering.testing.tdd
@@ -712,7 +712,7 @@ Ví dụ:
 
 ```text
 Organization Policy
-├── approved providers
+├── approved publishers
 ├── required security review
 ├── pinned workflow
 └── restricted hooks
@@ -802,7 +802,7 @@ ap doctor
 
 Maintainer nên có thể:
 
-- thêm một provider,
+- thêm một publisher,
 - khám phá các component của nó,
 - map component vào capability,
 - định nghĩa implementation được ưu tiên,
@@ -821,7 +821,7 @@ Kiến trúc nên giảm thiểu việc đồng bộ thủ công giữa nhiều 
 Hệ sinh thái dài hạn có thể được hình dung như sau:
 
 ```text
-                         Providers
+                         Publishers
                             │
          ┌──────────────────┼──────────────────┐
          │                  │                  │
@@ -928,7 +928,7 @@ Các capability tiềm năng:
 capability recommendations
 compatibility analysis
 context optimization
-provider health
+publisher health
 update impact analysis
 security scoring
 ```
@@ -994,7 +994,7 @@ composition over bundles
 
 curation over accumulation
 
-stable semantics over provider-specific configuration
+stable semantics over publisher-specific configuration
 
 determinism over implicit behavior
 

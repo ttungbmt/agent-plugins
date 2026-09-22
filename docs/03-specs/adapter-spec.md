@@ -6,7 +6,7 @@
 
 This document defines Source Adapter and Target Adapter contracts for `agent-plugins`.
 
-Source Adapters normalize upstream facts into Provider, Package, and Component inventory. Target Adapters translate validated Resolution and Lock state into managed runtime state.
+Source Adapters normalize upstream facts into Publisher, Package, and Component inventory. Target Adapters translate validated Resolution and Lock state into managed runtime state.
 
 This is a proposed V1 implementation contract, not documentation of an existing SDK. MUST, SHOULD, and MAY indicate required, recommended, and optional behavior. V1 requires one target, `claude-code`; other runtimes are future extensions.
 
@@ -96,13 +96,13 @@ interface SourceAdapter {
 | Integrity | Algorithm and precisely defined subject for every available digest |
 | Diagnostics | Structured failures, warnings, and inventory completeness |
 
-Discovery may extract Provider metadata but MUST NOT overwrite curated trust or ownership. Source-specific extensions may preserve unknown metadata; they must not silently become executable configuration.
+Discovery may extract Publisher metadata but MUST NOT overwrite curated trust or ownership. Source-specific extensions may preserve unknown metadata; they must not silently become executable configuration.
 
 An incomplete scan is not an authoritative empty inventory and MUST NOT trigger removal of previously discovered Components.
 
 ### 3.2 Transport and format separation
 
-Prefer shared Git/filesystem acquisition with reusable format readers such as `claude-marketplace` and `agent-skills`. Provider-specific readers are justified only by structural differences generic readers cannot express.
+Prefer shared Git/filesystem acquisition with reusable format readers such as `claude-marketplace` and `agent-skills`. Publisher-specific readers are justified only by structural differences generic readers cannot express.
 
 A repository may expose multiple Packages. Package subdirectory is part of source identity. Marketplace entries are references to inspect, not proof that referenced content is downloaded or trusted. Recursive references require bounded traversal, cycle detection, and separate provenance.
 

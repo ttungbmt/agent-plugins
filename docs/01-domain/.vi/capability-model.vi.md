@@ -4,7 +4,7 @@
 
 Tài liệu này định nghĩa capability model chuẩn (canonical) được sử dụng bởi `agent-plugins`.
 
-Một **Capability** đại diện cho một khả năng mang tính ngữ nghĩa, độc lập với provider, mà một môi trường agent có thể cung cấp.
+Một **Capability** đại diện cho một khả năng mang tính ngữ nghĩa, độc lập với publisher, mà một môi trường agent có thể cung cấp.
 
 Ví dụ:
 
@@ -27,7 +27,7 @@ Capability
     ↓
 Implementation
     ↓
-Provider Package / Component
+Publisher Package / Component
 ```
 
 Capability model tồn tại để người dùng, profile, preset và project có thể mô tả **họ cần gì** mà không phụ thuộc trực tiếp vào **ai implement nó**.
@@ -69,7 +69,7 @@ thay vì:
 superpowers/test-driven-development
 ```
 
-Điều này tạo ra một ranh giới ngữ nghĩa ổn định nằm trên các provider thay đổi nhanh chóng.
+Điều này tạo ra một ranh giới ngữ nghĩa ổn định nằm trên các publisher thay đổi nhanh chóng.
 
 ---
 
@@ -93,7 +93,7 @@ Một Capability **không** chịu trách nhiệm cho:
 ```text
 installation
 source discovery
-provider fetching
+publisher fetching
 runtime file generation
 package download
 ```
@@ -122,7 +122,7 @@ ecc.tdd
 claude.tdd
 ```
 
-Tên provider và tên runtime thông thường không được xuất hiện trong Capability ID.
+Tên publisher và tên runtime thông thường không được xuất hiện trong Capability ID.
 
 ---
 
@@ -187,7 +187,7 @@ Chúng không nên phản chiếu:
 
 ```text
 repository folder structures
-provider naming conventions
+publisher naming conventions
 runtime configuration formats
 temporary implementation details
 ```
@@ -331,7 +331,7 @@ what the capability provides
 chứ không phải:
 
 ```text
-how a particular provider implements it
+how a particular publisher implements it
 ```
 
 ---
@@ -400,7 +400,7 @@ Nhiều implementation có thể cung cấp các chức năng bổ sung cho nhau
 
 # 14. Cardinality mang tính ngữ nghĩa
 
-Cardinality thuộc về Capability, không thuộc về Provider.
+Cardinality thuộc về Capability, không thuộc về Publisher.
 
 Ví dụ:
 
@@ -417,9 +417,9 @@ cardinality: one
 bất kể có:
 
 ```text
-2 providers
-5 providers
-20 providers
+2 publishers
+5 publishers
+20 publishers
 ```
 
 Số lượng implementation hiện có không quyết định cardinality.
@@ -517,7 +517,7 @@ engineering.review
 
 Tuy nhiên, các ánh xạ nhiều capability nên được sử dụng một cách cẩn trọng.
 
-Không nên gộp các Capability lại chỉ vì một provider kết hợp chúng trong một Component.
+Không nên gộp các Capability lại chỉ vì một publisher kết hợp chúng trong một Component.
 
 ---
 
@@ -538,11 +538,11 @@ Catalog không nên tạo ra:
 engineering.super-workflow
 ```
 
-chỉ vì một provider gói các hành vi đó lại với nhau.
+chỉ vì một publisher gói các hành vi đó lại với nhau.
 
 Thay vào đó, catalog nên ánh xạ Component tới các capability ngữ nghĩa phù hợp khi có cơ sở.
 
-Capability model phải luôn độc lập với cách đóng gói của provider.
+Capability model phải luôn độc lập với cách đóng gói của publisher.
 
 ---
 
@@ -949,7 +949,7 @@ Implementation được chọn sẽ trở thành **active owner** của capabili
 
 ---
 
-# 35. Quyền sở hữu Capability không có nghĩa là Provider sở hữu
+# 35. Quyền sở hữu Capability không có nghĩa là Publisher sở hữu
 
 Ví dụ:
 
@@ -971,7 +971,7 @@ cho một Resolution cụ thể.
 Superpowers permanently owns the capability
 ```
 
-Capability vẫn độc lập với provider.
+Capability vẫn độc lập với publisher.
 
 Một Project hoặc Policy khác có thể resolve theo cách khác.
 
@@ -1183,7 +1183,7 @@ nên được giữ tách biệt.
 
 # 47. Quy tắc gộp Capability
 
-Không tạo các Capability riêng biệt chỉ vì các provider sử dụng thuật ngữ khác nhau.
+Không tạo các Capability riêng biệt chỉ vì các publisher sử dụng thuật ngữ khác nhau.
 
 Ví dụ:
 
@@ -1212,10 +1212,10 @@ Chúng không cần giống hệt nhau về implementation.
 Ví dụ:
 
 ```text
-Provider A:
+Publisher A:
 test-driven-development
 
-Provider B:
+Publisher B:
 tdd-workflow
 ```
 
@@ -1385,7 +1385,7 @@ Ví dụ:
 engineering.testing.tdd
 ```
 
-vẫn đại diện cho một intent có ý nghĩa của người dùng ngay cả khi một provider cụ thể bị loại bỏ.
+vẫn đại diện cho một intent có ý nghĩa của người dùng ngay cả khi một publisher cụ thể bị loại bỏ.
 
 Sự tách biệt này là trọng tâm của tính ổn định dài hạn.
 
@@ -1450,7 +1450,7 @@ catalog
 policy
 target
 version
-provider state
+publisher state
 ```
 
 ---
@@ -1568,7 +1568,7 @@ Ví dụ về các tín hiệu preference mềm:
 
 ```text
 catalog priority
-provider preference
+publisher preference
 official-source preference
 curated-source preference
 target-specific preference
@@ -1604,7 +1604,7 @@ Nếu nhiều candidate vẫn có mức ưu tiên ngang nhau, resolver phải s�
 Các tie-breaker deterministic cuối cùng có thể bao gồm:
 
 ```text
-canonical provider ID
+canonical publisher ID
 canonical package ID
 canonical component ID
 ```
@@ -1691,7 +1691,7 @@ Why was this candidate selected?
 
 Which package must be installed?
 
-Which provider owns that package?
+Which publisher owns that package?
 ```
 
 ---
@@ -1709,7 +1709,7 @@ Capability:
 engineering.testing.tdd
 
 Implementation provenance:
-provider: superpowers
+publisher: superpowers
 package: superpowers
 repository: ...
 version: ...
@@ -2027,7 +2027,7 @@ Khi một implementation thay đổi, hệ thống nên có khả năng xác đ�
 Ví dụ:
 
 ```text
-Provider update
+Publisher update
     ↓
 Component changed
     ↓
@@ -2117,7 +2117,7 @@ Preset
 Profile
 ```
 
-Định danh provider nên là yếu tố thứ yếu.
+Định danh publisher nên là yếu tố thứ yếu.
 
 ---
 
@@ -2162,7 +2162,7 @@ Trong V1, họ được biểu diễn thông qua phân cấp namespace thay vì 
 
 # 88. Biến thể Capability
 
-Tránh tạo biến thể chỉ vì khác biệt giữa các provider.
+Tránh tạo biến thể chỉ vì khác biệt giữa các publisher.
 
 Không tốt:
 
@@ -2263,7 +2263,7 @@ Bản thân Capability nhìn chung không nên có phân loại trust.
 Trust thuộc về:
 
 ```text
-Provider
+Publisher
 Package
 Component
 Implementation
@@ -2306,7 +2306,7 @@ Capability
 → selected implementation
 → Component
 → Package
-→ Provider
+→ Publisher
 → immutable version
 ```
 
@@ -2415,7 +2415,7 @@ Component exists
 
 Component belongs to a valid Package
 
-Package belongs to a valid Provider
+Package belongs to a valid Publisher
 
 target metadata is valid
 
@@ -2461,7 +2461,7 @@ Trước khi thêm một Capability mới, hãy hỏi:
 
 3. Is there already a Capability with equivalent meaning?
 
-4. Is this semantic or provider-specific?
+4. Is this semantic or publisher-specific?
 
 5. Is this semantic or runtime-specific?
 
@@ -2627,7 +2627,7 @@ với các implementation khác nhau.
 
 ---
 
-# 107. Anti-Pattern — Capability gắn chặt với Provider
+# 107. Anti-Pattern — Capability gắn chặt với Publisher
 
 Tránh:
 
@@ -2690,7 +2690,7 @@ database
 
 ---
 
-# 110. Anti-Pattern — Coi Provider Package là Capability
+# 110. Anti-Pattern — Coi Publisher Package là Capability
 
 Tránh giả định:
 
@@ -2710,7 +2710,7 @@ Capability nên luôn mang tính ngữ nghĩa.
 
 Không phải mọi upstream Component đều xứng đáng có một Capability chuẩn.
 
-Một provider có thể cung cấp:
+Một publisher có thể cung cấp:
 
 ```text
 highly specific helper skill
@@ -2745,7 +2745,7 @@ explanation
 
 # 113. Anti-Pattern — Capability nguyên khối
 
-Tránh làm cho Capability quá rộng đến mức sự chồng lấn giữa các provider trở nên vô nghĩa.
+Tránh làm cho Capability quá rộng đến mức sự chồng lấn giữa các publisher trở nên vô nghĩa.
 
 Ví dụ:
 
@@ -2794,18 +2794,18 @@ engineering.testing.tdd
 từ:
 
 ```text
-Provider A
+Publisher A
 ```
 
 sang:
 
 ```text
-Provider B
+Publisher B
 ```
 
 thì thay đổi đó nên được hiển thị rõ ràng.
 
-Tính độc lập với provider không biện minh cho việc âm thầm thay đổi implementation.
+Tính độc lập với publisher không biện minh cho việc âm thầm thay đổi implementation.
 
 ---
 
@@ -3058,7 +3058,7 @@ Capability model phải bảo toàn các invariant sau:
 ```text
 1. A Capability describes semantic intent.
 
-2. Capability IDs are provider-independent.
+2. Capability IDs are publisher-independent.
 
 3. Capability IDs are target-independent.
 
@@ -3068,7 +3068,7 @@ Capability model phải bảo toàn các invariant sau:
 
 6. Profiles primarily compose Presets.
 
-7. Multiple providers may implement one Capability.
+7. Multiple publishers may implement one Capability.
 
 8. Cardinality belongs to the Capability.
 
@@ -3084,7 +3084,7 @@ Capability model phải bảo toàn các invariant sau:
 
 14. Capability graphs must remain valid and acyclic.
 
-15. Provider changes should not require consumer intent changes.
+15. Publisher changes should not require consumer intent changes.
 
 16. Implementation changes must remain explainable.
 
@@ -3295,7 +3295,7 @@ available
 # 136. Capability Model trong toàn bộ hệ thống
 
 ```text
-Providers
+Publishers
     ↓
 Packages
     ↓
@@ -3333,19 +3333,19 @@ Capability là điểm xoay ngữ nghĩa giữa cấu trúc của hệ sinh thá
 Model thành công khi:
 
 ```text
-users can request functionality without knowing provider names
+users can request functionality without knowing publisher names
 
-profiles remain stable when providers change
+profiles remain stable when publishers change
 
 overlapping implementations can be resolved predictably
 
 capability conflicts are explicit
 
-provider updates can be analyzed semantically
+publisher updates can be analyzed semantically
 
 multiple runtimes can use the same capability intent
 
-catalog maintainers can introduce new providers without redesigning profiles
+catalog maintainers can introduce new publishers without redesigning profiles
 
 every selected implementation can be explained
 ```
@@ -3354,4 +3354,4 @@ every selected implementation can be explained
 
 # 138. Capability Model trong một câu
 
-> **Một Capability là một biểu đạt ổn định, độc lập với provider, về intent của người dùng; nó có thể có nhiều implementation cụ thể, cardinality và dependency tường minh, các quy tắc resolution deterministic, và khả năng truy vết đầy đủ từ requirement ngữ nghĩa đến runtime component đã được lock.**
+> **Một Capability là một biểu đạt ổn định, độc lập với publisher, về intent của người dùng; nó có thể có nhiều implementation cụ thể, cardinality và dependency tường minh, các quy tắc resolution deterministic, và khả năng truy vết đầy đủ từ requirement ngữ nghĩa đến runtime component đã được lock.**

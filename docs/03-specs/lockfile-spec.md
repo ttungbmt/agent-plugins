@@ -49,7 +49,7 @@ This separation is fundamental to reproducibility, controlled updates, and expla
 The canonical flow is:
 
 ```text id="ujqvp5"
-External Providers
+External Publishers
         ↓
 Maintainer Curation
         ↓
@@ -275,7 +275,7 @@ ProjectLock
 Lockfile schema version must be independent from:
 
 ```text id="s8ny7n"
-Provider version
+Publisher version
 
 Package version
 
@@ -342,16 +342,16 @@ Capabilities:
 Capability ID ascending
 ```
 
-Providers:
+Publishers:
 
 ```text id="5i9u0l"
-Provider ID ascending
+Publisher ID ascending
 ```
 
 Packages:
 
 ```text id="re4y8u"
-Provider ID
+Publisher ID
 then Package ID
 ```
 
@@ -368,7 +368,7 @@ canonical Component reference ascending
 `catalog.lock` may contain exact resolution for:
 
 ```text id="hs4l6a"
-Providers
+Publishers
 
 Packages
 
@@ -407,7 +407,7 @@ metadata:
 
 spec:
   packages:
-    - provider: superpowers
+    - publisher: superpowers
       package: superpowers
 
       version: 6.4.0
@@ -421,7 +421,7 @@ spec:
         algorithm: sha256
         value: ...
 
-    - provider: ecc
+    - publisher: ecc
       package: ecc
 
       version: 2.1.0
@@ -445,7 +445,7 @@ Exact schema may evolve.
 Each locked Package must be identifiable by:
 
 ```text id="i27bge"
-Provider ID
+Publisher ID
 +
 Package ID
 ```
@@ -453,7 +453,7 @@ Package ID
 Canonical reference:
 
 ```text id="lyswk1"
-provider/package
+publisher/package
 ```
 
 Example:
@@ -723,7 +723,7 @@ spec:
         - preset/engineering/core
 
   packages:
-    - provider: superpowers
+    - publisher: superpowers
       package: superpowers
       version: 6.4.0
       ref: abc123...
@@ -1103,7 +1103,7 @@ Example:
 
 ```yaml id="n31g0v"
 selected:
-  - component: provider/package#skill:x
+  - component: publisher/package#skill:x
 ```
 
 Using an array consistently may simplify schema design.
@@ -1119,7 +1119,7 @@ Component
 
 Package
 
-Provider
+Publisher
 ```
 
 The lock may avoid duplicating all Package metadata by referencing canonical Package entries elsewhere in the lock.
@@ -1140,7 +1140,7 @@ Components
 → reference Packages
 
 Packages
-→ reference Providers
+→ reference Publishers
 ```
 
 rather than repeating repository/version information under every Capability.
@@ -1311,7 +1311,7 @@ later.
 Each resolved Package should record:
 
 ```text id="66lk2n"
-Provider
+Publisher
 
 Package
 
@@ -1359,7 +1359,7 @@ The Project Lock should preserve enough provenance to reproduce the Package with
 Recommended:
 
 ```text id="5rqdqo"
-Provider ID
+Publisher ID
 
 Package ID
 
@@ -1379,7 +1379,7 @@ integrity
 If only:
 
 ```text id="0xy4fn"
-provider/package
+publisher/package
 ```
 
 is stored, future Catalog changes could make historical reproduction ambiguous.
@@ -2044,7 +2044,7 @@ These are independent operations.
 Normal consumer Resolution should not skip `catalog.lock` and directly fetch:
 
 ```text id="l297si"
-latest Provider version
+latest Publisher version
 ```
 
 This would bypass curation.
@@ -2517,7 +2517,7 @@ every Component belongs to a resolved Package
 
 every Capability selected implementation references a valid Component
 
-every Package has valid Provider identity
+every Package has valid Publisher identity
 
 no duplicate IDs
 
@@ -2826,7 +2826,7 @@ An update may target:
 ```text id="nr6azk"
 all Packages
 
-one Provider
+one Publisher
 
 one Package
 
@@ -2838,7 +2838,7 @@ V1 may implement only:
 ```text id="jsutyy"
 global
 
-Provider-level
+Publisher-level
 ```
 
 initially.
@@ -2847,10 +2847,10 @@ initially.
 
 # 133. Scoped Update Preservation
 
-If updating Provider A:
+If updating Publisher A:
 
 ```text id="vpa3bk"
-unrelated Provider B selections
+unrelated Publisher B selections
 ```
 
 should remain locked where possible.
@@ -2893,8 +2893,8 @@ More significant:
 ```text id="1nm9d9"
 Capability X
 
-Provider A Component
-→ Provider B Component
+Publisher A Component
+→ Publisher B Component
 ```
 
 This should be prominently visible.
@@ -3591,7 +3591,7 @@ causes new Capability selections.
 Example:
 
 ```text id="p5fgqt"
-community provider no longer allowed
+community publisher no longer allowed
 ```
 
 causes implementation replacement.
@@ -3662,7 +3662,7 @@ Stable diffs are a product feature.
 
 # 179. Distribution Lock Churn
 
-Likewise, updating one Provider should not reorder or rewrite all unrelated entries.
+Likewise, updating one Publisher should not reorder or rewrite all unrelated entries.
 
 ---
 
@@ -3689,7 +3689,7 @@ Future CLI diff should optimize for this.
 For external Packages:
 
 ```text id="ykq0zr"
-Provider ID
+Publisher ID
 
 Package ID
 
@@ -3777,7 +3777,7 @@ Integrity hashes should be supported independently from signatures.
 Because Project Lock contains:
 
 ```text id="yjllx1"
-Providers
+Publishers
 
 Packages
 
@@ -3876,7 +3876,7 @@ target information
 Avoid copying:
 
 ```text id="3uor6k"
-all Providers
+all Publishers
 
 all Capabilities
 
@@ -3986,7 +3986,7 @@ A valid Project Lock must satisfy:
 
 3. Every locked Component references a locked Package.
 
-4. Every locked Package references a Provider.
+4. Every locked Package references a Publisher.
 
 5. Every Package has a concrete approved source state.
 
@@ -4069,13 +4069,13 @@ In explicit update mode:
 The lockfile model is V1-ready when:
 
 ```text id="nis38t"
-catalog.lock can pin all external initial Providers
+catalog.lock can pin all external initial Publishers
 
 Project Resolution can produce agent-plugins.lock
 
 same Manifest + locked distribution produces stable Project Lock
 
-Project Lock captures Capability → Component → Package → Provider
+Project Lock captures Capability → Component → Package → Publisher
 
 exact upstream refs are persisted
 
@@ -4254,7 +4254,7 @@ Locked:
 
 ```text id="1zvgjx"
 security.review
-→ Community Provider
+→ Community Publisher
 ```
 
 New Policy:
@@ -4350,7 +4350,7 @@ A Project Lock freezes the entire concrete path.
 # 210. Distribution Lock Mental Model
 
 ```text id="zp9wo8"
-Provider Ecosystem
+Publisher Ecosystem
       ↓
 Curated Package
       ↓

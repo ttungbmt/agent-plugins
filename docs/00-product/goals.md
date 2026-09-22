@@ -80,11 +80,11 @@ knowledge.research
 product.discovery
 ```
 
-This capability model should remain relatively stable even when providers change.
+This capability model should remain relatively stable even when publishers change.
 
 ## Success Criteria
 
-Different provider implementations of the same semantic behavior can be mapped to a shared capability.
+Different publisher implementations of the same semantic behavior can be mapped to a shared capability.
 
 Example:
 
@@ -102,7 +102,7 @@ engineering.testing.tdd
 
 # 3. Separate Intent From Implementation
 
-User and project configuration should not be tightly coupled to individual providers.
+User and project configuration should not be tightly coupled to individual publishers.
 
 The preferred dependency direction is:
 
@@ -115,7 +115,7 @@ Capability
    ↓
 Implementation
    ↓
-Provider
+Publisher
 ```
 
 not:
@@ -123,7 +123,7 @@ not:
 ```text
 Profile
    ↓
-Provider-specific plugin list
+Publisher-specific plugin list
 ```
 
 ## Success Criteria
@@ -221,7 +221,7 @@ Changing project stack requirements does not require redefining the user's role 
 
 # 7. Resolve Capability Overlap Deterministically
 
-When multiple providers implement the same capability, the system should resolve the overlap predictably.
+When multiple publishers implement the same capability, the system should resolve the overlap predictably.
 
 Example:
 
@@ -348,7 +348,7 @@ Why was it included?
 
 ## Success Criteria
 
-Resolved components retain provider, package, version, source, and capability mapping metadata.
+Resolved components retain publisher, package, version, source, and capability mapping metadata.
 
 ---
 
@@ -411,7 +411,7 @@ ap sync
 
 The resulting environment should resolve to the same:
 
-- providers,
+- publishers,
 - packages,
 - components,
 - versions,
@@ -426,7 +426,7 @@ The project lockfile contains sufficient information to reproduce resolved state
 
 # 14. Control Upstream Versions
 
-External providers should not silently drift to arbitrary latest versions.
+External publishers should not silently drift to arbitrary latest versions.
 
 The project should support explicit version and commit pinning.
 
@@ -449,7 +449,7 @@ ap update --check
 The system should surface:
 
 ```text
-provider version changes
+publisher version changes
 added components
 removed components
 changed components
@@ -475,7 +475,7 @@ external hooks
 MCP servers
 commands
 scripts
-experimental providers
+experimental publishers
 community sources
 ```
 
@@ -497,7 +497,7 @@ Security-sensitive components are visible to policy evaluation before installati
 
 # 17. Support Multiple Trust Levels
 
-Providers and packages should be classifiable into trust categories.
+Publishers and packages should be classifiable into trust categories.
 
 Initial model:
 
@@ -530,7 +530,7 @@ documentation workflows
 agent development
 ```
 
-These should coexist with external providers under the same capability model.
+These should coexist with external publishers under the same capability model.
 
 ## Success Criteria
 
@@ -540,7 +540,7 @@ Native and external implementations participate in the same resolution system.
 
 # 19. Avoid Unnecessary Forking
 
-The project should prefer referencing and integrating upstream providers rather than copying their source.
+The project should prefer referencing and integrating upstream publishers rather than copying their source.
 
 External source should only be vendored or forked when there is a clear technical or maintenance reason.
 
@@ -573,7 +573,7 @@ Target Adapters
 
 ## Success Criteria
 
-A provider integration can evolve independently from a runtime integration.
+A publisher integration can evolve independently from a runtime integration.
 
 ---
 
@@ -674,7 +674,7 @@ Generated artifacts can be deleted and recreated without losing information.
 The system should validate:
 
 - schemas,
-- provider references,
+- publisher references,
 - package references,
 - capability mappings,
 - preset references,
@@ -793,7 +793,7 @@ Users should be able to search across:
 capabilities
 presets
 profiles
-providers
+publishers
 packages
 components
 ```
@@ -817,7 +817,7 @@ can reveal relevant capability and implementation information.
 Teams should eventually be able to share:
 
 ```text
-approved providers
+approved publishers
 preferred implementations
 required presets
 security policies
@@ -877,7 +877,7 @@ Core resolution works offline against available catalog and lock data.
 The design should support future additions such as:
 
 ```text
-new providers
+new publishers
 new component types
 new capability domains
 new target runtimes
@@ -900,7 +900,7 @@ V1 should prove the core model before expanding the ecosystem.
 The initial focus should be:
 
 ```text
-Provider
+Publisher
 Package
 Component
 Capability
@@ -1014,11 +1014,11 @@ These components should establish the foundation for future runtimes.
 
 ---
 
-# 38. V1 Provider Goals
+# 38. V1 Publisher Goals
 
-The initial curated catalog should demonstrate integration with multiple provider styles.
+The initial curated catalog should demonstrate integration with multiple publisher styles.
 
-Recommended initial providers:
+Recommended initial publishers:
 
 ```text
 Superpowers
@@ -1029,7 +1029,7 @@ wshobson/agents
 native agent-plugins
 ```
 
-The objective is not to integrate everything each provider offers.
+The objective is not to integrate everything each publisher offers.
 
 The objective is to prove:
 
@@ -1093,7 +1093,7 @@ Beyond V1, the project should gradually support:
 ```text
 more target runtimes
 
-more providers
+more publishers
 
 organization policies
 
@@ -1103,7 +1103,7 @@ compatibility analysis
 
 context optimization
 
-provider health analysis
+publisher health analysis
 
 security metadata
 
@@ -1181,7 +1181,7 @@ controlled updates over latest-by-default
 
 reproducibility over configuration drift
 
-stable semantics over provider coupling
+stable semantics over publisher coupling
 
 native runtime support over lowest-common-denominator output
 ```

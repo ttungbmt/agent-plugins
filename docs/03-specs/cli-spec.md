@@ -464,7 +464,7 @@ Search MAY consider:
 - description;
 - tags;
 - capabilities;
-- provider;
+- publisher;
 - component type.
 
 Example:
@@ -490,7 +490,7 @@ Human output SHOULD include:
 Identity
 Source
 Version
-Provider
+Publisher
 Components
 Capabilities
 Dependencies
@@ -3399,7 +3399,7 @@ Possible output:
 
 ```text
 Canonical ID
-Provider
+Publisher
 Source
 Version
 Selected by

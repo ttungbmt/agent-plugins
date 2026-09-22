@@ -49,7 +49,7 @@ Sự tách biệt này là nền tảng cho khả năng tái lập, việc cập
 Luồng chuẩn là:
 
 ```text id="ujqvp5"
-External Providers
+External Publishers
         ↓
 Maintainer Curation
         ↓
@@ -275,7 +275,7 @@ ProjectLock
 Version schema của lockfile phải độc lập với:
 
 ```text id="s8ny7n"
-Provider version
+Publisher version
 
 Package version
 
@@ -342,16 +342,16 @@ Capabilities:
 Capability ID ascending
 ```
 
-Providers:
+Publishers:
 
 ```text id="5i9u0l"
-Provider ID ascending
+Publisher ID ascending
 ```
 
 Packages:
 
 ```text id="re4y8u"
-Provider ID
+Publisher ID
 then Package ID
 ```
 
@@ -368,7 +368,7 @@ canonical Component reference ascending
 `catalog.lock` có thể chứa resolution chính xác cho:
 
 ```text id="hs4l6a"
-Providers
+Publishers
 
 Packages
 
@@ -407,7 +407,7 @@ metadata:
 
 spec:
   packages:
-    - provider: superpowers
+    - publisher: superpowers
       package: superpowers
 
       version: 6.4.0
@@ -421,7 +421,7 @@ spec:
         algorithm: sha256
         value: ...
 
-    - provider: ecc
+    - publisher: ecc
       package: ecc
 
       version: 2.1.0
@@ -445,7 +445,7 @@ Schema chính xác có thể thay đổi.
 Mỗi Package được lock phải có thể được định danh bằng:
 
 ```text id="i27bge"
-Provider ID
+Publisher ID
 +
 Package ID
 ```
@@ -453,7 +453,7 @@ Package ID
 Tham chiếu chuẩn:
 
 ```text id="lyswk1"
-provider/package
+publisher/package
 ```
 
 Ví dụ:
@@ -723,7 +723,7 @@ spec:
         - preset/engineering/core
 
   packages:
-    - provider: superpowers
+    - publisher: superpowers
       package: superpowers
       version: 6.4.0
       ref: abc123...
@@ -1103,7 +1103,7 @@ Ví dụ:
 
 ```yaml id="n31g0v"
 selected:
-  - component: provider/package#skill:x
+  - component: publisher/package#skill:x
 ```
 
 Việc sử dụng array một cách nhất quán có thể giúp đơn giản hóa thiết kế schema.
@@ -1119,7 +1119,7 @@ Component
 
 Package
 
-Provider
+Publisher
 ```
 
 Lock có thể tránh lặp lại toàn bộ metadata của Package bằng cách tham chiếu tới các entry Package chuẩn ở nơi khác trong lock.
@@ -1140,7 +1140,7 @@ Components
 → reference Packages
 
 Packages
-→ reference Providers
+→ reference Publishers
 ```
 
 thay vì lặp lại thông tin repository/version dưới mỗi Capability.
@@ -1311,7 +1311,7 @@ sau này.
 Mỗi Package đã được resolve cần ghi lại:
 
 ```text id="66lk2n"
-Provider
+Publisher
 
 Package
 
@@ -1359,7 +1359,7 @@ Project Lock cần lưu đủ thông tin nguồn gốc để tái tạo Package 
 Khuyến nghị:
 
 ```text id="5rqdqo"
-Provider ID
+Publisher ID
 
 Package ID
 
@@ -1379,7 +1379,7 @@ integrity
 Nếu chỉ lưu:
 
 ```text id="0xy4fn"
-provider/package
+publisher/package
 ```
 
 thì các thay đổi Catalog trong tương lai có thể khiến việc tái tạo lịch sử trở nên mơ hồ.
@@ -2044,7 +2044,7 @@ new approved distribution state
 Resolution thông thường phía consumer không nên bỏ qua `catalog.lock` và fetch trực tiếp:
 
 ```text id="l297si"
-latest Provider version
+latest Publisher version
 ```
 
 Điều này sẽ bỏ qua quá trình curation.
@@ -2517,7 +2517,7 @@ every Component belongs to a resolved Package
 
 every Capability selected implementation references a valid Component
 
-every Package has valid Provider identity
+every Package has valid Publisher identity
 
 no duplicate IDs
 
@@ -2826,7 +2826,7 @@ Một lần cập nhật có thể nhắm tới:
 ```text id="nr6azk"
 all Packages
 
-one Provider
+one Publisher
 
 one Package
 
@@ -2838,7 +2838,7 @@ V1 có thể chỉ implement:
 ```text id="jsutyy"
 global
 
-Provider-level
+Publisher-level
 ```
 
 trong giai đoạn đầu.
@@ -2847,10 +2847,10 @@ trong giai đoạn đầu.
 
 # 133. Bảo toàn khi cập nhật có phạm vi
 
-Nếu cập nhật Provider A:
+Nếu cập nhật Publisher A:
 
 ```text id="vpa3bk"
-unrelated Provider B selections
+unrelated Publisher B selections
 ```
 
 nên vẫn được giữ lock khi có thể.
@@ -2893,8 +2893,8 @@ Quan trọng hơn:
 ```text id="1nm9d9"
 Capability X
 
-Provider A Component
-→ Provider B Component
+Publisher A Component
+→ Publisher B Component
 ```
 
 Điều này nên được hiển thị nổi bật.
@@ -3591,7 +3591,7 @@ gây ra các lựa chọn Capability mới.
 Ví dụ:
 
 ```text id="p5fgqt"
-community provider no longer allowed
+community publisher no longer allowed
 ```
 
 gây ra việc thay thế implementation.
@@ -3662,7 +3662,7 @@ Diff ổn định là một tính năng của sản phẩm.
 
 # 179. Churn của Distribution Lock
 
-Tương tự, việc cập nhật một Provider không nên sắp xếp lại hay ghi lại toàn bộ các entry không liên quan.
+Tương tự, việc cập nhật một Publisher không nên sắp xếp lại hay ghi lại toàn bộ các entry không liên quan.
 
 ---
 
@@ -3689,7 +3689,7 @@ CLI diff trong tương lai nên tối ưu cho điều này.
 Đối với các Package bên ngoài:
 
 ```text id="ykq0zr"
-Provider ID
+Publisher ID
 
 Package ID
 
@@ -3777,7 +3777,7 @@ Integrity hash nên được hỗ trợ độc lập với chữ ký.
 Vì Project Lock chứa:
 
 ```text id="yjllx1"
-Providers
+Publishers
 
 Packages
 
@@ -3876,7 +3876,7 @@ target information
 Tránh sao chép:
 
 ```text id="3uor6k"
-all Providers
+all Publishers
 
 all Capabilities
 
@@ -3986,7 +3986,7 @@ Một Project Lock hợp lệ phải thỏa mãn:
 
 3. Every locked Component references a locked Package.
 
-4. Every locked Package references a Provider.
+4. Every locked Package references a Publisher.
 
 5. Every Package has a concrete approved source state.
 
@@ -4069,13 +4069,13 @@ Trong chế độ update tường minh:
 Mô hình lockfile sẵn sàng cho V1 khi:
 
 ```text id="nis38t"
-catalog.lock can pin all external initial Providers
+catalog.lock can pin all external initial Publishers
 
 Project Resolution can produce agent-plugins.lock
 
 same Manifest + locked distribution produces stable Project Lock
 
-Project Lock captures Capability → Component → Package → Provider
+Project Lock captures Capability → Component → Package → Publisher
 
 exact upstream refs are persisted
 
@@ -4254,7 +4254,7 @@ nếu tất cả các quy tắc của Resolver cho phép.
 
 ```text id="1zvgjx"
 security.review
-→ Community Provider
+→ Community Publisher
 ```
 
 Policy mới:
@@ -4350,7 +4350,7 @@ Một Project Lock đóng băng toàn bộ đường đi cụ thể.
 # 210. Mô hình tư duy về Distribution Lock
 
 ```text id="zp9wo8"
-Provider Ecosystem
+Publisher Ecosystem
       ↓
 Curated Package
       ↓

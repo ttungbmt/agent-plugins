@@ -98,7 +98,7 @@ agent-plugins/
 │   │   ├── package.json
 │   │   ├── src/
 │   │   └── schemas/
-│   │       ├── provider.schema.json
+│   │       ├── publisher.schema.json
 │   │       ├── package.schema.json
 │   │       ├── capability.schema.json
 │   │       ├── preset.schema.json
@@ -130,7 +130,7 @@ agent-plugins/
 │           └── index.ts
 │
 ├── catalog/
-│   ├── providers/
+│   ├── publishers/
 │   │   ├── superpowers.yaml
 │   │   ├── mattpocock.yaml
 │   │   ├── ecc.yaml
@@ -301,7 +301,7 @@ agent-plugins/
 │   └── decisions/
 │       └── adr/
 │           ├── 0001-capability-based-resolution.md
-│           ├── 0002-provider-package-component.md
+│           ├── 0002-publisher-package-component.md
 │           ├── 0003-composition-over-inheritance.md
 │           ├── 0004-no-addon-entity.md
 │           ├── 0005-source-target-adapters.md
@@ -555,7 +555,7 @@ Contains normalized domain types.
 Examples:
 
 ```text
-provider.ts
+publisher.ts
 package.ts
 component.ts
 capability.ts
@@ -651,7 +651,7 @@ Owns:
 policy evaluation
 trust rules
 component restrictions
-provider restrictions
+publisher restrictions
 policy decisions
 ```
 
@@ -740,7 +740,7 @@ Target-specific mutation belongs in target adapters.
 It should include schemas for canonical manifests.
 
 ```text
-provider
+publisher
 package
 capability
 preset
@@ -769,7 +769,7 @@ Version-specific schemas may eventually use:
 ```text
 schemas/
 └── v1alpha1/
-    ├── provider.schema.json
+    ├── publisher.schema.json
     ├── capability.schema.json
     └── ...
 ```
@@ -819,18 +819,18 @@ agent-skills/
 Do not create:
 
 ```text
-provider-a/
-provider-b/
-provider-c/
+publisher-a/
+publisher-b/
+publisher-c/
 ```
 
 if all three use the same generic format.
 
 ---
 
-# 25. Provider-Specific Source Adapters
+# 25. Publisher-Specific Source Adapters
 
-Use provider-specific folders only when necessary.
+Use publisher-specific folders only when necessary.
 
 Examples:
 
@@ -839,7 +839,7 @@ superpowers/
 ecc/
 ```
 
-A provider-specific adapter should adapt unusual provider structure rather than encode semantic capability decisions.
+A publisher-specific adapter should adapt unusual publisher structure rather than encode semantic capability decisions.
 
 ---
 
@@ -896,23 +896,23 @@ Structure:
 
 ```text
 catalog/
-├── providers/
+├── publishers/
 ├── packages/
 └── capabilities/
 ```
 
 ---
 
-# 29. catalog/providers/
+# 29. catalog/publishers/
 
-Contains Provider definitions.
+Contains Publisher definitions.
 
-One file per Provider is preferred.
+One file per Publisher is preferred.
 
 Example:
 
 ```text
-catalog/providers/
+catalog/publishers/
 ├── superpowers.yaml
 ├── mattpocock.yaml
 ├── ecc.yaml
@@ -920,7 +920,7 @@ catalog/providers/
 └── wshobson.yaml
 ```
 
-Provider files should contain source and provenance metadata, not large component inventories.
+Publisher files should contain source and provenance metadata, not large component inventories.
 
 ---
 
@@ -940,7 +940,7 @@ catalog/packages/
 A package definition may specify:
 
 ```text
-provider
+publisher
 source
 version constraints
 target metadata
@@ -1068,7 +1068,7 @@ lightweight.yaml
 rigorous.yaml
 ```
 
-Avoid provider-specific files such as:
+Avoid publisher-specific files such as:
 
 ```text
 superpowers.yaml
@@ -1097,7 +1097,7 @@ Capabilities
 other Presets
 ```
 
-They should normally not reference provider implementations.
+They should normally not reference publisher implementations.
 
 ---
 
@@ -1269,7 +1269,7 @@ Metadata should still use:
 ownership: first-party
 ```
 
-This avoids ambiguity with external providers that may themselves call their packages "official".
+This avoids ambiguity with external publishers that may themselves call their packages "official".
 
 ---
 
@@ -1358,7 +1358,7 @@ Contains normalized Component metadata discovered from upstream sources.
 It may include:
 
 ```text
-provider
+publisher
 package
 component ID
 component type
@@ -1384,7 +1384,7 @@ It may combine:
 ```text
 capabilities
 aliases
-providers
+publishers
 packages
 components
 presets
@@ -1541,7 +1541,7 @@ Possible structure:
 fixtures/
 ├── catalogs/
 ├── projects/
-├── providers/
+├── publishers/
 ├── upstream/
 ├── locks/
 └── targets/
@@ -1619,7 +1619,7 @@ trust filtering
 security-sensitive components
 deny behavior
 review behavior
-provider preference
+publisher preference
 ```
 
 ---
@@ -1938,7 +1938,7 @@ Reusable validation logic should still live in packages.
 
 # 83. tools/update/
 
-Maintainer tooling for upstream provider updates.
+Maintainer tooling for upstream publisher updates.
 
 Examples:
 
@@ -2095,7 +2095,7 @@ for:
 filenames
 directory names
 profile IDs
-provider IDs
+publisher IDs
 package IDs
 preset names
 policy IDs
@@ -2149,9 +2149,9 @@ presets/engineering/security.yaml
 
 ---
 
-# 92. Provider Naming
+# 92. Publisher Naming
 
-Provider ID:
+Publisher ID:
 
 ```text
 superpowers
@@ -2169,12 +2169,12 @@ Do not use display names as stable references.
 
 # 93. Package Naming
 
-Package IDs should be stable within Provider scope.
+Package IDs should be stable within Publisher scope.
 
 Canonical reference may use:
 
 ```text
-provider/package
+publisher/package
 ```
 
 Example:
@@ -2192,7 +2192,7 @@ Canonical Component references should remain globally unambiguous.
 Conceptual syntax:
 
 ```text
-provider/package#type:name
+publisher/package#type:name
 ```
 
 Example:
@@ -2471,7 +2471,7 @@ Avoid exposing internal distribution directories such as:
 
 ```text
 catalog/
-providers/
+publishers/
 packages/
 ```
 
@@ -2504,7 +2504,7 @@ agent-plugins/
 │   └── target-adapters/
 │
 ├── catalog/
-│   ├── providers/
+│   ├── publishers/
 │   ├── packages/
 │   └── capabilities/
 │
@@ -2568,9 +2568,9 @@ The repository should grow alongside implemented functionality rather than creat
 
 ---
 
-# 111. V1 Provider Data
+# 111. V1 Publisher Data
 
-Initial provider manifests may include:
+Initial publisher manifests may include:
 
 ```text
 superpowers
@@ -2581,7 +2581,7 @@ wshobson
 agent-plugins
 ```
 
-This set is intended to validate different provider styles rather than maximize ecosystem coverage.
+This set is intended to validate different publisher styles rather than maximize ecosystem coverage.
 
 ---
 
@@ -2717,7 +2717,7 @@ Avoid:
 ```text
 too many top-level folders
 
-provider names spread everywhere
+publisher names spread everywhere
 
 one folder per hypothetical concept
 
@@ -2747,9 +2747,9 @@ The structure should preserve these invariants:
 
 4. Target-specific behavior stays in target adapters.
 
-5. Curated provider/package/capability metadata stays under catalog.
+5. Curated publisher/package/capability metadata stays under catalog.
 
-6. Presets and Profiles never live inside provider folders.
+6. Presets and Profiles never live inside publisher folders.
 
 7. Native implementation source stays under plugins/native.
 
@@ -2776,10 +2776,10 @@ The structure should preserve these invariants:
 
 When asking:
 
-> Where does provider metadata go?
+> Where does publisher metadata go?
 
 ```text
-catalog/providers/
+catalog/publishers/
 ```
 
 > Where does package metadata go?

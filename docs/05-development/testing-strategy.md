@@ -458,7 +458,7 @@ Catalog MUST be tested for:
 lookup by ID
 lookup by type
 lookup by capability
-provider lookup
+publisher lookup
 duplicate rejection
 missing reference detection
 stable ordering
@@ -536,7 +536,7 @@ Profile inheritance
 
 Preset expansion
 
-provider selection
+publisher selection
 ```
 
 ---

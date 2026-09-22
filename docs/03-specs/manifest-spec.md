@@ -24,7 +24,7 @@ The manifest should remain:
 - concise,
 - human-readable,
 - version-controlled,
-- provider-independent by default,
+- publisher-independent by default,
 - deterministic,
 - machine-validatable.
 
@@ -36,7 +36,7 @@ It does not normally contain:
 - immutable upstream commits,
 - generated runtime files,
 - discovered component inventories,
-- complete provider metadata.
+- complete publisher metadata.
 
 Those belong to Catalog, Lockfile, or Target state.
 
@@ -892,9 +892,9 @@ It does not modify the default Catalog mapping or priority.
 
 ---
 
-# 40. Provider-Specific Override
+# 40. Publisher-Specific Override
 
-Provider selection should happen indirectly through Component implementation override.
+Publisher selection should happen indirectly through Component implementation override.
 
 Prefer:
 
@@ -907,7 +907,7 @@ implementations:
 Avoid a separate construct such as:
 
 ```yaml
-providers:
+publishers:
   tdd: superpowers
 ```
 
@@ -945,23 +945,23 @@ plugins:
 
 as the primary manifest model.
 
-Provider and Package selection should be Resolver output.
+Publisher and Package selection should be Resolver output.
 
 ---
 
-# 43. No Provider Lists as Desired State
+# 43. No Publisher Lists as Desired State
 
 Avoid:
 
 ```yaml
-providers:
+publishers:
   - superpowers
   - ecc
 ```
 
 unless configuring source availability in a future advanced manifest.
 
-The normal consumer should not need to know Provider names.
+The normal consumer should not need to know Publisher names.
 
 ---
 
@@ -2774,7 +2774,7 @@ It is not authoritative for:
 ```text
 Catalog semantics
 
-Provider versions
+Publisher versions
 
 Component discovery
 
@@ -3105,7 +3105,7 @@ spec:
 
 ---
 
-# 150. Invalid Example — Provider-Centric Manifest
+# 150. Invalid Example — Publisher-Centric Manifest
 
 Avoid:
 
@@ -3119,7 +3119,7 @@ plugins:
 Why:
 
 ```text
-provider selection leaks into consumer intent
+publisher selection leaks into consumer intent
 
 duplicate workflows become likely
 
@@ -3227,7 +3227,7 @@ The manifest should follow:
 ```text
 intent over implementation
 
-Capability over Provider
+Capability over Publisher
 
 composition over inheritance
 
@@ -3253,9 +3253,9 @@ Avoid:
 ```text
 large plugin arrays
 
-provider-specific Profiles
+publisher-specific Profiles
 
-provider-specific Presets
+publisher-specific Presets
 
 manual package version pins
 
@@ -3339,7 +3339,7 @@ remote manifest imports
 
 arbitrary Package installation
 
-arbitrary Provider enable lists
+arbitrary Publisher enable lists
 
 inline Policy definitions
 
@@ -3389,7 +3389,7 @@ The Project Manifest must preserve:
 ```text
 1. It expresses desired semantic intent.
 
-2. It remains provider-independent by default.
+2. It remains publisher-independent by default.
 
 3. It does not contain resolved Package versions.
 
@@ -3480,7 +3480,7 @@ spec:
 The format is successful when a user can understand a Project without knowing:
 
 ```text
-which Provider wins
+which Publisher wins
 
 which Package version is installed
 
@@ -3495,4 +3495,4 @@ while the Resolver still has enough semantic information to determine all of tho
 
 # 165. Manifest in One Sentence
 
-> **`agent-plugins.yaml` is a concise, declarative description of a project's role, reusable capability composition, governance policy, runtime target, and explicit exceptions—leaving concrete provider, component, package, and version selection to deterministic resolution and the lockfile.**
+> **`agent-plugins.yaml` is a concise, declarative description of a project's role, reusable capability composition, governance policy, runtime target, and explicit exceptions—leaving concrete publisher, component, package, and version selection to deterministic resolution and the lockfile.**

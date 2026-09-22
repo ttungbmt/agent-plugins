@@ -57,7 +57,7 @@ trust rules
 
 ownership rules
 
-Provider restrictions
+Publisher restrictions
 
 Package restrictions
 
@@ -225,7 +225,7 @@ enable security review
 Thay vào đó, Policy có thể nói:
 
 ```text
-TDD implementations from untrusted Providers are denied
+TDD implementations from untrusted Publishers are denied
 ```
 
 Sự phân biệt là:
@@ -285,7 +285,7 @@ Resolver áp dụng toàn bộ các quy tắc thứ tự ưu tiên.
 Một Policy Evaluator có thể xem xét metadata đã được chuẩn hóa như:
 
 ```text
-Provider
+Publisher
 
 Package
 
@@ -516,9 +516,9 @@ less specific rule
 Ví dụ:
 
 ```text
-all community providers → deny
+all community publishers → deny
 
-specific provider X → allow
+specific publisher X → allow
 ```
 
 Tuy nhiên, ngữ nghĩa ngoại lệ có thể trở nên nguy hiểm.
@@ -707,7 +707,7 @@ Policy có thể quyết định cách xử lý từng mức.
 
 # 28. Trust cơ sở
 
-Metadata của Catalog Provider hoặc Package có thể định nghĩa trust cơ sở (baseline trust).
+Metadata của Catalog Publisher hoặc Package có thể định nghĩa trust cơ sở (baseline trust).
 
 Ví dụ:
 
@@ -738,7 +738,7 @@ Component trust
 >
 Package trust
 >
-Provider baseline trust
+Publisher baseline trust
 ```
 
 Chỉ metadata chuẩn (canonical) tường minh mới nên tinh chỉnh trust.
@@ -762,7 +762,7 @@ Component annotation
 
 Package annotation
 
-Provider baseline
+Publisher baseline
 ```
 
 Policy không viết lại provenance; nó đánh giá phân loại kết quả.
@@ -871,39 +871,39 @@ spec:
 
 ---
 
-# 36. Provider rule
+# 36. Publisher rule
 
-Policy có thể hạn chế trực tiếp các Provider.
+Policy có thể hạn chế trực tiếp các Publisher.
 
 Ví dụ:
 
 ```yaml
-providers:
+publishers:
   deny:
-    - provider-x
+    - publisher-x
 ```
 
 Điều này cho phép governance độc lập với lớp trust.
 
 ---
 
-# 37. Allowlist của Provider
+# 37. Allowlist của Publisher
 
 Một Policy có tính hạn chế cao có thể sử dụng:
 
 ```yaml
-providers:
+publishers:
   allow:
     - agent-plugins
     - anthropic
     - superpowers
 ```
 
-Nếu `allow` tồn tại, các Provider nằm ngoài allowlist sẽ bị deny.
+Nếu `allow` tồn tại, các Publisher nằm ngoài allowlist sẽ bị deny.
 
 ---
 
-# 38. Khuyến nghị về Provider rule
+# 38. Khuyến nghị về Publisher rule
 
 Tránh cấu hình cả hai danh sách lớn:
 
@@ -922,7 +922,7 @@ một cách không cần thiết.
 Nếu cả hai đều được hỗ trợ, ngữ nghĩa khuyến nghị là:
 
 ```text
-Provider must be in allowlist if allowlist exists
+Publisher must be in allowlist if allowlist exists
 AND
 must not be in denylist
 ```
@@ -944,10 +944,10 @@ Ví dụ:
 ```yaml
 packages:
   deny:
-    - provider-x/unsafe-tools
+    - publisher-x/unsafe-tools
 ```
 
-Điều này cụ thể hơn so với các rule ở cấp Provider.
+Điều này cụ thể hơn so với các rule ở cấp Publisher.
 
 ---
 
@@ -960,7 +960,7 @@ Ví dụ:
 ```yaml
 components:
   deny:
-    - provider/package#hook:post-tool-use
+    - publisher/package#hook:post-tool-use
 ```
 
 Điều này mang lại governance chính xác mà không cần chặn toàn bộ một Package.
@@ -1256,7 +1256,7 @@ prefer official
 
 prefer curated
 
-prefer certain Providers
+prefer certain Publishers
 ```
 
 Preference phải luôn tách biệt với việc cấm.
@@ -1282,13 +1282,13 @@ Nó không tự động deny các mức không có trong danh sách, trừ khi t
 
 ---
 
-# 56. Preference về Provider
+# 56. Preference về Publisher
 
 Ví dụ:
 
 ```yaml
 preferences:
-  providers:
+  publishers:
     - agent-plugins
     - anthropic
 ```
@@ -1409,7 +1409,7 @@ Thứ tự được khuyến nghị cho mỗi Candidate:
 ```text
 1. Availability
 
-2. Explicit Provider/Package/Component deny
+2. Explicit Publisher/Package/Component deny
 
 3. Trust eligibility
 
@@ -1637,7 +1637,7 @@ Ví dụ:
 POLICY_DENIED
 
 Component:
-provider-x/package-x#mcp:external-system
+publisher-x/package-x#mcp:external-system
 
 Policy:
 strict
@@ -1656,7 +1656,7 @@ Ví dụ:
 POLICY_APPROVAL_REQUIRED
 
 Component:
-provider-x/package-x#hook:post-tool-use
+publisher-x/package-x#hook:post-tool-use
 
 Policy:
 default
@@ -1707,7 +1707,7 @@ spec:
       - official
       - curated
 
-  providers:
+  publishers:
     deny: []
 
   packages:
@@ -1852,7 +1852,7 @@ spec:
 Một Enterprise Policy trong tương lai có thể bao gồm:
 
 ```text
-Provider allowlist
+Publisher allowlist
 
 Package allowlist
 
@@ -1927,7 +1927,7 @@ external network access
 → review
 ```
 
-Khi có thể, điều này nên sử dụng metadata mang tính dữ kiện đã được chuẩn hóa thay vì các rule đặc thù cho Provider.
+Khi có thể, điều này nên sử dụng metadata mang tính dữ kiện đã được chuẩn hóa thay vì các rule đặc thù cho Publisher.
 
 ---
 
@@ -2139,25 +2139,25 @@ Khi đó Policy có thể từ chối hoặc yêu cầu review trước khi cài
 
 ---
 
-# 93. Rủi ro ở cấp Provider
+# 93. Rủi ro ở cấp Publisher
 
-Chặn toàn bộ một Provider là phù hợp khi:
+Chặn toàn bộ một Publisher là phù hợp khi:
 
 ```text
 organization forbids source
 
-Provider trust is revoked
+Publisher trust is revoked
 
 supply-chain incident occurs
 ```
 
-Không lặp lại các deny rule cho từng Component nếu việc deny ở cấp Provider đã thể hiện đúng ràng buộc thực sự.
+Không lặp lại các deny rule cho từng Component nếu việc deny ở cấp Publisher đã thể hiện đúng ràng buộc thực sự.
 
 ---
 
 # 94. Thu hồi trust
 
-Nếu một Provider thay đổi từ:
+Nếu một Publisher thay đổi từ:
 
 ```text
 curated
@@ -2248,7 +2248,7 @@ Rule nên so khớp trên các field canonical đã được chuẩn hóa.
 Ví dụ:
 
 ```text
-Provider ID
+Publisher ID
 
 Package ref
 
@@ -2381,7 +2381,7 @@ valid trust values
 
 valid outcomes
 
-valid Provider refs
+valid Publisher refs
 
 valid Package refs
 
@@ -2394,12 +2394,12 @@ no duplicate references
 
 ---
 
-# 107. Provider không xác định trong Policy
+# 107. Publisher không xác định trong Policy
 
 Ví dụ:
 
 ```yaml
-providers:
+publishers:
   deny:
     - does-not-exist
 ```
@@ -2407,7 +2407,7 @@ providers:
 Khuyến nghị:
 
 ```text
-UNKNOWN_PROVIDER
+UNKNOWN_PUBLISHER
 ```
 
 trừ khi Policy chủ ý hỗ trợ các tham chiếu tương lai/không khả dụng.
@@ -2438,7 +2438,7 @@ UNKNOWN_COMPONENT
 
 đối với các rule Component chính xác không resolve được.
 
-Điều này phát hiện Policy bị stale sau khi Provider cập nhật.
+Điều này phát hiện Policy bị stale sau khi Publisher cập nhật.
 
 ---
 
@@ -2468,7 +2468,7 @@ prompt
 Ví dụ:
 
 ```yaml
-providers:
+publishers:
   allow:
     - superpowers
 
@@ -2497,7 +2497,7 @@ allowed trust:
 - curated
 ```
 
-nhưng rule riêng cho Provider lại cho phép tường minh một Provider `community`, V1 không nên dùng điều này như một ngoại lệ.
+nhưng rule riêng cho Publisher lại cho phép tường minh một Publisher `community`, V1 không nên dùng điều này như một ngoại lệ.
 
 Ràng buộc cứng về trust vẫn có hiệu lực.
 
@@ -2509,7 +2509,7 @@ Nếu sau này cần ngoại lệ, hãy định nghĩa chúng một cách tườ
 
 Trust policy thường nên dùng các trust level được cho phép một cách tường minh.
 
-Đối với các rule chính xác theo Provider/Package/Component:
+Đối với các rule chính xác theo Publisher/Package/Component:
 
 ```text
 not mentioned
@@ -2520,18 +2520,18 @@ trừ khi có một allowlist tường minh.
 
 ---
 
-# 114. Ngữ nghĩa của Provider allowlist
+# 114. Ngữ nghĩa của Publisher allowlist
 
 Nếu:
 
 ```yaml
-providers:
+publishers:
   allow:
     - anthropic
     - superpowers
 ```
 
-thì mọi Provider khác đều bị từ chối.
+thì mọi Publisher khác đều bị từ chối.
 
 Điều này nên được thể hiện rõ ràng trong schema/tài liệu.
 
@@ -2542,14 +2542,14 @@ thì mọi Provider khác đều bị từ chối.
 Một khai báo tường minh:
 
 ```yaml
-providers:
+publishers:
   allow: []
 ```
 
 sẽ có nghĩa là:
 
 ```text
-allow no Providers
+allow no Publishers
 ```
 
 điều này có lẽ không phải là chủ ý.
@@ -2581,8 +2581,8 @@ Các section bị thiếu nên có giá trị mặc định trung lập được
 Ví dụ:
 
 ```text
-providers missing
-→ no Provider-specific restriction
+publishers missing
+→ no Publisher-specific restriction
 
 packages missing
 → no Package-specific restriction
@@ -2700,7 +2700,7 @@ Ví dụ:
 
 ```text
 Candidate:
-Provider X / TDD
+Publisher X / TDD
 
 Policy:
 strict
@@ -2789,7 +2789,7 @@ Các index được generate về sau có thể hỗ trợ điều này.
 
 # 128. Phát hiện thay đổi nhạy cảm về bảo mật
 
-Khi một bản cập nhật Provider đưa vào:
+Khi một bản cập nhật Publisher đưa vào:
 
 ```text
 new Hook
@@ -3047,7 +3047,7 @@ Hữu ích cho môi trường công việc hoặc môi trường được kiểm
 Tương lai:
 
 ```text
-approved Provider allowlist
+approved Publisher allowlist
 
 no community
 
@@ -3131,13 +3131,13 @@ fail until explicit approval mechanism exists
 
 ---
 
-# 146. Ví dụ — Từ chối Provider
+# 146. Ví dụ — Từ chối Publisher
 
 Candidate:
 
 ```text
-Provider:
-provider-x
+Publisher:
+publisher-x
 
 Trust:
 curated
@@ -3146,7 +3146,7 @@ curated
 Policy:
 
 ```text
-provider-x → deny
+publisher-x → deny
 ```
 
 Kết quả:
@@ -3155,7 +3155,7 @@ Kết quả:
 Candidate rejected
 ```
 
-Việc từ chối theo Provider cụ thể mạnh hơn eligibility theo trust.
+Việc từ chối theo Publisher cụ thể mạnh hơn eligibility theo trust.
 
 ---
 
@@ -3164,7 +3164,7 @@ Việc từ chối theo Provider cụ thể mạnh hơn eligibility theo trust.
 Lock hiện có:
 
 ```text
-TDD → Community Provider
+TDD → Community Publisher
 ```
 
 Policy cũ:
@@ -3230,7 +3230,7 @@ TDD → Candidate X
 Policy:
 
 ```text
-Candidate X Provider denied
+Candidate X Publisher denied
 ```
 
 Kết quả:
@@ -3309,7 +3309,7 @@ Các nhóm được khuyến nghị:
 ```text
 trust
 
-providers
+publishers
 
 packages
 
@@ -3347,7 +3347,7 @@ spec:
       - official
       - curated
 
-  providers:
+  publishers:
     allow: []
     deny: []
 
@@ -3377,7 +3377,7 @@ spec:
       - official
       - curated
 
-    providers: []
+    publishers: []
 ```
 
 Schema V1 cuối cùng có thể lược bỏ các field không dùng đến.
@@ -3391,7 +3391,7 @@ Schema V1 cuối cùng có thể lược bỏ các field không dùng đến.
 ```text
 trust.allowed
 
-providers.deny
+publishers.deny
 
 packages.deny
 
@@ -3405,7 +3405,7 @@ lifecycle.deprecated
 
 preferences.trust
 
-preferences.providers
+preferences.publishers
 ```
 
 Bổ sung các security fact phong phú hơn khi metadata thực tế của Component hỗ trợ chúng.
@@ -3459,7 +3459,7 @@ evaluate.ts
 
 trust.ts
 
-providers.ts
+publishers.ts
 
 components.ts
 
@@ -3548,7 +3548,7 @@ allow
 
 preference:
 trustRank: 2
-providerRank: 1
+publisherRank: 1
 ```
 
 Resolver kết hợp chúng một cách deterministic.
@@ -3579,7 +3579,7 @@ Về mặt khái niệm:
 PolicyPreference
 
 trustRank
-providerRank
+publisherRank
 ```
 
 Resolver có thể so sánh chúng theo thứ tự từ điển (lexicographic) theo một thứ tự đã được tài liệu hóa.
@@ -3641,7 +3641,7 @@ Ví dụ:
 
 ```text
 Candidate:
-provider/package#mcp:github
+publisher/package#mcp:github
 
 Policy:
 default
@@ -3670,7 +3670,7 @@ POLICY_DENIED
 
 POLICY_APPROVAL_REQUIRED
 
-POLICY_PROVIDER_DENIED
+POLICY_PUBLISHER_DENIED
 
 POLICY_PACKAGE_DENIED
 
@@ -3718,7 +3718,7 @@ khi phù hợp.
 ```text
 Candidate denied:
 
-provider/package#mcp:external
+publisher/package#mcp:external
 
 Required by:
 security-review-agent
@@ -3744,7 +3744,7 @@ Các cảnh báo có thể có:
 ```text
 Policy allows no trust levels
 
-Provider allowlist makes all current Capabilities unresolvable
+Publisher allowlist makes all current Capabilities unresolvable
 
 Preference references denied trust level
 
@@ -3782,7 +3782,7 @@ allowed trust
 
 denied trust
 
-Provider denial
+Publisher denial
 
 Package denial
 
@@ -3926,7 +3926,7 @@ strict
 
 ---
 
-# 180. Anti-pattern của Policy — Provider preference đóng vai Capability mapping
+# 180. Anti-pattern của Policy — Publisher preference đóng vai Capability mapping
 
 Tránh hardcode:
 
@@ -3944,7 +3944,7 @@ Catalog priority
 
 hoặc override tường minh của Project.
 
-Policy có thể ưu tiên các nhóm Provider, nhưng không nên trở thành một tầng semantic mapping khác.
+Policy có thể ưu tiên các nhóm Publisher, nhưng không nên trở thành một tầng semantic mapping khác.
 
 ---
 
@@ -3953,7 +3953,7 @@ Policy có thể ưu tiên các nhóm Provider, nhưng không nên trở thành 
 Tránh để nhiều Project cùng tự định nghĩa:
 
 ```text
-allow this Provider
+allow this Publisher
 deny this hook
 ```
 
@@ -4106,7 +4106,7 @@ named Policies
 
 allowed trust levels
 
-Provider denial
+Publisher denial
 
 Package denial
 
@@ -4120,7 +4120,7 @@ deprecated lifecycle rule
 
 trust preference
 
-Provider preference
+Publisher preference
 
 structured Policy decisions
 
@@ -4168,7 +4168,7 @@ strict can reject community Candidate
 
 default can allow community Candidate
 
-Policy can reject a specific Provider
+Policy can reject a specific Publisher
 
 Policy can reject a specific Component
 
@@ -4198,7 +4198,7 @@ Với mỗi Candidate:
 ```text
 Candidate
    ↓
-Provider / Package / Component explicit restrictions
+Publisher / Package / Component explicit restrictions
    ↓
 Trust
    ↓

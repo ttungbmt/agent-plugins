@@ -124,7 +124,7 @@ authoritative source wins
 Ví dụ:
 
 ```text
-catalog/providers/
+catalog/publishers/
 catalog/packages/
 catalog/capabilities/
 
@@ -168,24 +168,24 @@ Các trách nhiệm này phải luôn tách biệt.
 
 ---
 
-# 5. Provider Metadata canonical
+# 5. Publisher Metadata canonical
 
 Source of truth:
 
 ```text
-catalog/providers/
+catalog/publishers/
 ```
 
 Ví dụ:
 
 ```text
-catalog/providers/superpowers.yaml
+catalog/publishers/superpowers.yaml
 ```
 
-File này sở hữu Provider metadata do dự án duy trì như:
+File này sở hữu Publisher metadata do dự án duy trì như:
 
 ```text
-canonical provider ID
+canonical publisher ID
 display name
 ownership classification
 default trust classification
@@ -216,7 +216,7 @@ Nơi này sở hữu metadata cấp Package đã được curate như:
 
 ```text
 canonical package ID
-provider relationship
+publisher relationship
 source location
 supported discovery strategy
 version constraints
@@ -361,7 +361,7 @@ Policy sở hữu các quy tắc khai báo (declarative) cho:
 
 ```text
 trust
-provider restrictions
+publisher restrictions
 security-sensitive components
 review requirements
 experimental components
@@ -487,7 +487,7 @@ packages/schemas/
 Schema định nghĩa cấu trúc hợp lệ về mặt máy cho:
 
 ```text
-Provider
+Publisher
 Package
 Capability
 Preset
@@ -542,7 +542,7 @@ selected
 Ví dụ:
 
 ```text
-Provider contains 300 Components
+Publisher contains 300 Components
 
 300 discovered
 
@@ -666,7 +666,7 @@ Ví dụ:
 nên được ưu tiên suy ra từ:
 
 ```text
-catalog/providers/
+catalog/publishers/
 catalog/packages/
 plugins/native/
 catalog.lock
@@ -719,7 +719,7 @@ File này là authoritative cho **baseline upstream đã được chọn và ki�
 Nó sở hữu các thông tin pin cụ thể như:
 
 ```text
-Provider/package version
+Publisher/package version
 
 commit SHA
 
@@ -807,7 +807,7 @@ overrides
 Consumer manifest thông thường không nên sao chép lại:
 
 ```text
-provider repositories
+publisher repositories
 component inventories
 resolved package versions
 generated target paths
@@ -1219,7 +1219,7 @@ Authoritative Catalog Mapping
 # 47. Luồng dữ liệu đầy đủ
 
 ```text
-                    External Provider
+                    External Publisher
                            │
                            ▼
                     Source Adapter
@@ -1268,7 +1268,7 @@ artifacts                   │
 
 | Dữ liệu | Source of Truth | Suy ra từ |
 |---|---|---|
-| Định danh Provider | `catalog/providers/` | Curation của maintainer |
+| Định danh Publisher | `catalog/publishers/` | Curation của maintainer |
 | Định danh Package | `catalog/packages/` | Curation của maintainer |
 | Định danh Capability | `catalog/capabilities/` | Curation của maintainer |
 | Cardinality của Capability | `catalog/capabilities/` | Quyết định của maintainer |
@@ -1589,7 +1589,7 @@ hoặc lockfile của consumer project.
 
 # 59. Hướng cập nhật
 
-Một lần cập nhật provider nên đi theo luồng:
+Một lần cập nhật publisher nên đi theo luồng:
 
 ```text
 Upstream Change
@@ -1681,7 +1681,7 @@ Resolution Diagnostics
 
 Target adapter tiêu thụ các kết quả đó.
 
-Chúng không được tự chọn các provider thay thế một cách độc lập.
+Chúng không được tự chọn các publisher thay thế một cách độc lập.
 
 ---
 
@@ -1730,9 +1730,9 @@ Mapping đó là thứ được curate.
 
 ---
 
-# 65. Thứ tự ưu tiên của Provider Metadata
+# 65. Thứ tự ưu tiên của Publisher Metadata
 
-Khi upstream metadata đã chuẩn hóa và Provider metadata đã curate chồng lấn nhau:
+Khi upstream metadata đã chuẩn hóa và Publisher metadata đã curate chồng lấn nhau:
 
 ```text
 curated metadata
@@ -1803,8 +1803,8 @@ tùy theo ngữ nghĩa.
 Ví dụ:
 
 ```text
-Provider baseline classification
-→ catalog/providers/
+Publisher baseline classification
+→ catalog/publishers/
 
 Allowed trust levels
 → policies/
@@ -1930,7 +1930,7 @@ Preference đặc thù theo project thuộc về:
 Project override
 ```
 
-Preference về provider ở cấp policy thuộc về:
+Preference về publisher ở cấp policy thuộc về:
 
 ```text
 Policy
@@ -2306,7 +2306,7 @@ Ví dụ:
 ```text
 Policy cannot redefine Capability ID.
 
-Project override cannot rewrite Provider provenance.
+Project override cannot rewrite Publisher provenance.
 
 Target adapter cannot override selected implementation.
 ```
@@ -2324,7 +2324,7 @@ Ví dụ:
 ```text
 edit capability mapping
 
-add Provider
+add Publisher
 
 change Preset composition
 
@@ -2391,12 +2391,12 @@ Core domain code không nên trực tiếp thay đổi runtime file.
 
 # 93. Source-of-Truth theo từng thao tác
 
-## Thêm Provider
+## Thêm Publisher
 
 Chỉnh sửa:
 
 ```text
-catalog/providers/
+catalog/publishers/
 catalog/packages/
 ```
 
@@ -2466,7 +2466,7 @@ và các Package/Capability mapping canonical tương ứng.
 
 ---
 
-## Cập nhật phiên bản Provider
+## Cập nhật phiên bản Publisher
 
 Không viết lại định danh ngữ nghĩa trong catalog.
 
@@ -2586,7 +2586,7 @@ có thể lặp lại:
 ```text
 Capability ID
 Preset names
-Provider names
+Publisher names
 ```
 
 Sự trùng lặp này là chấp nhận được vì nó là dữ liệu được suy ra.
@@ -2598,7 +2598,7 @@ Sự trùng lặp này là chấp nhận được vì nó là dữ liệu đư�
 Provenance của upstream được tổng hợp từ:
 
 ```text
-canonical Provider/Package identity
+canonical Publisher/Package identity
 +
 discovered upstream facts
 +
@@ -2768,7 +2768,7 @@ Nếu các câu hỏi này không có câu trả lời rõ ràng, quyền sở h
 
 | Câu hỏi | Vị trí canonical |
 |---|---|
-| Provider này là ai? | `catalog/providers/` |
+| Publisher này là ai? | `catalog/publishers/` |
 | Package nào tồn tại? | `catalog/packages/` |
 | Capability này có nghĩa là gì? | `catalog/capabilities/` |
 | Component nào implement nó? | Mapping trong `catalog/capabilities/` |
@@ -2809,7 +2809,7 @@ Dự án phải bảo toàn các bất biến (invariant) sau:
 
 8. Capability semantics live in the Capability Catalog.
 
-9. Provider/package source identity remains separate from capability meaning.
+9. Publisher/package source identity remains separate from capability meaning.
 
 10. Target-specific artifacts are derived from resolved state.
 
@@ -2862,7 +2862,7 @@ Curated Intent
  Managed Runtime
 ```
 
-Các provider bên ngoài đi vào thông qua:
+Các publisher bên ngoài đi vào thông qua:
 
 ```text
 Upstream

@@ -1191,7 +1191,7 @@ Community package ecosystems may contain similar names.
 The CLI SHOULD display:
 
 ```text
-provider
+publisher
 source
 trust level
 ```
@@ -1760,7 +1760,7 @@ A generated artifact SHOULD be traceable back to:
 ```text
 canonical component
 package
-provider
+publisher
 source
 revision
 adapter

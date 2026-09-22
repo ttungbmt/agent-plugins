@@ -189,7 +189,7 @@ Create canonical domain types.
 - [ ] `Package`
 - [ ] `Component`
 - [ ] `Capability`
-- [ ] `Provider`
+- [ ] `Publisher`
 - [ ] `Source`
 - [ ] `Preset`
 - [ ] `Profile`
@@ -364,7 +364,7 @@ Tasks:
 - [ ] Dependency cycles
 - [ ] Profile inheritance cycles
 - [ ] Preset composition cycles
-- [ ] Invalid capability providers
+- [ ] Invalid capability publishers
 
 ## P1 — Validation Modes
 
@@ -387,7 +387,7 @@ Catalog
 ├── presets
 ├── profiles
 ├── policies
-└── providers
+└── publishers
 ```
 
 Tasks:
@@ -396,7 +396,7 @@ Tasks:
 - [ ] Index by canonical ID
 - [ ] Index by component type
 - [ ] Index by capability
-- [ ] Index by provider
+- [ ] Index by publisher
 - [ ] Stable deterministic ordering
 
 ## P1 — Catalog Queries
@@ -406,7 +406,7 @@ Tasks:
 - [ ] `list()`
 - [ ] `search()`
 - [ ] `findByCapability()`
-- [ ] `findByProvider()`
+- [ ] `findByPublisher()`
 
 ## P1 — Catalog Tests
 
@@ -1336,20 +1336,20 @@ CLI:
 
 ---
 
-# 36. Provider Model
+# 36. Publisher Model
 
 ## P2
 
-- [ ] Provider ID
-- [ ] Provider metadata
-- [ ] Provider trust
-- [ ] Provider priority
+- [ ] Publisher ID
+- [ ] Publisher metadata
+- [ ] Publisher trust
+- [ ] Publisher priority
 
-## P3 — Capability Provider Selection
+## P3 — Capability Publisher Selection
 
-- [ ] Multiple providers per capability
-- [ ] Provider preference
-- [ ] Provider override
+- [ ] Multiple publishers per capability
+- [ ] Publisher preference
+- [ ] Publisher override
 - [ ] Deterministic selection
 - [ ] Policy constraints
 

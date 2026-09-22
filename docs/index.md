@@ -72,7 +72,7 @@ Todo
    Defines the canonical domain model:
 
    ```text
-   Provider
+   Publisher
       ↓
    Package
       ↓
@@ -169,7 +169,7 @@ Initial ADRs:
 
 ```text
 0001-capability-based-resolution.md
-0002-provider-package-component.md
+0002-publisher-package-component.md
 0003-composition-over-inheritance.md
 0004-no-addon-entity.md
 0005-source-target-adapters.md
@@ -179,6 +179,7 @@ Initial ADRs:
 Accepted ADRs:
 
 - [`0010-claude-code-materialization.md`](./decisions/adr/0010-claude-code-materialization.md) — V1 materializes into Claude Code through a per-project generated local marketplace; ecosystems installed whole, collections filtered to standalone components.
+- [`0011-publisher-terminology.md`](./decisions/adr/0011-publisher-terminology.md) — the `Provider` entity becomes `Publisher` and the word "provider" is retired; fetch coordinates stay on `Package.spec.source` and the access mechanism stays an enum, not an entity.
 
 ADRs are written alongside the main documentation rather than at the end of the documentation process.
 

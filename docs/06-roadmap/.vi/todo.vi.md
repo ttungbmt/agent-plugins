@@ -189,7 +189,7 @@ Tạo các domain type chuẩn tắc.
 - [ ] `Package`
 - [ ] `Component`
 - [ ] `Capability`
-- [ ] `Provider`
+- [ ] `Publisher`
 - [ ] `Source`
 - [ ] `Preset`
 - [ ] `Profile`
@@ -364,7 +364,7 @@ Công việc:
 - [ ] Vòng lặp dependency
 - [ ] Vòng lặp kế thừa Profile
 - [ ] Vòng lặp compose Preset
-- [ ] Capability provider không hợp lệ
+- [ ] Capability publisher không hợp lệ
 
 ## P1 — Các chế độ kiểm tra
 
@@ -387,7 +387,7 @@ Catalog
 ├── presets
 ├── profiles
 ├── policies
-└── providers
+└── publishers
 ```
 
 Công việc:
@@ -396,7 +396,7 @@ Công việc:
 - [ ] Đánh chỉ mục theo canonical ID
 - [ ] Đánh chỉ mục theo kiểu component
 - [ ] Đánh chỉ mục theo capability
-- [ ] Đánh chỉ mục theo provider
+- [ ] Đánh chỉ mục theo publisher
 - [ ] Thứ tự xác định ổn định
 
 ## P1 — Truy vấn catalog
@@ -406,7 +406,7 @@ Công việc:
 - [ ] `list()`
 - [ ] `search()`
 - [ ] `findByCapability()`
-- [ ] `findByProvider()`
+- [ ] `findByPublisher()`
 
 ## P1 — Test catalog
 
@@ -1336,20 +1336,20 @@ CLI:
 
 ---
 
-# 36. Mô hình Provider
+# 36. Mô hình Publisher
 
 ## P2
 
-- [ ] Provider ID
-- [ ] Metadata của Provider
-- [ ] Mức tin cậy của Provider
-- [ ] Mức ưu tiên của Provider
+- [ ] Publisher ID
+- [ ] Metadata của Publisher
+- [ ] Mức tin cậy của Publisher
+- [ ] Mức ưu tiên của Publisher
 
-## P3 — Chọn Capability Provider
+## P3 — Chọn Capability Publisher
 
-- [ ] Nhiều provider cho mỗi capability
-- [ ] Provider ưu tiên
-- [ ] Ghi đè provider
+- [ ] Nhiều publisher cho mỗi capability
+- [ ] Publisher ưu tiên
+- [ ] Ghi đè publisher
 - [ ] Lựa chọn xác định
 - [ ] Ràng buộc policy
 

@@ -71,7 +71,7 @@ Capabilities
   ↓
 Resolution
   ↓
-Providers
+Publishers
   ↓
 Runtime-specific installation
 ```
@@ -109,7 +109,7 @@ Its primary responsibility is to answer:
 The project is built around a capability-first model.
 
 ```text
-Provider
+Publisher
    ↓
 Package
    ↓
@@ -128,7 +128,7 @@ Lockfile
 Target Runtime
 ```
 
-Providers supply implementations.
+Publishers supply implementations.
 
 Users operate at a higher abstraction level.
 
@@ -194,7 +194,7 @@ Users should generally request:
 engineering.testing.tdd
 ```
 
-rather than manually choosing and configuring every provider.
+rather than manually choosing and configuring every publisher.
 
 ---
 
@@ -210,7 +210,7 @@ The project should favor:
 curation over accumulation
 ```
 
-A high-quality profile may use components from many providers without installing everything those providers offer.
+A high-quality profile may use components from many publishers without installing everything those publishers offer.
 
 For example:
 
@@ -227,14 +227,14 @@ ECC
 Anthropic
 → official integrations
 
-Community providers
+Community publishers
 → specialized capabilities
 
 Native plugins
 → project-owned capabilities
 ```
 
-Each provider should be used where it provides the strongest fit.
+Each publisher should be used where it provides the strongest fit.
 
 ---
 
@@ -259,7 +259,7 @@ the preferred result may be:
 implemented by
 8 components
 from
-4 providers
+4 publishers
 ```
 
 This reduces:
@@ -385,9 +385,9 @@ large monolithic bundles
 
 ---
 
-# 11. Provider Independence
+# 11. Publisher Independence
 
-User configuration should survive provider changes.
+User configuration should survive publisher changes.
 
 For example, if today:
 
@@ -400,7 +400,7 @@ but a better implementation becomes available later:
 
 ```text
 engineering.testing.tdd
-→ Provider X
+→ Publisher X
 ```
 
 a project should not need to rewrite its intent.
@@ -439,7 +439,7 @@ Resolution should consider:
 
 ```text
 capability requirements
-provider preference
+publisher preference
 implementation priority
 trust level
 target compatibility
@@ -519,7 +519,7 @@ reconstructs the same environment.
 
 Reproducibility should include:
 
-- provider,
+- publisher,
 - package,
 - component,
 - version,
@@ -531,7 +531,7 @@ Reproducibility should include:
 
 # 15. Safe and Controlled Updates
 
-Upstream providers change continuously.
+Upstream publishers change continuously.
 
 Updates should therefore be intentional.
 
@@ -544,7 +544,7 @@ ap update --check
 followed by:
 
 ```text
-Provider changed
+Publisher changed
 
 Added components
 Changed components
@@ -591,14 +591,14 @@ A personal environment might allow:
 
 ```text
 community components
-experimental providers
+experimental publishers
 external hooks
 ```
 
 while an enterprise environment might require:
 
 ```text
-approved providers only
+approved publishers only
 pinned versions
 restricted execution
 no external hooks
@@ -644,7 +644,7 @@ Each runtime should receive artifacts designed for its native model rather than 
 The system should support both:
 
 ```text
-External providers
+External publishers
 ```
 
 and:
@@ -653,7 +653,7 @@ and:
 Native first-party capabilities
 ```
 
-External providers may include established open-source or official ecosystems.
+External publishers may include established open-source or official ecosystems.
 
 Native capabilities should exist where this project has genuine ownership or specialized requirements.
 
@@ -691,7 +691,7 @@ The capability layer should remain comparatively stable.
 For example:
 
 ```text
-Provider implementation changes
+Publisher implementation changes
          ↓
 
 engineering.testing.tdd
@@ -712,7 +712,7 @@ For example:
 
 ```text
 Organization Policy
-├── approved providers
+├── approved publishers
 ├── required security review
 ├── pinned workflow
 └── restricted hooks
@@ -802,7 +802,7 @@ The complexity should exist inside the resolver rather than being pushed onto th
 
 Maintainers should be able to:
 
-- add a provider,
+- add a publisher,
 - discover its components,
 - map components to capabilities,
 - define preferred implementations,
@@ -821,7 +821,7 @@ The architecture should minimize manual synchronization between multiple copies 
 The long-term ecosystem can be visualized as:
 
 ```text
-                         Providers
+                         Publishers
                             │
          ┌──────────────────┼──────────────────┐
          │                  │                  │
@@ -928,7 +928,7 @@ Potential capabilities:
 capability recommendations
 compatibility analysis
 context optimization
-provider health
+publisher health
 update impact analysis
 security scoring
 ```
@@ -994,7 +994,7 @@ composition over bundles
 
 curation over accumulation
 
-stable semantics over provider-specific configuration
+stable semantics over publisher-specific configuration
 
 determinism over implicit behavior
 

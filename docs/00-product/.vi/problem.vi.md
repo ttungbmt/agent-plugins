@@ -169,9 +169,9 @@ Tương tự:
 
 ```text
 Code Review
-├── Provider A
-├── Provider B
-└── Provider C
+├── Publisher A
+├── Publisher B
+└── Publisher C
 ```
 
 hoặc:
@@ -363,7 +363,7 @@ What the current project requires
 
 ---
 
-# 8. Các upstream provider thay đổi độc lập
+# 8. Các upstream publisher thay đổi độc lập
 
 Các community repository liên tục thay đổi.
 
@@ -467,7 +467,7 @@ Personal environment
 → allow community plugins
 
 Company environment
-→ allow curated providers only
+→ allow curated publishers only
 
 Enterprise environment
 → forbid executable hooks from external sources
@@ -477,9 +477,9 @@ Các hệ thống cài đặt coi mọi plugin như nhau sẽ rất khó biểu 
 
 ---
 
-# 12. Provider lock-in
+# 12. Publisher lock-in
 
-Cấu hình thường bị gắn trực tiếp với tên provider.
+Cấu hình thường bị gắn trực tiếp với tên publisher.
 
 Ví dụ:
 
@@ -500,7 +500,7 @@ TDD
 security review
 ```
 
-Cấu hình phụ thuộc provider tạo ra coupling không cần thiết giữa user intent và implementation.
+Cấu hình phụ thuộc publisher tạo ra coupling không cần thiết giữa user intent và implementation.
 
 ---
 
@@ -621,7 +621,7 @@ Không có một model chung để kết nối tất cả các quyết định n
 
 # 17. Chưa có vocabulary chuẩn cho capability
 
-Các provider khác nhau có thể đặt tên khác nhau cho cùng một khái niệm.
+Các publisher khác nhau có thể đặt tên khác nhau cho cùng một khái niệm.
 
 Ví dụ:
 
@@ -677,7 +677,7 @@ phải tái tạo được:
 
 ```text
 same capabilities
-same providers
+same publishers
 same packages
 same versions
 same components
@@ -696,7 +696,7 @@ Team có thể muốn chuẩn hóa:
 engineering workflow
 security review
 testing methodology
-approved providers
+approved publishers
 agent behavior
 ```
 
@@ -726,11 +726,11 @@ Ví dụ:
 
 ```text
 Personal
-→ allow community providers
+→ allow community publishers
 → allow experimentation
 
 Work
-→ curated providers
+→ curated publishers
 → pinned versions
 → restricted hooks
 
@@ -753,7 +753,7 @@ Thực tế đã có rất nhiều implementation tốt.
 
 Vấn đề thực sự là:
 
-> Chưa có một abstraction nhất quán để lựa chọn, compose, resolve, quản trị và tái tạo capability từ nhiều provider, project, role và agent runtime khác nhau.
+> Chưa có một abstraction nhất quán để lựa chọn, compose, resolve, quản trị và tái tạo capability từ nhiều publisher, project, role và agent runtime khác nhau.
 
 ---
 
@@ -787,7 +787,7 @@ Các giải pháp hiện tại thường chỉ giải quyết được một ho�
 
 # 24. Trải nghiệm người dùng mong muốn
 
-Người dùng không nên phải hiểu toàn bộ provider.
+Người dùng không nên phải hiểu toàn bộ publisher.
 
 Thay vì:
 
@@ -846,7 +846,7 @@ Các chi tiết còn lại phải có thể được derive.
 Một team nên có khả năng định nghĩa:
 
 ```text
-approved providers
+approved publishers
 preferred implementations
 required workflows
 security policies
@@ -859,7 +859,7 @@ mà không buộc từng project phải lặp lại các quyết định đó.
 
 # 27. Trải nghiệm maintenance mong muốn
 
-Khi upstream provider thay đổi, maintainer phải có thể hiểu tác động trước khi upgrade.
+Khi upstream publisher thay đổi, maintainer phải có thể hiểu tác động trước khi upgrade.
 
 Ví dụ:
 
@@ -978,7 +978,7 @@ thay vì tự liệt kê hàng chục plugin.
 
 ### Tránh capability duplication
 
-Khi provider bị overlap, chỉ implementation phù hợp được active.
+Khi publisher bị overlap, chỉ implementation phù hợp được active.
 
 ### Tái tạo environment
 
@@ -1002,7 +1002,7 @@ Thay đổi từ upstream có thể được review trước khi áp dụng.
 
 ### Áp dụng policy
 
-User và team có thể giới hạn trusted provider và executable behavior.
+User và team có thể giới hạn trusted publisher và executable behavior.
 
 ### Hỗ trợ nhiều runtime
 
@@ -1014,13 +1014,13 @@ Semantic configuration có thể dần được materialize sang nhiều target 
 
 > Hệ sinh thái AI agent cung cấp ngày càng nhiều plugin, skill, agent và workflow mạnh mẽ, nhưng người dùng chưa có một cách scalable để compose chúng thành các environment nhất quán.
 
-Cài đặt thủ công dẫn đến configuration duplication, capability overlap, provider coupling, context bloat, security ambiguity, update risk và khả năng reproducibility kém.
+Cài đặt thủ công dẫn đến configuration duplication, capability overlap, publisher coupling, context bloat, security ambiguity, update risk và khả năng reproducibility kém.
 
 `agent-plugins` tồn tại để giải quyết lớp nằm giữa **việc khám phá agent tooling** và **việc vận hành một agent environment nhất quán trong thực tế**.
 
 Bài toán cốt lõi vì vậy là:
 
-> **Làm thế nào để người dùng có thể khai báo các capability họ cần, compose chúng theo role và project, resolve các implementation bị overlap một cách deterministic, áp dụng trust policy, và tái tạo configuration trên nhiều agent runtime mà không bị phụ thuộc chặt vào từng plugin provider cụ thể?**
+> **Làm thế nào để người dùng có thể khai báo các capability họ cần, compose chúng theo role và project, resolve các implementation bị overlap một cách deterministic, áp dụng trust policy, và tái tạo configuration trên nhiều agent runtime mà không bị phụ thuộc chặt vào từng plugin publisher cụ thể?**
 
 ---
 

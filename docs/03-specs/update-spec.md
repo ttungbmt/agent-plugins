@@ -194,7 +194,7 @@ The Update Engine is not responsible for:
 - running package hooks;
 - choosing arbitrary newer packages outside configured constraints;
 - silently changing project configuration;
-- selecting a different Provider without resolver justification;
+- selecting a different Publisher without resolver justification;
 - automatically accepting new trust levels;
 - automatically bypassing Policy.
 
@@ -293,7 +293,7 @@ upgraded
 downgraded
 revision-changed
 source-changed
-provider-changed
+publisher-changed
 metadata-changed
 unchanged
 ```
@@ -736,16 +736,16 @@ The newly introduced dependency MUST appear in the Update Plan.
 
 ---
 
-# 32. Update and Provider Selection
+# 32. Update and Publisher Selection
 
-If multiple providers satisfy a capability, an update MUST NOT casually switch providers.
+If multiple publishers satisfy a capability, an update MUST NOT casually switch publishers.
 
-Provider changes require resolver justification.
+Publisher changes require resolver justification.
 
 Example:
 
 ```text
-provider:
+publisher:
   mattpocock
 →
   first-party
@@ -755,17 +755,17 @@ must be reported explicitly.
 
 ---
 
-# 33. Provider Change Classification
+# 33. Publisher Change Classification
 
-Provider changes SHOULD be considered higher impact than ordinary version updates.
+Publisher changes SHOULD be considered higher impact than ordinary version updates.
 
 Recommended change type:
 
 ```text
-provider-changed
+publisher-changed
 ```
 
-They SHOULD require explicit review unless project configuration intentionally allows automatic provider switching.
+They SHOULD require explicit review unless project configuration intentionally allows automatic publisher switching.
 
 ---
 
@@ -1088,7 +1088,7 @@ Before application, human-readable preview SHOULD include:
 ```text
 package changes
 source changes
-provider changes
+publisher changes
 transitive changes
 capability changes
 trust changes
@@ -1336,7 +1336,7 @@ all packages
 one package
 multiple packages
 one source
-one Provider
+one Publisher
 one Profile-derived subtree
 ```
 
@@ -1364,15 +1364,15 @@ Dependency cascades MAY affect others if required.
 
 ---
 
-# 67. Provider-Scoped Update
+# 67. Publisher-Scoped Update
 
 Future:
 
 ```bash
-agent-plugins update --provider mattpocock
+agent-plugins update --publisher mattpocock
 ```
 
-may update packages from that Provider.
+may update packages from that Publisher.
 
 This SHOULD not be part of V1 unless needed.
 
@@ -1550,7 +1550,7 @@ UPDATE_RESOLUTION_CONFLICT
 
 UPDATE_SOURCE_CHANGED
 
-UPDATE_PROVIDER_CHANGED
+UPDATE_PUBLISHER_CHANGED
 
 UPDATE_TRUST_DOWNGRADE
 
@@ -2216,7 +2216,7 @@ Recommended grouping:
 ```text
 critical security/trust changes
 
-source/provider changes
+source/publisher changes
 
 direct package changes
 
@@ -2367,16 +2367,16 @@ This prevents automatic replacement of package source identity.
 
 ---
 
-# 132. Provider Update Policy
+# 132. Publisher Update Policy
 
 Example:
 
 ```yaml
 update:
-  providerChange: require-approval
+  publisherChange: require-approval
 ```
 
-Provider switching is not treated as a routine patch.
+Publisher switching is not treated as a routine patch.
 
 ---
 
@@ -2555,7 +2555,7 @@ search ranking
 community popularity
 ```
 
-unless a future explicit provider-selection policy specifies such metadata.
+unless a future explicit publisher-selection policy specifies such metadata.
 
 ---
 
@@ -2661,7 +2661,7 @@ interface UpdateChange {
     | "downgraded"
     | "revision-changed"
     | "source-changed"
-    | "provider-changed"
+    | "publisher-changed"
 
   before?: ResolvedPackage
 
@@ -2781,7 +2781,7 @@ resolution conflict
 
 source change
 
-provider change
+publisher change
 
 trust downgrade
 
@@ -3025,7 +3025,7 @@ automatic update PR generation
 
 auto-merge
 
-provider auto-switching
+publisher auto-switching
 
 complex update policies
 

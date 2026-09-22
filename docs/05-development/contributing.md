@@ -640,7 +640,7 @@ search ranking
 must not become:
 
 ```text
-provider resolution ranking
+publisher resolution ranking
 ```
 
 without an explicit resolver specification.
@@ -2160,7 +2160,7 @@ Prefer:
 
 ```text
 Problem:
-Users cannot inspect why a provider was selected.
+Users cannot inspect why a publisher was selected.
 ```
 
 over:

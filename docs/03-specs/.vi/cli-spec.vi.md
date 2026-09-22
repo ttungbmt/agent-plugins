@@ -464,7 +464,7 @@ Tìm kiếm MAY xem xét:
 - mô tả;
 - tag;
 - capability;
-- provider;
+- publisher;
 - loại component.
 
 Ví dụ:
@@ -490,7 +490,7 @@ Output cho con người SHOULD bao gồm:
 Identity
 Source
 Version
-Provider
+Publisher
 Components
 Capabilities
 Dependencies
@@ -3399,7 +3399,7 @@ Output khả dĩ:
 
 ```text
 Canonical ID
-Provider
+Publisher
 Source
 Version
 Selected by

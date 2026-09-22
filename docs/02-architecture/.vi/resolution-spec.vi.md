@@ -320,7 +320,7 @@ frontend-engineer
 
 Việc mở rộng Profile tạo ra các Preset requirement.
 
-Việc mở rộng Profile không được resolve các provider implementation.
+Việc mở rộng Profile không được resolve các publisher implementation.
 
 ---
 
@@ -612,10 +612,10 @@ Sai:
 
 ```text
 Preset A
-→ resolve TDD Provider A
+→ resolve TDD Publisher A
 
 Preset B
-→ resolve TDD Provider B
+→ resolve TDD Publisher B
 
 merge later
 ```
@@ -745,7 +745,7 @@ Candidate
 ├── capability
 ├── component
 ├── package
-├── provider
+├── publisher
 ├── priority
 ├── status
 ├── targetCompatibility
@@ -965,7 +965,7 @@ Ví dụ:
 
 ```text
 Candidate:
-provider-a/security-review
+publisher-a/security-review
 
 Rejected:
 trust level community is denied by strict policy
@@ -1328,7 +1328,7 @@ Các nguồn preference tiềm năng:
 ```text
 existing lock
 
-policy provider preference
+policy publisher preference
 
 target-specific preference
 
@@ -1973,7 +1973,7 @@ selected component
 Với mỗi Package, giữ lại:
 
 ```text
-Provider
+Publisher
 
 source
 
@@ -2060,7 +2060,7 @@ Resolver phía consumer thông thường nên chọn từ các phiên bản đã
 catalog.lock
 ```
 
-chứ không phải từ toàn bộ lịch sử của remote provider.
+chứ không phải từ toàn bộ lịch sử của remote publisher.
 
 Điều này tách biệt:
 
@@ -2252,7 +2252,7 @@ another eligible candidate has stronger lock preference
 
 ```text
 Candidate:
-community-provider/...#skill:tdd
+community-publisher/...#skill:tdd
 
 Outcome:
 rejected
@@ -2484,7 +2484,7 @@ Capabilities associated with those Components
 
 resolved version
 
-Provider provenance
+Publisher provenance
 ```
 
 ---
@@ -2504,7 +2504,7 @@ canonical capability ID
 Package:
 
 ```text
-provider ID
+publisher ID
 then package ID
 ```
 
@@ -2785,14 +2785,14 @@ Ví dụ:
 ```text
 update package version only
 
-update one Provider
+update one Publisher
 
 update one Capability implementation
 
 update all curated dependencies
 ```
 
-Ban đầu V1 có thể hỗ trợ một workflow update global/theo provider đơn giản hơn.
+Ban đầu V1 có thể hỗ trợ một workflow update global/theo publisher đơn giản hơn.
 
 ---
 
@@ -3250,7 +3250,7 @@ Về mặt khái niệm:
 ```text
 ResolvedPackage
 
-provider
+publisher
 
 package
 
@@ -3778,7 +3778,7 @@ override TDD → ECC
 Policy:
 
 ```text
-deny ECC provider
+deny ECC publisher
 ```
 
 Kết quả:
@@ -4009,7 +4009,7 @@ TDD → Superpowers
 Catalog mới bao gồm:
 
 ```text
-Provider X
+Publisher X
 priority 120
 ```
 
@@ -4022,7 +4022,7 @@ preserve Superpowers
 Update tường minh:
 
 ```text
-Provider X may become selected
+Publisher X may become selected
 ```
 
 nếu đủ điều kiện.
@@ -4398,7 +4398,7 @@ Thứ tự này nên được giữ ổn định trừ khi được thay đổi 
 # 182. Tóm tắt các quy tắc Resolution
 
 ```text
-Request capabilities, not providers.
+Request capabilities, not publishers.
 
 Expand all semantic requirements before selecting implementations.
 

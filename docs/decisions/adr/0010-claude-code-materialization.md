@@ -6,7 +6,7 @@
 
 ## Bối cảnh
 
-Giá trị cốt lõi của `agent-plugins` là chọn các Component từ nhiều Provider, rồi materialize đúng tập đã chọn vào runtime. Tài liệu hiện có hai chiến lược mâu thuẫn nhau:
+Giá trị cốt lõi của `agent-plugins` là chọn các Component từ nhiều Publisher, rồi materialize đúng tập đã chọn vào runtime. Tài liệu hiện có hai chiến lược mâu thuẫn nhau:
 
 - `adapter-spec.md` §7.1: local marketplace chứa các "projection plugin".
 - `cli-spec.md` và `roadmap.md`: ghi thẳng vào `.claude/skills/`.

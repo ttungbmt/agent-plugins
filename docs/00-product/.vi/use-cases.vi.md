@@ -8,7 +8,7 @@ Các use case này dùng để kiểm chứng xem mô hình sản phẩm có th�
 
 - role của người dùng,
 - loại project,
-- provider,
+- publisher,
 - tổ hợp capability,
 - trust policy,
 - runtime target,
@@ -77,7 +77,7 @@ Contributor chịu trách nhiệm duy trì hệ sinh thái đã được curate.
 Trách nhiệm bao gồm:
 
 ```text
-adding providers
+adding publishers
 registering packages
 mapping capabilities
 reviewing upstream changes
@@ -92,7 +92,7 @@ Một người hoặc một team chịu trách nhiệm cho các yếu tố dùng
 
 ```text
 policies
-approved providers
+approved publishers
 security requirements
 shared presets
 ```
@@ -210,7 +210,7 @@ frontend.typescript
 
 thành các implementation phù hợp.
 
-Người dùng không cần phải tự biết provider nào implement từng capability.
+Người dùng không cần phải tự biết publisher nào implement từng capability.
 
 ## Requirement liên quan
 
@@ -333,7 +333,7 @@ Các implementation tiềm năng có thể đến từ:
 native agent-plugins
 Matt Pocock
 ECC
-other curated providers
+other curated publishers
 ```
 
 ## Kết quả mong đợi
@@ -401,7 +401,7 @@ engineering.domain-modeling
 
 ## Kết quả mong đợi
 
-Profile nên kết hợp các capability phù hợp từ nhiều provider khác nhau mà không buộc Product Manager phải hiểu cấu trúc repository của chúng.
+Profile nên kết hợp các capability phù hợp từ nhiều publisher khác nhau mà không buộc Product Manager phải hiểu cấu trúc repository của chúng.
 
 ---
 
@@ -528,7 +528,7 @@ REQ-PRJ-003
 
 ---
 
-# 9. UC-007 — Nhiều provider cùng cung cấp TDD
+# 9. UC-007 — Nhiều publisher cùng cung cấp TDD
 
 ## Actor
 
@@ -747,8 +747,8 @@ backend-engineer
 → engineering/security
 
 Candidates:
-Provider A — rejected: community source
-Provider B — rejected: community source
+Publisher A — rejected: community source
+Publisher B — rejected: community source
 ```
 
 Resolver không được âm thầm loại bỏ capability.
@@ -867,7 +867,7 @@ highest implementation priority
 Package:
 superpowers
 
-Provider:
+Publisher:
 superpowers
 ```
 
@@ -966,7 +966,7 @@ ap sync
 Hệ thống khôi phục lại đúng các thành phần đã được resolve:
 
 ```text
-providers
+publishers
 packages
 components
 versions
@@ -1203,7 +1203,7 @@ REQ-SEC-004
 
 ---
 
-# 21. UC-019 — Nâng cấp một provider một cách có chủ đích
+# 21. UC-019 — Nâng cấp một publisher một cách có chủ đích
 
 ## Actor
 
@@ -1237,7 +1237,7 @@ Lockfile của các project không nên âm thầm thay đổi cho đến khi c�
 
 ---
 
-# 22. UC-020 — Thêm một provider mới
+# 22. UC-020 — Thêm một publisher mới
 
 ## Actor
 
@@ -1251,10 +1251,10 @@ Tích hợp một upstream ecosystem mới.
 
 Một repository mới cung cấp các agent skill hữu ích.
 
-Maintainer thêm provider metadata:
+Maintainer thêm publisher metadata:
 
 ```text
-catalog/providers/new-provider.yaml
+catalog/publishers/new-publisher.yaml
 ```
 
 cùng cấu hình source adapter phù hợp.
@@ -1264,7 +1264,7 @@ cùng cấu hình source adapter phù hợp.
 Hệ thống có thể:
 
 ```text
-identify the provider
+identify the publisher
 discover packages
 discover components
 retain provenance
@@ -1283,7 +1283,7 @@ REQ-NFR-005
 
 ---
 
-# 23. UC-021 — Chỉ curate một phần của một provider lớn
+# 23. UC-021 — Chỉ curate một phần của một publisher lớn
 
 ## Actor
 
@@ -1291,7 +1291,7 @@ Catalog Maintainer
 
 ## Mục tiêu
 
-Sử dụng một subset hữu ích của provider mà không expose mọi thứ.
+Sử dụng một subset hữu ích của publisher mà không expose mọi thứ.
 
 ## Kịch bản
 
@@ -1316,7 +1316,7 @@ Source discovery có thể nhận diện tất cả các component.
 
 Catalog đã được curate chỉ tham chiếu đến subset đã được phê duyệt.
 
-Việc hỗ trợ một provider không được ngụ ý rằng toàn bộ catalog của nó sẽ được enable.
+Việc hỗ trợ một publisher không được ngụ ý rằng toàn bộ catalog của nó sẽ được enable.
 
 ## Requirement liên quan
 
@@ -1335,11 +1335,11 @@ Catalog Maintainer
 
 ## Mục tiêu
 
-Chuẩn hóa thuật ngữ khác nhau giữa các provider.
+Chuẩn hóa thuật ngữ khác nhau giữa các publisher.
 
 ## Kịch bản
 
-Các provider expose:
+Các publisher expose:
 
 ```text
 test-driven-development
@@ -1357,7 +1357,7 @@ engineering.testing.tdd
 
 Profile và preset chỉ tham chiếu đến canonical capability.
 
-Thuật ngữ riêng của từng provider được cô lập bên trong catalog mapping.
+Thuật ngữ riêng của từng publisher được cô lập bên trong catalog mapping.
 
 ## Requirement liên quan
 
@@ -1430,7 +1430,7 @@ Trước đây:
 
 ```text
 knowledge.synthesis
-→ Provider A
+→ Publisher A
 ```
 
 Một native implementation mới trở thành lựa chọn ưu tiên.
@@ -1448,7 +1448,7 @@ Profile và project manifest vẫn giữ nguyên.
 
 Chỉ có implementation mapping và các lockfile sau đó thay đổi.
 
-Điều này kiểm chứng tính độc lập với provider.
+Điều này kiểm chứng tính độc lập với publisher.
 
 ---
 
@@ -1653,7 +1653,7 @@ REQ-PRE-003
 
 ---
 
-# 31. UC-029 — Team giới hạn provider
+# 31. UC-029 — Team giới hạn publisher
 
 ## Actor
 
@@ -1661,7 +1661,7 @@ Organization Maintainer
 
 ## Mục tiêu
 
-Ngăn các project resolve dựa trên các provider chưa được phê duyệt.
+Ngăn các project resolve dựa trên các publisher chưa được phê duyệt.
 
 ## Kịch bản
 
@@ -1670,7 +1670,7 @@ Policy của tổ chức cho phép:
 ```text
 first-party
 official
-approved curated providers
+approved curated publishers
 ```
 
 nhưng từ chối:
@@ -1700,7 +1700,7 @@ Developer
 
 ## Mục tiêu
 
-Tìm chức năng mà không cần biết tên provider.
+Tìm chức năng mà không cần biết tên publisher.
 
 ## Kịch bản
 
@@ -1850,7 +1850,7 @@ Ví dụ:
   Run: ap sync
 
 ✗ Package unavailable
-  provider-x/package-y
+  publisher-x/package-y
 
 ✗ Unsupported capability
   target does not support external hook
@@ -2009,7 +2009,7 @@ Component không thể trở nên active nếu chưa thỏa mãn quy trình revi
 Resolver nên xác định:
 
 ```text
-provider
+publisher
 package
 component
 hook
@@ -2284,7 +2284,7 @@ REQ-SYNC-004
 
 ---
 
-# 47. UC-045 — Một provider thay đổi cấu trúc nội bộ
+# 47. UC-045 — Một publisher thay đổi cấu trúc nội bộ
 
 ## Actor
 
@@ -2296,7 +2296,7 @@ Thích ứng với các thay đổi từ upstream mà không cần sửa đổi 
 
 ## Kịch bản
 
-Một upstream provider thay đổi:
+Một upstream publisher thay đổi:
 
 ```text
 folder structure
@@ -2347,7 +2347,7 @@ project intent
 
 ---
 
-# 49. UC-047 — Provider implementation bị gỡ bỏ
+# 49. UC-047 — Publisher implementation bị gỡ bỏ
 
 ## Actor
 
@@ -2392,7 +2392,7 @@ Catalog Maintainer
 
 ## Mục tiêu
 
-Thay đổi provider implementation mà không thay đổi intent của bên sử dụng.
+Thay đổi publisher implementation mà không thay đổi intent của bên sử dụng.
 
 ## Kịch bản
 
@@ -2400,14 +2400,14 @@ Mapping hiện tại:
 
 ```text
 engineering.architecture
-→ Provider A
+→ Publisher A
 ```
 
 Quyết định curate mới:
 
 ```text
 engineering.architecture
-→ Provider B
+→ Publisher B
 ```
 
 ## Kết quả mong đợi
@@ -2479,11 +2479,11 @@ debugging
 frontend design
 ```
 
-Một provider package expose nhiều capability không liên quan.
+Một publisher package expose nhiều capability không liên quan.
 
 ## Kết quả mong đợi
 
-Khi packaging model của target/provider cho phép, chỉ những component được yêu cầu mới nên trở nên active.
+Khi packaging model của target/publisher cho phép, chỉ những component được yêu cầu mới nên trở nên active.
 
 Nếu đơn vị cài đặt nhất thiết phải chứa thêm các component không active, hệ thống nên phân biệt:
 
@@ -2570,7 +2570,7 @@ debugging
 planning
 ```
 
-nhưng TDD thuộc quyền sở hữu của một provider khác.
+nhưng TDD thuộc quyền sở hữu của một publisher khác.
 
 ## Kết quả mong đợi
 
@@ -2861,7 +2861,7 @@ Ma trận sau tóm tắt các lĩnh vực chính được các use case kiểm c
 | Reproducibility | UC-014, UC-015, UC-040 |
 | Lockfile drift | UC-016 |
 | Update | UC-017, UC-018, UC-019 |
-| Tích hợp provider | UC-020, UC-021, UC-045 |
+| Tích hợp publisher | UC-020, UC-021, UC-045 |
 | Chuẩn hóa capability | UC-022 |
 | Native plugin | UC-023, UC-024 |
 | Tương thích target | UC-025, UC-026, UC-046 |
@@ -2874,7 +2874,7 @@ Ma trận sau tóm tắt các lĩnh vực chính được các use case kiểm c
 | Target generation | UC-041 |
 | Generated artifact | UC-042, UC-043 |
 | Managed state | UC-044 |
-| Sự thay đổi của provider | UC-047, UC-048 |
+| Sự thay đổi của publisher | UC-047, UC-048 |
 | Tái sử dụng composition | UC-049 |
 | Environment tối thiểu | UC-050 |
 | Phân biệt package/component | UC-051, UC-052 |
@@ -2912,11 +2912,11 @@ UC-015  Idempotent sync
 
 UC-016  Detect manifest/lock drift
 
-UC-017  Check provider update
+UC-017  Check publisher update
 
-UC-020  Add provider
+UC-020  Add publisher
 
-UC-022  Normalize multiple provider implementations
+UC-022  Normalize multiple publisher implementations
 
 UC-023  Native capability
 
@@ -2993,7 +2993,7 @@ Obsidian
       ↓
 Resolve capabilities
       ↓
-Use native + external providers
+Use native + external publishers
       ↓
 No unrelated engineering workflows
       ↓
@@ -3011,7 +3011,7 @@ Các use case nên tiếp tục tuân theo những nguyên tắc sau:
 ```text
 describe user intent before implementation
 
-capabilities before providers
+capabilities before publishers
 
 profiles before plugin lists
 

@@ -21,7 +21,7 @@ Domain model nên độc lập với bất kỳ runtime đơn lẻ nào như Cla
 Luồng chuẩn là:
 
 ```text
-Provider
+Publisher
    ↓
 Package
    ↓
@@ -88,7 +88,7 @@ Domain được chia thành năm khu vực logic.
 
 ```text
 Source
-├── Provider
+├── Publisher
 ├── Package
 └── Component
 
@@ -115,13 +115,13 @@ Các ranh giới này nên được giữ tách biệt về mặt khái niệm, 
 
 ---
 
-# 3. Provider
+# 3. Publisher
 
 ## Định nghĩa
 
-Một **Provider** đại diện cho nguồn gốc, nhà phát hành hoặc upstream source chịu trách nhiệm cho một hoặc nhiều package.
+Một **Publisher** đại diện cho nguồn gốc, nhà phát hành hoặc upstream source chịu trách nhiệm cho một hoặc nhiều package.
 
-Một Provider trả lời câu hỏi:
+Một Publisher trả lời câu hỏi:
 
 > **Tooling này đến từ đâu?**
 
@@ -136,7 +136,7 @@ wshobson
 agent-plugins
 ```
 
-Một provider có thể đại diện cho:
+Một publisher có thể đại diện cho:
 
 - một dự án open-source,
 - một tổ chức,
@@ -146,9 +146,9 @@ Một provider có thể đại diện cho:
 
 ---
 
-## Định danh Provider
+## Định danh Publisher
 
-Một Provider phải có một định danh chuẩn (canonical identifier) ổn định.
+Một Publisher phải có một định danh chuẩn (canonical identifier) ổn định.
 
 Ví dụ:
 
@@ -162,13 +162,13 @@ Tên hiển thị có thể khác:
 Superpowers
 ```
 
-Định danh của Provider không nên được suy ra từ văn bản hiển thị.
+Định danh của Publisher không nên được suy ra từ văn bản hiển thị.
 
 ---
 
-## Thuộc tính của Provider
+## Thuộc tính của Publisher
 
-Về mặt khái niệm, một Provider có thể chứa:
+Về mặt khái niệm, một Publisher có thể chứa:
 
 ```text
 id
@@ -188,9 +188,9 @@ update strategy
 
 ---
 
-## Quyền sở hữu Provider
+## Quyền sở hữu Publisher
 
-Ownership mô tả ai là người duy trì provider so với `agent-plugins`.
+Ownership mô tả ai là người duy trì publisher so với `agent-plugins`.
 
 Các giá trị khuyến nghị:
 
@@ -211,11 +211,11 @@ superpowers
 
 Ownership và trust là hai khái niệm khác nhau.
 
-Một third-party provider vẫn có thể được tin cậy rất cao.
+Một third-party publisher vẫn có thể được tin cậy rất cao.
 
 ---
 
-## Trust của Provider
+## Trust của Publisher
 
 Trust đại diện cho mức độ tin cậy được gán bởi policy của project hoặc bởi quá trình curation catalog.
 
@@ -237,7 +237,7 @@ Các giá trị này mô tả bối cảnh trust, không phải ownership.
 
 ## Định nghĩa
 
-Một **Package** là đơn vị có thể cài đặt hoặc phân phối được cung cấp bởi một Provider.
+Một **Package** là đơn vị có thể cài đặt hoặc phân phối được cung cấp bởi một Publisher.
 
 Một Package trả lời câu hỏi:
 
@@ -295,7 +295,7 @@ Về mặt khái niệm:
 
 ```text
 id
-provider
+publisher
 display name
 description
 
@@ -317,12 +317,12 @@ update strategy
 
 ## Định danh Package
 
-Một package nên có định danh chuẩn, được scope theo provider khi cần thiết.
+Một package nên có định danh chuẩn, được scope theo publisher khi cần thiết.
 
 Về mặt khái niệm:
 
 ```text
-provider/package
+publisher/package
 ```
 
 Ví dụ:
@@ -386,7 +386,7 @@ Một tham chiếu component chuẩn nên là duy nhất và không mơ hồ tr�
 Về mặt khái niệm:
 
 ```text
-provider/package#type:name
+publisher/package#type:name
 ```
 
 Ví dụ:
@@ -455,7 +455,7 @@ Capability là abstraction trung tâm của domain model.
 
 # 7. Định danh Capability
 
-Capability ID phải mô tả intent ngữ nghĩa, không phải định danh của provider.
+Capability ID phải mô tả intent ngữ nghĩa, không phải định danh của publisher.
 
 Nên dùng:
 
@@ -691,7 +691,7 @@ provide reusable composition
 Một Preset nhìn chung không nên:
 
 ```text
-select provider implementations
+select publisher implementations
 encode user identity
 encode one specific project
 contain runtime installation logic
@@ -782,7 +782,7 @@ frontend-engineer
 Thông thường, một Profile không nên:
 
 ```text
-reference provider-specific components
+reference publisher-specific components
 pin package versions
 contain project-specific stack details
 contain runtime installation logic
@@ -922,14 +922,14 @@ Một Policy trả lời câu hỏi:
 Policy có thể quản lý:
 
 ```text
-provider trust
+publisher trust
 source classification
 hooks
 commands
 scripts
 MCP servers
 experimental components
-provider preference
+publisher preference
 update behavior
 ```
 
@@ -1117,13 +1117,13 @@ Một ví dụ khác:
 
 ```text
 Candidate:
-Provider X / tdd
+Publisher X / tdd
 
 Decision:
 rejected
 
 Reason:
-community provider denied by strict policy
+community publisher denied by strict policy
 ```
 
 ---
@@ -1273,7 +1273,7 @@ Conflict tường minh nên hiếm gặp và được ghi lại tài liệu.
 Nó chứa:
 
 ```text
-Providers
+Publishers
 Packages
 Capability definitions
 Implementation mappings
@@ -1294,7 +1294,7 @@ Upstream được discover.
 Ví dụ:
 
 ```text
-Upstream provider
+Upstream publisher
 contains 300 components
 
 Source Adapter
@@ -1649,7 +1649,7 @@ resolution metadata
 
 # 46. Distribution Lock
 
-Bản phân phối `agent-plugins` có thể duy trì một lock riêng thể hiện trạng thái upstream provider đã được kiểm thử.
+Bản phân phối `agent-plugins` có thể duy trì một lock riêng thể hiện trạng thái upstream publisher đã được kiểm thử.
 
 Về mặt khái niệm:
 
@@ -1750,7 +1750,7 @@ Ví dụ:
 
 ```text
 ownership: third-party
-provider: superpowers
+publisher: superpowers
 repository: obra/superpowers
 version: v6.4.1
 commit: abc123
@@ -1834,7 +1834,7 @@ Về mặt khái niệm:
 native implementation
 
 derivedFrom:
-external provider/component
+external publisher/component
 ```
 
 Provenance nên bảo toàn mối quan hệ này khi có liên quan.
@@ -1843,7 +1843,7 @@ Provenance nên bảo toàn mối quan hệ này khi có liên quan.
 
 # 56. Trust
 
-**Trust** đại diện cho một phân loại curation hoặc policy được áp dụng cho provider, package hoặc component.
+**Trust** đại diện cho một phân loại curation hoặc policy được áp dụng cho publisher, package hoặc component.
 
 Trust có thể ảnh hưởng đến:
 
@@ -1905,7 +1905,7 @@ Sự phân biệt này rất quan trọng cho việc phát triển hệ sinh th�
 
 # 60. Removed Implementation
 
-Một removed implementation không còn được cung cấp bởi provider của nó.
+Một removed implementation không còn được cung cấp bởi publisher của nó.
 
 Phân tích cập nhật catalog nên xác định các capability bị ảnh hưởng bởi việc loại bỏ.
 
@@ -2116,7 +2116,7 @@ Ví dụ:
 
 ```text
 package version update
-provider ref update
+publisher ref update
 component addition
 component removal
 component metadata change
@@ -2150,7 +2150,7 @@ Việc review update nên tập trung vào tác động ngữ nghĩa, không ch�
 Các quan hệ chính là:
 
 ```text
-Provider
+Publisher
   1 ─── * Package
 
 Package
@@ -2190,7 +2190,7 @@ Component
   * ─── 1 Package
 
 Package
-  * ─── 1 Provider
+  * ─── 1 Publisher
 ```
 
 ---
@@ -2199,7 +2199,7 @@ Package
 
 ```text
 ┌────────────┐
-│  Provider  │
+│  Publisher  │
 └─────┬──────┘
       │ 1
       │
@@ -2290,16 +2290,16 @@ Component
    ↓
 Package
    ↓
-Provider
+Publisher
 ```
 
-Sự đảo ngược này giữ cho intent của người dùng độc lập với provider.
+Sự đảo ngược này giữ cho intent của người dùng độc lập với publisher.
 
 ---
 
-# 75. Invariant độc lập với Provider
+# 75. Invariant độc lập với Publisher
 
-Cấu hình của consumer thông thường không nên phụ thuộc vào định danh provider.
+Cấu hình của consumer thông thường không nên phụ thuộc vào định danh publisher.
 
 Nên dùng:
 
@@ -2315,7 +2315,7 @@ frontend-engineer
 → superpowers/test-driven-development
 ```
 
-Cấu hình đặc thù theo provider thuộc về:
+Cấu hình đặc thù theo publisher thuộc về:
 
 ```text
 catalog
@@ -2414,7 +2414,7 @@ Mọi external component đã được resolve nên giữ lại đủ provenance
 Tối thiểu, khi có sẵn:
 
 ```text
-provider
+publisher
 package
 source
 version
@@ -2588,7 +2588,7 @@ Implementations
 Native
 Matt Pocock
 ECC
-other curated providers
+other curated publishers
 
       ↓
 
@@ -2615,11 +2615,11 @@ security.review
 Các candidate:
 
 ```text
-Provider A
+Publisher A
 priority: 100
 trust: community
 
-Provider B
+Publisher B
 priority: 80
 trust: curated
 ```
@@ -2636,10 +2636,10 @@ curated
 Resolution:
 
 ```text
-Provider A
+Publisher A
 → Rejected by policy
 
-Provider B
+Publisher B
 → Eligible
 → Selected
 ```
@@ -2698,7 +2698,7 @@ Sự phân biệt này phải luôn tường minh xuyên suốt kiến trúc.
 Các thuật ngữ sau là chuẩn và nên được sử dụng nhất quán:
 
 ```text
-Provider
+Publisher
 Package
 Component
 Capability
@@ -2780,7 +2780,7 @@ Addon
 Chứa:
 
 ```text
-Provider
+Publisher
 Package
 Capability
 Implementation Mapping
@@ -2917,7 +2917,7 @@ Explainability
 Reproducibility
 ```
 
-Việc tích hợp provider và materialization vào target hỗ trợ cho phần core đó.
+Việc tích hợp publisher và materialization vào target hỗ trợ cho phần core đó.
 
 Sự phân biệt này nên ảnh hưởng đến thứ tự ưu tiên trong kiến trúc.
 
@@ -2950,13 +2950,13 @@ Chúng quan trọng nhưng không nên định nghĩa core semantic model.
 Các invariant quan trọng nhất là:
 
 ```text
-1. Capability IDs are provider-independent.
+1. Capability IDs are publisher-independent.
 
 2. Profiles primarily compose Presets.
 
 3. Presets primarily compose Capabilities.
 
-4. Provider selection occurs during resolution.
+4. Publisher selection occurs during resolution.
 
 5. Policy filtering happens before preference selection.
 
@@ -2985,4 +2985,4 @@ Các invariant quan trọng nhất là:
 
 # 96. Domain Model trong một câu
 
-> **`agent-plugins` mô hình hóa tooling bên ngoài thành các Provider chứa Package và Component, chuẩn hóa các Component đó thành các Capability ngữ nghĩa, compose các Capability thông qua Preset và Profile, ràng buộc chúng bằng bối cảnh Project và Policy, và resolve chúng một cách deterministic thành một môi trường runtime có thể tái tạo.**
+> **`agent-plugins` mô hình hóa tooling bên ngoài thành các Publisher chứa Package và Component, chuẩn hóa các Component đó thành các Capability ngữ nghĩa, compose các Capability thông qua Preset và Profile, ràng buộc chúng bằng bối cảnh Project và Policy, và resolve chúng một cách deterministic thành một môi trường runtime có thể tái tạo.**

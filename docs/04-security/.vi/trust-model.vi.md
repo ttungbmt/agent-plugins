@@ -14,7 +14,7 @@ Mô hình tin cậy xác định cách hệ thống đánh giá mức độ tin 
 
 - các package source;
 - các publisher;
-- các provider;
+- các publisher;
 - các repository;
 - các revision của package;
 - các adapter;
@@ -150,7 +150,7 @@ Tin cậy MAY được gán cho:
 ```text
 Source
 Publisher
-Provider
+Publisher
 Repository
 Package
 Revision
@@ -248,7 +248,7 @@ Nội dung first-party vẫn MUST vượt qua validation và policy thông thư�
 
 `trusted-vendor` có nghĩa là:
 
-> Nội dung bên ngoài từ một upstream provider đã được tuyển chọn và phê duyệt một cách tường minh.
+> Nội dung bên ngoài từ một upstream publisher đã được tuyển chọn và phê duyệt một cách tường minh.
 
 Các ví dụ điển hình:
 
@@ -1919,9 +1919,9 @@ có thể chọn một package vendor, nhưng package đó vẫn phải chịu s
 
 ---
 
-# 92. Tin cậy và việc chọn Provider
+# 92. Tin cậy và việc chọn Publisher
 
-Khi nhiều provider cùng hiện thực một capability, tin cậy MAY ảnh hưởng đến việc lựa chọn.
+Khi nhiều publisher cùng hiện thực một capability, tin cậy MAY ảnh hưởng đến việc lựa chọn.
 
 Ví dụ:
 
@@ -1929,7 +1929,7 @@ Ví dụ:
 capability: code-review
 ```
 
-các provider:
+các publisher:
 
 ```text
 first-party/reviewer
@@ -1943,7 +1943,7 @@ Resolver MAY sử dụng tin cậy như một ràng buộc lựa chọn determin
 
 # 93. Tin cậy không phải là xếp hạng chất lượng
 
-Một provider có mức tin cậy cao hơn không nhất thiết có nghĩa là:
+Một publisher có mức tin cậy cao hơn không nhất thiết có nghĩa là:
 
 ```text
 better quality
@@ -1957,9 +1957,9 @@ Chất lượng SHOULD được mô hình hóa riêng biệt.
 
 ---
 
-# 94. Policy lựa chọn Provider
+# 94. Policy lựa chọn Publisher
 
-Việc lựa chọn provider có thể tuân theo:
+Việc lựa chọn publisher có thể tuân theo:
 
 ```text
 compatibility
@@ -1969,7 +1969,7 @@ explicit preference
 priority
 ```
 
-Tin cậy SHOULD không âm thầm ghi đè một lựa chọn user/provider tường minh, trừ khi Policy yêu cầu.
+Tin cậy SHOULD không âm thầm ghi đè một lựa chọn user/publisher tường minh, trừ khi Policy yêu cầu.
 
 ---
 
@@ -2506,7 +2506,7 @@ Policy:
   organization/production
 
 Suggestion:
-  Use an approved provider or request an explicit trust review.
+  Use an approved publisher or request an explicit trust review.
 ```
 
 ---

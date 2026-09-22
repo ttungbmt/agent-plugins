@@ -4,7 +4,7 @@
 
 `agent-plugins` exists because these ecosystems already solve parts of the problem
 well — and because assembling them by hand is what made a resolver necessary.
-They are both the inspiration for this project and the reference providers its
+They are both the inspiration for this project and the reference publishers its
 catalog is modelled against.
 
 | Ecosystem | What it is | What `agent-plugins` takes from it |

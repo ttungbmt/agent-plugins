@@ -270,7 +270,7 @@ Triển khai type cho:
 Package
 Component
 Capability
-Provider
+Publisher
 Source
 
 Skill
@@ -1349,7 +1349,7 @@ prefers:
   - capability: typescript-analysis
 ```
 
-Resolver MAY cuối cùng sẽ chọn provider.
+Resolver MAY cuối cùng sẽ chọn publisher.
 
 Ví dụ:
 
@@ -1357,7 +1357,7 @@ Ví dụ:
 Capability:
   code-review
 
-Providers:
+Publishers:
   first-party/reviewer
   vendor/ecc-reviewer
   community/reviewer
@@ -1367,7 +1367,7 @@ Tính năng này SHOULD NOT được triển khai cho đến khi package resolut
 
 ---
 
-# 25. Phase 19 — Lựa chọn Provider
+# 25. Phase 19 — Lựa chọn Publisher
 
 ## Mục tiêu
 
@@ -1390,18 +1390,18 @@ Ví dụ:
 ```text
 capability: typescript-best-practices
 
-provider:
+publisher:
   mattpocock
 ```
 
 hoặc:
 
 ```text
-provider:
+publisher:
   first-party
 ```
 
-Việc lựa chọn Provider MUST luôn tất định.
+Việc lựa chọn Publisher MUST luôn tất định.
 
 ---
 
@@ -1510,7 +1510,7 @@ Where did this come from?
 
 Which Profile selected it?
 
-Which Provider supplied it?
+Which Publisher supplied it?
 
 Which target files were generated?
 
@@ -2325,7 +2325,7 @@ preset library
 
 first-party capability library
 
-provider selection foundations
+publisher selection foundations
 ```
 
 Mục tiêu:

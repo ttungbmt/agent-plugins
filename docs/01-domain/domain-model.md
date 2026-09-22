@@ -21,7 +21,7 @@ The domain model should remain independent from any single runtime such as Claud
 The canonical flow is:
 
 ```text
-Provider
+Publisher
    ↓
 Package
    ↓
@@ -88,7 +88,7 @@ The domain is divided into five logical areas.
 
 ```text
 Source
-├── Provider
+├── Publisher
 ├── Package
 └── Component
 
@@ -115,13 +115,13 @@ These boundaries should remain conceptually distinct even when the implementatio
 
 ---
 
-# 3. Provider
+# 3. Publisher
 
 ## Definition
 
-A **Provider** represents the origin, publisher, or upstream source responsible for one or more packages.
+A **Publisher** represents the origin, publisher, or upstream source responsible for one or more packages.
 
-A Provider answers:
+A Publisher answers:
 
 > **Where does this tooling come from?**
 
@@ -136,7 +136,7 @@ wshobson
 agent-plugins
 ```
 
-A provider may represent:
+A publisher may represent:
 
 - an open-source project,
 - an organization,
@@ -146,9 +146,9 @@ A provider may represent:
 
 ---
 
-## Provider Identity
+## Publisher Identity
 
-A Provider must have a stable canonical identifier.
+A Publisher must have a stable canonical identifier.
 
 Example:
 
@@ -162,13 +162,13 @@ A display name may differ:
 Superpowers
 ```
 
-Provider identity should not be derived from display text.
+Publisher identity should not be derived from display text.
 
 ---
 
-## Provider Attributes
+## Publisher Attributes
 
-Conceptually, a Provider may contain:
+Conceptually, a Publisher may contain:
 
 ```text
 id
@@ -188,9 +188,9 @@ update strategy
 
 ---
 
-## Provider Ownership
+## Publisher Ownership
 
-Ownership describes who maintains the provider relative to `agent-plugins`.
+Ownership describes who maintains the publisher relative to `agent-plugins`.
 
 Recommended values:
 
@@ -211,11 +211,11 @@ superpowers
 
 Ownership and trust are different concepts.
 
-A third-party provider may still be highly trusted.
+A third-party publisher may still be highly trusted.
 
 ---
 
-## Provider Trust
+## Publisher Trust
 
 Trust represents the confidence level assigned by project policy or catalog curation.
 
@@ -237,7 +237,7 @@ These values describe trust context, not ownership.
 
 ## Definition
 
-A **Package** is the installable or distributable unit supplied by a Provider.
+A **Package** is the installable or distributable unit supplied by a Publisher.
 
 A Package answers:
 
@@ -295,7 +295,7 @@ Conceptually:
 
 ```text
 id
-provider
+publisher
 display name
 description
 
@@ -317,12 +317,12 @@ update strategy
 
 ## Package Identity
 
-A package should have a canonical identity scoped by provider when necessary.
+A package should have a canonical identity scoped by publisher when necessary.
 
 Conceptually:
 
 ```text
-provider/package
+publisher/package
 ```
 
 Examples:
@@ -386,7 +386,7 @@ A canonical component reference should be globally unambiguous.
 Conceptually:
 
 ```text
-provider/package#type:name
+publisher/package#type:name
 ```
 
 Example:
@@ -455,7 +455,7 @@ Capability is the central abstraction of the domain model.
 
 # 7. Capability Identity
 
-Capability IDs must describe semantic intent, not provider identity.
+Capability IDs must describe semantic intent, not publisher identity.
 
 Preferred:
 
@@ -691,7 +691,7 @@ provide reusable composition
 A Preset should generally not:
 
 ```text
-select provider implementations
+select publisher implementations
 encode user identity
 encode one specific project
 contain runtime installation logic
@@ -782,7 +782,7 @@ frontend-engineer
 A Profile should not normally:
 
 ```text
-reference provider-specific components
+reference publisher-specific components
 pin package versions
 contain project-specific stack details
 contain runtime installation logic
@@ -922,14 +922,14 @@ A Policy answers:
 Policies may govern:
 
 ```text
-provider trust
+publisher trust
 source classification
 hooks
 commands
 scripts
 MCP servers
 experimental components
-provider preference
+publisher preference
 update behavior
 ```
 
@@ -1117,13 +1117,13 @@ Another:
 
 ```text
 Candidate:
-Provider X / tdd
+Publisher X / tdd
 
 Decision:
 rejected
 
 Reason:
-community provider denied by strict policy
+community publisher denied by strict policy
 ```
 
 ---
@@ -1273,7 +1273,7 @@ The **Catalog** is the curated metadata set known to the resolver.
 It contains:
 
 ```text
-Providers
+Publishers
 Packages
 Capability definitions
 Implementation mappings
@@ -1294,7 +1294,7 @@ Upstream is discovered.
 Example:
 
 ```text
-Upstream provider
+Upstream publisher
 contains 300 components
 
 Source Adapter
@@ -1649,7 +1649,7 @@ resolution metadata
 
 # 46. Distribution Lock
 
-The `agent-plugins` distribution may maintain a separate lock representing tested upstream provider state.
+The `agent-plugins` distribution may maintain a separate lock representing tested upstream publisher state.
 
 Conceptually:
 
@@ -1750,7 +1750,7 @@ Example:
 
 ```text
 ownership: third-party
-provider: superpowers
+publisher: superpowers
 repository: obra/superpowers
 version: v6.4.1
 commit: abc123
@@ -1834,7 +1834,7 @@ Conceptually:
 native implementation
 
 derivedFrom:
-external provider/component
+external publisher/component
 ```
 
 Provenance should preserve this relationship where relevant.
@@ -1843,7 +1843,7 @@ Provenance should preserve this relationship where relevant.
 
 # 56. Trust
 
-**Trust** represents a curation or policy classification applied to providers, packages, or components.
+**Trust** represents a curation or policy classification applied to publishers, packages, or components.
 
 Trust may influence:
 
@@ -1905,7 +1905,7 @@ This distinction is important for safe ecosystem evolution.
 
 # 60. Removed Implementation
 
-A removed implementation is no longer available from its provider.
+A removed implementation is no longer available from its publisher.
 
 Catalog update analysis should identify capabilities affected by removal.
 
@@ -2116,7 +2116,7 @@ Examples:
 
 ```text
 package version update
-provider ref update
+publisher ref update
 component addition
 component removal
 component metadata change
@@ -2150,7 +2150,7 @@ Update review should focus on semantic impact, not only version numbers.
 The primary relationships are:
 
 ```text
-Provider
+Publisher
   1 ─── * Package
 
 Package
@@ -2190,7 +2190,7 @@ Component
   * ─── 1 Package
 
 Package
-  * ─── 1 Provider
+  * ─── 1 Publisher
 ```
 
 ---
@@ -2199,7 +2199,7 @@ Package
 
 ```text
 ┌────────────┐
-│  Provider  │
+│  Publisher  │
 └─────┬──────┘
       │ 1
       │
@@ -2290,16 +2290,16 @@ Component
    ↓
 Package
    ↓
-Provider
+Publisher
 ```
 
-This inversion keeps user intent independent from providers.
+This inversion keeps user intent independent from publishers.
 
 ---
 
-# 75. Provider Independence Invariant
+# 75. Publisher Independence Invariant
 
-Consumer configuration should not normally depend on provider identity.
+Consumer configuration should not normally depend on publisher identity.
 
 Preferred:
 
@@ -2315,7 +2315,7 @@ frontend-engineer
 → superpowers/test-driven-development
 ```
 
-Provider-specific configuration belongs in:
+Publisher-specific configuration belongs in:
 
 ```text
 catalog
@@ -2414,7 +2414,7 @@ Every resolved external component should retain enough provenance to identify it
 At minimum where available:
 
 ```text
-provider
+publisher
 package
 source
 version
@@ -2588,7 +2588,7 @@ Implementations
 Native
 Matt Pocock
 ECC
-other curated providers
+other curated publishers
 
       ↓
 
@@ -2615,11 +2615,11 @@ security.review
 Candidates:
 
 ```text
-Provider A
+Publisher A
 priority: 100
 trust: community
 
-Provider B
+Publisher B
 priority: 80
 trust: curated
 ```
@@ -2636,10 +2636,10 @@ curated
 Resolution:
 
 ```text
-Provider A
+Publisher A
 → Rejected by policy
 
-Provider B
+Publisher B
 → Eligible
 → Selected
 ```
@@ -2698,7 +2698,7 @@ This distinction must remain explicit throughout the architecture.
 The following terms are canonical and should be used consistently:
 
 ```text
-Provider
+Publisher
 Package
 Component
 Capability
@@ -2780,7 +2780,7 @@ At the conceptual domain level, the main consistency boundaries are:
 Contains:
 
 ```text
-Provider
+Publisher
 Package
 Capability
 Implementation Mapping
@@ -2917,7 +2917,7 @@ Explainability
 Reproducibility
 ```
 
-Provider integration and target materialization support that core.
+Publisher integration and target materialization support that core.
 
 This distinction should influence architecture priorities.
 
@@ -2950,13 +2950,13 @@ These are important but should not define the core semantic model.
 The most important invariants are:
 
 ```text
-1. Capability IDs are provider-independent.
+1. Capability IDs are publisher-independent.
 
 2. Profiles primarily compose Presets.
 
 3. Presets primarily compose Capabilities.
 
-4. Provider selection occurs during resolution.
+4. Publisher selection occurs during resolution.
 
 5. Policy filtering happens before preference selection.
 
@@ -2985,4 +2985,4 @@ The most important invariants are:
 
 # 96. Domain Model in One Sentence
 
-> **`agent-plugins` models external tooling as Providers containing Packages and Components, normalizes those Components into semantic Capabilities, composes Capabilities through Presets and Profiles, constrains them through Project and Policy context, and deterministically resolves them into a reproducible runtime environment.**
+> **`agent-plugins` models external tooling as Publishers containing Packages and Components, normalizes those Components into semantic Capabilities, composes Capabilities through Presets and Profiles, constrains them through Project and Policy context, and deterministically resolves them into a reproducible runtime environment.**

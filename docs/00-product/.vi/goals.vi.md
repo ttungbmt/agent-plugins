@@ -80,11 +80,11 @@ knowledge.research
 product.discovery
 ```
 
-Capability model này nên tương đối ổn định ngay cả khi provider thay đổi.
+Capability model này nên tương đối ổn định ngay cả khi publisher thay đổi.
 
 ## Tiêu chí thành công
 
-Các implementation khác nhau từ nhiều provider cho cùng một hành vi ngữ nghĩa có thể được map vào một capability chung.
+Các implementation khác nhau từ nhiều publisher cho cùng một hành vi ngữ nghĩa có thể được map vào một capability chung.
 
 Ví dụ:
 
@@ -102,7 +102,7 @@ engineering.testing.tdd
 
 # 3. Tách intent khỏi implementation
 
-Cấu hình của người dùng và project không nên bị gắn chặt với từng provider riêng lẻ.
+Cấu hình của người dùng và project không nên bị gắn chặt với từng publisher riêng lẻ.
 
 Chiều phụ thuộc được ưu tiên là:
 
@@ -115,7 +115,7 @@ Capability
    ↓
 Implementation
    ↓
-Provider
+Publisher
 ```
 
 chứ không phải:
@@ -123,7 +123,7 @@ chứ không phải:
 ```text
 Profile
    ↓
-Provider-specific plugin list
+Publisher-specific plugin list
 ```
 
 ## Tiêu chí thành công
@@ -221,7 +221,7 @@ Thay đổi requirement về stack của project không đòi hỏi phải đị
 
 # 7. Resolve capability overlap một cách deterministic
 
-Khi nhiều provider cùng implement một capability, hệ thống nên resolve phần overlap một cách có thể dự đoán được.
+Khi nhiều publisher cùng implement một capability, hệ thống nên resolve phần overlap một cách có thể dự đoán được.
 
 Ví dụ:
 
@@ -348,7 +348,7 @@ Why was it included?
 
 ## Tiêu chí thành công
 
-Các component đã resolve giữ lại metadata về provider, package, version, source và capability mapping.
+Các component đã resolve giữ lại metadata về publisher, package, version, source và capability mapping.
 
 ---
 
@@ -411,7 +411,7 @@ ap sync
 
 Environment thu được nên resolve ra cùng:
 
-- provider,
+- publisher,
 - package,
 - component,
 - version,
@@ -426,7 +426,7 @@ Project lockfile chứa đủ thông tin để tái tạo resolved state một c
 
 # 14. Kiểm soát upstream version
 
-Các external provider không nên âm thầm trôi sang những phiên bản latest tùy ý.
+Các external publisher không nên âm thầm trôi sang những phiên bản latest tùy ý.
 
 Project nên hỗ trợ pin version và commit một cách tường minh.
 
@@ -449,7 +449,7 @@ ap update --check
 Hệ thống nên hiển thị:
 
 ```text
-provider version changes
+publisher version changes
 added components
 removed components
 changed components
@@ -475,7 +475,7 @@ external hooks
 MCP servers
 commands
 scripts
-experimental providers
+experimental publishers
 community sources
 ```
 
@@ -497,7 +497,7 @@ Các component nhạy cảm về bảo mật được hiển thị cho policy ev
 
 # 17. Hỗ trợ nhiều trust level
 
-Provider và package nên có thể được phân loại vào các nhóm trust.
+Publisher và package nên có thể được phân loại vào các nhóm trust.
 
 Mô hình ban đầu:
 
@@ -530,7 +530,7 @@ documentation workflows
 agent development
 ```
 
-Những capability này nên cùng tồn tại với external provider dưới cùng một capability model.
+Những capability này nên cùng tồn tại với external publisher dưới cùng một capability model.
 
 ## Tiêu chí thành công
 
@@ -540,7 +540,7 @@ Implementation native và external tham gia vào cùng một hệ thống resolu
 
 # 19. Tránh fork không cần thiết
 
-Project nên ưu tiên tham chiếu và tích hợp upstream provider thay vì sao chép source của chúng.
+Project nên ưu tiên tham chiếu và tích hợp upstream publisher thay vì sao chép source của chúng.
 
 External source chỉ nên được vendor hoặc fork khi có lý do rõ ràng về kỹ thuật hoặc bảo trì.
 
@@ -573,7 +573,7 @@ Target Adapters
 
 ## Tiêu chí thành công
 
-Một provider integration có thể phát triển độc lập với một runtime integration.
+Một publisher integration có thể phát triển độc lập với một runtime integration.
 
 ---
 
@@ -674,7 +674,7 @@ Các artifact được generate có thể bị xóa và tạo lại mà không m
 Hệ thống nên validate:
 
 - schema,
-- tham chiếu provider,
+- tham chiếu publisher,
 - tham chiếu package,
 - capability mapping,
 - tham chiếu preset,
@@ -793,7 +793,7 @@ Người dùng nên có thể tìm kiếm trên:
 capabilities
 presets
 profiles
-providers
+publishers
 packages
 components
 ```
@@ -817,7 +817,7 @@ có thể hiển thị thông tin liên quan về capability và implementation.
 Về lâu dài, team nên có thể chia sẻ:
 
 ```text
-approved providers
+approved publishers
 preferred implementations
 required presets
 security policies
@@ -877,7 +877,7 @@ Core resolution hoạt động offline dựa trên dữ liệu catalog và lock 
 Thiết kế nên hỗ trợ các bổ sung trong tương lai như:
 
 ```text
-new providers
+new publishers
 new component types
 new capability domains
 new target runtimes
@@ -900,7 +900,7 @@ V1 nên chứng minh core model trước khi mở rộng hệ sinh thái.
 Trọng tâm ban đầu nên là:
 
 ```text
-Provider
+Publisher
 Package
 Component
 Capability
@@ -1014,11 +1014,11 @@ Các component này nên tạo nền tảng cho các runtime trong tương lai.
 
 ---
 
-# 38. Mục tiêu provider V1
+# 38. Mục tiêu publisher V1
 
-Curated catalog ban đầu nên minh họa việc tích hợp với nhiều kiểu provider khác nhau.
+Curated catalog ban đầu nên minh họa việc tích hợp với nhiều kiểu publisher khác nhau.
 
-Các provider ban đầu được khuyến nghị:
+Các publisher ban đầu được khuyến nghị:
 
 ```text
 Superpowers
@@ -1029,7 +1029,7 @@ wshobson/agents
 native agent-plugins
 ```
 
-Mục tiêu không phải là tích hợp mọi thứ mà mỗi provider cung cấp.
+Mục tiêu không phải là tích hợp mọi thứ mà mỗi publisher cung cấp.
 
 Mục tiêu là chứng minh:
 
@@ -1093,7 +1093,7 @@ Sau V1, project nên dần hỗ trợ:
 ```text
 more target runtimes
 
-more providers
+more publishers
 
 organization policies
 
@@ -1103,7 +1103,7 @@ compatibility analysis
 
 context optimization
 
-provider health analysis
+publisher health analysis
 
 security metadata
 
@@ -1181,7 +1181,7 @@ controlled updates over latest-by-default
 
 reproducibility over configuration drift
 
-stable semantics over provider coupling
+stable semantics over publisher coupling
 
 native runtime support over lowest-common-denominator output
 ```

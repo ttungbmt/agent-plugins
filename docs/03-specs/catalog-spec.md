@@ -1,7 +1,7 @@
 # Catalog Specification
 
 **Status:** Design note — ahead of implementation. The prose here describes intended behaviour; it is not the contract.  
-**Normative contract:** `packages/schemas/schemas/{provider,package,capability}.schema.json` (source-of-truth.md §16, §55)
+**Normative contract:** `packages/schemas/schemas/{publisher,package,capability}.schema.json` (source-of-truth.md §16, §55)
 
 ## Overview
 
@@ -12,7 +12,7 @@ The Catalog is the curated metadata layer that connects external tooling ecosyst
 The Catalog answers:
 
 ```text
-Which Providers are recognized?
+Which Publishers are recognized?
 
 Which Packages are supported?
 
@@ -31,7 +31,7 @@ The Catalog must remain:
 - human-reviewable,
 - machine-validatable,
 - deterministic,
-- provider-aware,
+- publisher-aware,
 - capability-oriented,
 - independent from consumer projects.
 
@@ -46,7 +46,7 @@ This specification defines:
 ```text
 catalog directory structure
 
-Provider manifests
+Publisher manifests
 
 Package manifests
 
@@ -92,7 +92,7 @@ The canonical structure is:
 
 ```text
 catalog/
-├── providers/
+├── publishers/
 │   ├── superpowers.yaml
 │   ├── mattpocock.yaml
 │   ├── ecc.yaml
@@ -122,7 +122,7 @@ catalog/
 The Catalog consists of three authoritative entity classes:
 
 ```text
-Provider
+Publisher
 Package
 Capability
 ```
@@ -136,7 +136,7 @@ Third-party Component inventories are generally discovered rather than maintaine
 Authoritative:
 
 ```text
-catalog/providers/
+catalog/publishers/
 catalog/packages/
 catalog/capabilities/
 ```
@@ -158,7 +158,7 @@ catalog.lock
 The dependency direction is:
 
 ```text
-Provider / Package Metadata
+Publisher / Package Metadata
         +
 Source Discovery
         +
@@ -179,7 +179,7 @@ Recommended structure:
 
 ```yaml
 apiVersion: agent-plugins.dev/v1alpha1
-kind: Provider
+kind: Publisher
 
 metadata:
   id: superpowers
@@ -192,7 +192,7 @@ spec:
 Supported V1 kinds:
 
 ```text
-Provider
+Publisher
 Package
 Capability
 ```
@@ -230,7 +230,7 @@ It does not change the semantic identity of the entity.
 Allowed V1 values:
 
 ```text
-Provider
+Publisher
 Package
 Capability
 ```
@@ -286,9 +286,9 @@ Once stable, ID changes should be treated as migrations rather than ordinary ren
 
 ---
 
-# 9. Provider IDs
+# 9. Publisher IDs
 
-Provider IDs use lowercase kebab-case.
+Publisher IDs use lowercase kebab-case.
 
 Examples:
 
@@ -307,7 +307,7 @@ Recommended pattern:
 ^[a-z0-9]+(?:-[a-z0-9]+)*$
 ```
 
-Provider IDs are globally unique within the Catalog.
+Publisher IDs are globally unique within the Catalog.
 
 ---
 
@@ -324,10 +324,10 @@ frontend-design
 ecc
 ```
 
-Canonical Package identity is scoped by Provider:
+Canonical Package identity is scoped by Publisher:
 
 ```text
-<provider-id>/<package-id>
+<publisher-id>/<package-id>
 ```
 
 Example:
@@ -336,7 +336,7 @@ Example:
 anthropic/frontend-design
 ```
 
-Two Providers may technically expose Packages with the same local ID.
+Two Publishers may technically expose Packages with the same local ID.
 
 ---
 
@@ -359,7 +359,7 @@ Recommended pattern:
 ^[a-z0-9]+(?:-[a-z0-9]+)*(?:\.[a-z0-9]+(?:-[a-z0-9]+)*)+$
 ```
 
-Capability IDs must not normally contain Provider or Target names.
+Capability IDs must not normally contain Publisher or Target names.
 
 ---
 
@@ -370,7 +370,7 @@ A canonical Component reference must be globally unambiguous.
 Recommended conceptual syntax:
 
 ```text
-<provider>/<package>#<type>:<name>
+<publisher>/<package>#<type>:<name>
 ```
 
 Examples:
@@ -1095,7 +1095,7 @@ Conceptually:
 ```json
 {
   "id": "superpowers/superpowers#skill:test-driven-development",
-  "provider": "superpowers",
+  "publisher": "superpowers",
   "package": "superpowers",
   "type": "skill",
   "name": "test-driven-development",
@@ -1193,7 +1193,7 @@ Build Catalog
 Recommended load order:
 
 ```text
-1. Providers
+1. Publishers
 
 2. Packages
 
@@ -1205,7 +1205,7 @@ Recommended load order:
 because:
 
 ```text
-Package references Provider
+Package references Publisher
 
 Component references Package
 
@@ -1226,12 +1226,12 @@ This supports deterministic diagnostics and generation.
 
 ---
 
-# 50. Provider Validation
+# 50. Publisher Validation
 
 Validate:
 
 ```text
-unique Provider ID
+unique Publisher ID
 
 valid ID syntax
 
@@ -1244,7 +1244,7 @@ valid discovery adapter
 valid trust classification
 ```
 
-If Provider discovery references an unavailable adapter:
+If Publisher discovery references an unavailable adapter:
 
 ```text
 validation fails
@@ -1257,9 +1257,9 @@ validation fails
 Validate:
 
 ```text
-unique Provider/Package identity
+unique Publisher/Package identity
 
-Provider exists
+Publisher exists
 
 valid source configuration
 
@@ -1368,7 +1368,7 @@ superpowers/superpowers#skill:tdd
 requires:
 
 ```text
-Provider: superpowers
+Publisher: superpowers
 Package: superpowers
 ```
 
@@ -1376,9 +1376,9 @@ to exist.
 
 ---
 
-# 57. Provider Membership Validation
+# 57. Publisher Membership Validation
 
-Every Package must resolve to a valid Provider.
+Every Package must resolve to a valid Publisher.
 
 The relationship chain:
 
@@ -1386,7 +1386,7 @@ The relationship chain:
 Capability
 → Component
 → Package
-→ Provider
+→ Publisher
 ```
 
 must always be traversable.
@@ -1476,7 +1476,7 @@ duplicate canonical ID
 
 invalid schema
 
-missing Provider
+missing Publisher
 
 missing Package
 
@@ -1508,7 +1508,7 @@ YAML
 ↓
 Manifest DTO
 ↓
-Normalized Provider / Package / Capability
+Normalized Publisher / Package / Capability
 ↓
 Catalog
 ```
@@ -1524,8 +1524,8 @@ Conceptually:
 ```text
 Catalog
 
-providers:
-  Map<ProviderId, Provider>
+publishers:
+  Map<PublisherId, Publisher>
 
 packages:
   Map<PackageRef, Package>
@@ -1555,7 +1555,7 @@ Component → Capabilities
 
 Package → Components
 
-Provider → Packages
+Publisher → Packages
 ```
 
 These indexes should be derived.
@@ -1575,7 +1575,7 @@ Capability → Presets
 
 Preset → Profiles
 
-Provider → Packages
+Publisher → Packages
 ```
 
 Useful for:
@@ -1633,7 +1633,7 @@ Conceptually:
 apiVersion: agent-plugins.dev/v1alpha1
 kind: CatalogLock
 
-providers:
+publishers:
   superpowers:
     packages:
       superpowers:
@@ -1691,7 +1691,7 @@ Conceptually:
 ```text
 catalogDigest =
 hash(
-  providers
+  publishers
   packages
   capabilities
   distribution lock
@@ -1708,16 +1708,16 @@ Generated normalized Catalog output should use stable ordering.
 
 Recommended:
 
-Providers:
+Publishers:
 
 ```text
-sort by Provider ID
+sort by Publisher ID
 ```
 
 Packages:
 
 ```text
-sort by Provider ID, then Package ID
+sort by Publisher ID, then Package ID
 ```
 
 Components:
@@ -1750,7 +1750,7 @@ Catalog changes must occur through intentional edits.
 Examples:
 
 ```text
-add Provider
+add Publisher
 
 add Package
 
@@ -1767,12 +1767,12 @@ Source discovery must not silently mutate authoritative Catalog files.
 
 ---
 
-# 74. Adding a Provider
+# 74. Adding a Publisher
 
 Required steps:
 
 ```text
-1. Create Provider manifest
+1. Create Publisher manifest
 
 2. Create one or more Package manifests
 
@@ -1800,7 +1800,7 @@ Required steps:
 Required:
 
 ```text
-Provider exists
+Publisher exists
 
 Package ID selected
 
@@ -1905,9 +1905,9 @@ Replacement should be documented.
 
 ---
 
-# 80. Provider Update
+# 80. Publisher Update
 
-Updating a Provider does not automatically alter semantic Catalog mappings.
+Updating a Publisher does not automatically alter semantic Catalog mappings.
 
 Workflow:
 
@@ -1979,7 +1979,7 @@ Do not assume rename equivalence automatically.
 
 ---
 
-# 84. Provider Repository Restructure
+# 84. Publisher Repository Restructure
 
 If directory layout changes without semantic Component identity change, the Source Adapter may preserve stable canonical Component IDs where possible.
 
@@ -2165,10 +2165,10 @@ All machine-relevant metadata must be represented structurally.
 
 # 95. File Naming
 
-Provider file:
+Publisher file:
 
 ```text
-<provider-id>.yaml
+<publisher-id>.yaml
 ```
 
 Package file:
@@ -2198,7 +2198,7 @@ engineering/testing/tdd.yaml
 Preferred V1 rule:
 
 ```text
-one Provider per file
+one Publisher per file
 
 one Package per file
 
@@ -2219,14 +2219,14 @@ Large generated inventories are exempt.
 
 ---
 
-# 97. Multi-Package Provider
+# 97. Multi-Package Publisher
 
-A Provider may have multiple Package files.
+A Publisher may have multiple Package files.
 
 Example:
 
 ```text
-Provider:
+Publisher:
 anthropic
 
 Packages:
@@ -2241,7 +2241,7 @@ Each Package remains independently referenceable.
 
 # 98. Package Naming Collision
 
-If two Providers both have:
+If two Publishers both have:
 
 ```text
 core
@@ -2250,12 +2250,12 @@ core
 their full identities remain distinct:
 
 ```text
-provider-a/core
+publisher-a/core
 
-provider-b/core
+publisher-b/core
 ```
 
-Local Package ID uniqueness is only required within a Provider.
+Local Package ID uniqueness is only required within a Publisher.
 
 ---
 
@@ -2263,7 +2263,7 @@ Local Package ID uniqueness is only required within a Provider.
 
 Capability IDs are globally unique.
 
-There is no Provider scoping.
+There is no Publisher scoping.
 
 Therefore:
 
@@ -2387,7 +2387,7 @@ pnpm generate:catalog
 should:
 
 ```text
-load Provider/Package metadata
+load Publisher/Package metadata
 
 read catalog.lock
 
@@ -2453,7 +2453,7 @@ CI should detect this.
 Given identical:
 
 ```text
-Provider manifests
+Publisher manifests
 
 Package manifests
 
@@ -2530,7 +2530,7 @@ manifest parsing
 known format parsing
 ```
 
-rather than executing provider tooling.
+rather than executing publisher tooling.
 
 ---
 
@@ -2541,7 +2541,7 @@ Source adapters should define deterministic symlink behavior.
 Recommended:
 
 ```text
-do not follow symlinks outside the checked-out provider root
+do not follow symlinks outside the checked-out publisher root
 ```
 
 unless explicitly required and safely handled.
@@ -2597,11 +2597,11 @@ Such metrics may someday inform maintainer review but are not trust classificati
 
 ---
 
-# 117. Initial Provider Example
+# 117. Initial Publisher Example
 
 ```yaml
 apiVersion: agent-plugins.dev/v1alpha1
-kind: Provider
+kind: Publisher
 
 metadata:
   id: superpowers
@@ -2635,7 +2635,7 @@ metadata:
   name: Superpowers
 
 spec:
-  provider: superpowers
+  publisher: superpowers
 
   source:
     path: .
@@ -2750,7 +2750,7 @@ metadata:
   name: Second Brain
 
 spec:
-  provider: agent-plugins
+  publisher: agent-plugins
 
   source:
     path: plugins/native/second-brain
@@ -2769,7 +2769,7 @@ spec:
 The normalized Catalog is conceptually assembled from:
 
 ```text
-Provider Manifests
+Publisher Manifests
 
         +
 
@@ -2866,7 +2866,7 @@ Recommended initial codes:
 ```text
 INVALID_MANIFEST
 
-DUPLICATE_PROVIDER
+DUPLICATE_PUBLISHER
 
 DUPLICATE_PACKAGE
 
@@ -2874,7 +2874,7 @@ DUPLICATE_CAPABILITY
 
 DUPLICATE_COMPONENT
 
-UNKNOWN_PROVIDER
+UNKNOWN_PUBLISHER
 
 UNKNOWN_PACKAGE
 
@@ -2884,7 +2884,7 @@ UNKNOWN_CAPABILITY
 
 INVALID_CAPABILITY_ID
 
-INVALID_PROVIDER_ID
+INVALID_PUBLISHER_ID
 
 INVALID_PACKAGE_ID
 
@@ -2912,7 +2912,7 @@ MISSING_IMPLEMENTATION
 Beyond schema validation, CI should inspect quality conditions such as:
 
 ```text
-unused Provider
+unused Publisher
 
 Package with zero Components
 
@@ -2936,7 +2936,7 @@ Catalog curation should prefer:
 ```text
 semantic clarity
 
-small representative provider set
+small representative publisher set
 
 explicit overlap modeling
 
@@ -2954,7 +2954,7 @@ maximum component count
 
 automatic inclusion
 
-provider popularity
+publisher popularity
 
 taxonomy completeness
 ```
@@ -2963,7 +2963,7 @@ taxonomy completeness
 
 # 130. Curated Does Not Mean Exhaustive
 
-A Provider may expose:
+A Publisher may expose:
 
 ```text
 300 Components
@@ -3036,7 +3036,7 @@ documentation link
 Examples:
 
 ```text
-new Provider
+new Publisher
 
 new Package
 
@@ -3112,7 +3112,7 @@ Maintainer tooling should eventually support semantic diffs.
 Example:
 
 ```text
-Provider added
+Publisher added
 
 Package version changed
 
@@ -3174,7 +3174,7 @@ all Capability graphs acyclic
 
 all mapped Components exist
 
-all Packages belong to Providers
+all Packages belong to Publishers
 
 all generated inventory deterministic
 
@@ -3188,7 +3188,7 @@ all initial V1 Profiles resolve successfully
 The Catalog should provide fixture coverage for:
 
 ```text
-TDD with multiple competing Providers
+TDD with multiple competing Publishers
 
 Capability with cardinality many
 
@@ -3207,7 +3207,7 @@ This proves the Catalog is not only syntactically valid but semantically useful.
 
 # 140. V1 Catalog Scope
 
-Initial Providers:
+Initial Publishers:
 
 ```text
 superpowers
@@ -3274,7 +3274,7 @@ product-manager
 second-brain
 ```
 
-with meaningful provider overlap.
+with meaningful publisher overlap.
 
 ---
 
@@ -3283,7 +3283,7 @@ with meaningful provider overlap.
 The Catalog is ready for V1 when:
 
 ```text
-Provider manifests validate
+Publisher manifests validate
 
 Package manifests validate
 
@@ -3306,7 +3306,7 @@ representative Profiles resolve successfully
 
 ---
 
-# 144. Catalog Anti-Pattern — Provider-Centric Composition
+# 144. Catalog Anti-Pattern — Publisher-Centric Composition
 
 Avoid:
 
@@ -3324,7 +3324,7 @@ Capability
 → implementations
 ```
 
-not encourage provider bundles as the primary abstraction.
+not encourage publisher bundles as the primary abstraction.
 
 ---
 
@@ -3391,7 +3391,7 @@ remain discovered but uncurated
 
 ---
 
-# 149. Catalog Anti-Pattern — Provider Name in Capability ID
+# 149. Catalog Anti-Pattern — Publisher Name in Capability ID
 
 Avoid:
 
@@ -3479,15 +3479,15 @@ Canonical IDs must be explicit.
 The Catalog must preserve:
 
 ```text
-1. Every Provider has a stable canonical ID.
+1. Every Publisher has a stable canonical ID.
 
-2. Every Package belongs to exactly one Provider.
+2. Every Package belongs to exactly one Publisher.
 
 3. Every Component belongs to exactly one Package.
 
 4. Every Capability has one canonical semantic ID.
 
-5. Capability IDs are provider-independent.
+5. Capability IDs are publisher-independent.
 
 6. Capability IDs are target-independent.
 
@@ -3515,7 +3515,7 @@ The Catalog must preserve:
 # 154. Catalog Processing Summary
 
 ```text
-Provider Manifests
+Publisher Manifests
       │
       ├───────────────┐
       ▼               │
@@ -3550,7 +3550,7 @@ Discovered Components │
 # 155. Minimal Catalog Mental Model
 
 ```text
-Provider
+Publisher
    ↓
 Package
    ↓
@@ -3575,4 +3575,4 @@ what a Project selects
 
 # 156. Catalog in One Sentence
 
-> **The `agent-plugins` Catalog is a declarative, curated, version-controlled mapping from Providers and Packages to normalized Components and provider-independent Capabilities, with external versions pinned separately and all semantic mappings validated before they become Resolver candidates.**
+> **The `agent-plugins` Catalog is a declarative, curated, version-controlled mapping from Publishers and Packages to normalized Components and publisher-independent Capabilities, with external versions pinned separately and all semantic mappings validated before they become Resolver candidates.**

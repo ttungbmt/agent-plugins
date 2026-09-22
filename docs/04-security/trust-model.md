@@ -14,7 +14,7 @@ The trust model determines how the system evaluates confidence in:
 
 - package sources;
 - publishers;
-- providers;
+- publishers;
 - repositories;
 - package revisions;
 - adapters;
@@ -150,7 +150,7 @@ Trust MAY be assigned to:
 ```text
 Source
 Publisher
-Provider
+Publisher
 Repository
 Package
 Revision
@@ -248,7 +248,7 @@ First-party content still MUST pass normal validation and policy.
 
 `trusted-vendor` means:
 
-> External content from an upstream provider that has been explicitly curated and approved.
+> External content from an upstream publisher that has been explicitly curated and approved.
 
 Typical examples:
 
@@ -1919,9 +1919,9 @@ may select a vendor package, but that package remains subject to trust evaluatio
 
 ---
 
-# 92. Trust and Provider Selection
+# 92. Trust and Publisher Selection
 
-When multiple providers implement the same capability, trust MAY influence selection.
+When multiple publishers implement the same capability, trust MAY influence selection.
 
 Example:
 
@@ -1929,7 +1929,7 @@ Example:
 capability: code-review
 ```
 
-providers:
+publishers:
 
 ```text
 first-party/reviewer
@@ -1943,7 +1943,7 @@ The resolver MAY use trust as one deterministic selection constraint.
 
 # 93. Trust Is Not Ranking Quality
 
-A higher-trust provider does not necessarily mean:
+A higher-trust publisher does not necessarily mean:
 
 ```text
 better quality
@@ -1957,9 +1957,9 @@ Quality SHOULD be modeled separately.
 
 ---
 
-# 94. Provider Selection Policy
+# 94. Publisher Selection Policy
 
-Provider selection might follow:
+Publisher selection might follow:
 
 ```text
 compatibility
@@ -1969,7 +1969,7 @@ explicit preference
 priority
 ```
 
-Trust SHOULD not silently override an explicit user/provider selection unless Policy requires it.
+Trust SHOULD not silently override an explicit user/publisher selection unless Policy requires it.
 
 ---
 
@@ -2506,7 +2506,7 @@ Policy:
   organization/production
 
 Suggestion:
-  Use an approved provider or request an explicit trust review.
+  Use an approved publisher or request an explicit trust review.
 ```
 
 ---
