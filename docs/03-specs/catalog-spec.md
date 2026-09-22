@@ -500,20 +500,39 @@ See §24 for the Package source shape.
 
 # 18. Publisher Discovery — moved to Package
 
-A Publisher has **no** `spec.discovery`. Discovery is declared per Package:
+A Publisher has **no** `spec.discovery`. Discovery is declared per Package,
+and it declares its strategy (ADR 0013 D1):
 
 ```yaml
 # catalog/packages/<id>.yaml
 spec:
   discovery:
+    strategy: manifest
     manifest: .claude-plugin/plugin.json
 ```
 
-The upstream plugin manifest is read instead of globbing the tree, because a
-repository may carry more Components than it ships: `mattpocock/skills`
-contains 38 `SKILL.md` files but ships 25.
+```yaml
+spec:
+  discovery:
+    strategy: convention
+```
 
-Discovery configuration must not contain semantic Capability mappings.
+| `strategy` | Source of the list | `manifest:` |
+|---|---|---|
+| `manifest` | the arrays in the upstream plugin manifest | required |
+| `convention` | the plugin layout on disk | optional, version only |
+
+`manifest` exists because a repository may carry more Components than it
+ships: `mattpocock/skills` contains 38 `SKILL.md` files but ships 25. It is
+nonetheless the minority case — five of the six reference ecosystems in
+`README.md` carry no component arrays at all and must use `convention`.
+
+There is no default and no fallback between the two. A `manifest` strategy
+whose manifest enumerates nothing fails with `DISCOVERY_EMPTY` rather than
+resolving to zero Components.
+
+`convention` reads the layout in §21a. Discovery configuration must not
+contain semantic Capability mappings.
 
 ---
 
@@ -582,6 +601,7 @@ spec:
     ref: c55ee46073ed923f86ce59a5eb3b6d895095d1b7
 
   discovery:
+    strategy: manifest
     manifest: .claude-plugin/plugin.json
 
   targets:
@@ -597,6 +617,26 @@ declared by a curator, never inferred from Component bodies.
 
 ---
 
+# 21a. Component Layout
+
+Each Component type occupies its own slot, and the two shapes differ:
+
+```text
+skills/<name>/SKILL.md     skill      a directory, shipped whole
+agents/<name>.md           agent      a flat file
+commands/<name>.md         command    a flat file
+```
+
+`hooks/` and `.mcp.json` are package-level activation surfaces rather than
+selectable Components. Discovery reports them so a Policy can forbid them;
+ADR 0010 D5 keeps them out of a `collection` projection in V1.
+
+A Component name must be unique across types within one Package. A collision
+fails discovery with `DUPLICATE_COMPONENT` rather than one type overwriting
+the other (§58).
+
+---
+
 # 22. Package Required Fields
 
 A Package must define:
@@ -609,6 +649,7 @@ spec.publisher
 spec.materialization
 spec.source
 spec.discovery
+spec.discovery.strategy
 ```
 
 ---

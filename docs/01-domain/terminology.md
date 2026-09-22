@@ -120,18 +120,18 @@ A Package may contain multiple Components.
 
 A **Component** is a functional unit contained inside a Package.
 
-Supported types may include:
+Implemented types, each discovered from its own slot in the plugin layout
+(ADR 0013 D2):
 
 ```text
-skill
-agent
-command
-hook
-rule
-mcp
-lsp
-workflow
+skill      skills/<name>/SKILL.md    a directory
+agent      agents/<name>.md          a flat file
+command    commands/<name>.md        a flat file
 ```
+
+`hook`, `mcp` and `lsp` are recognised as package-level activation surfaces
+that a Policy can forbid, but they are not selectable Components in V1.
+`rule` and `workflow` are neither discovered nor enforced.
 
 Examples:
 

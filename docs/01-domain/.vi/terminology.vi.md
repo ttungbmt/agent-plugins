@@ -119,18 +119,18 @@ Một Package có thể chứa nhiều Component.
 
 **Component** là một đơn vị chức năng nằm bên trong một Package.
 
-Các loại được hỗ trợ có thể bao gồm:
+Các type đã được hiện thực, mỗi type phát hiện từ slot riêng trong layout
+plugin (ADR 0013 D2):
 
 ```text
-skill
-agent
-command
-hook
-rule
-mcp
-lsp
-workflow
+skill      skills/<name>/SKILL.md    một thư mục
+agent      agents/<name>.md          một tệp phẳng
+command    commands/<name>.md        một tệp phẳng
 ```
+
+`hook`, `mcp` và `lsp` được nhận diện như bề mặt kích hoạt ở cấp Package mà
+Policy có thể cấm, nhưng không phải Component chọn được ở V1. `rule` và
+`workflow` thì không được phát hiện lẫn không được kiểm soát.
 
 Ví dụ:
 

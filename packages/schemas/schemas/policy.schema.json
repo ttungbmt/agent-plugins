@@ -25,7 +25,7 @@
       "properties": {
         "description": {"$ref": "common.schema.json#/definitions/nonEmptyString"},
         "componentTypes": {
-          "description": "Every component type must carry an explicit decision — an omitted type would evaluate to undefined in pipeline.js. V1 note: source.js:129 labels every discovered component `skill`, so the agent/command/hook/mcp/lsp rules are currently unreachable.",
+          "description": "Every component type must carry an explicit decision — an omitted type would evaluate to undefined in pipeline.js. `skill`, `agent` and `command` are enforced per Component; `hook`, `mcp` and `lsp` are enforced at package level from what discovery finds on disk (ADR 0013 D3). Before ADR 0013 every discovered Component was labelled `skill`, so every rule but that one was unreachable — a Policy written then never denied anything else.",
           "type": "object",
           "additionalProperties": false,
           "required": ["skill", "agent", "command", "hook", "mcp", "lsp"],

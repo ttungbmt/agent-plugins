@@ -97,9 +97,9 @@ Schema hiện tại: `homepage`, `repository` (chỉ là link tham khảo), `tru
 - `domain-model.md` §3, §75; `capability-model.md`; `policy-spec.md`; `lockfile-spec.md`; `resolution-spec.md`; `architecture.md`; `repository-structure.md`; `source-of-truth.md`; `use-cases.md`; `requirements.md`; `goals.md`; `vision.md`; `problem.md`; `non-goals.md`; `trust-model.md`; `roadmap.md`; `todo.md`; `README.md` — quét cơ học, kèm bản `.vi/`.
 
 **Việc còn treo, không thuộc ADR này**
-- `agent-plugins.dev/v1alpha1` vs `agent-plugins/v1`: `common.schema.json` ghi là *"accepted until the divergence is settled by ADR"*. Cần một ADR riêng với migration riêng.
-- `Component` có nên thành entity cấp cao của catalog không (`todo.md` §10 đề xuất `components/`, schema hiện giữ nó là map trong `Package.spec.components`).
-- `runtimes/` vs `Target`: chọn một từ duy nhất.
+- `agent-plugins.dev/v1alpha1` vs `agent-plugins/v1`: `common.schema.json` ghi là *"accepted until the divergence is settled by ADR"*. Cần một ADR riêng với migration riêng. **Vẫn treo.**
+- ~~`Component` có nên thành entity cấp cao của catalog không~~ — **đã đóng, [ADR 0013](0013-component-discovery-and-typing.md) D4: không.** Mục này trích dẫn sai: `todo.md` §10 **không** đề xuất thư mục `catalog/components/`, nó đề xuất `components` như một index trong bộ nhớ của đối tượng `Catalog`. Thư mục viết tay thì bị `catalog-spec.md:1053` và `:3331` cấm — chỗ sau gọi thẳng là anti-pattern. Cái thật sự còn treo là *định danh* Component, và ADR 0013 D5 xử lý.
+- ~~`runtimes/` vs `Target`~~ — **đã đóng, [ADR 0013](0013-component-discovery-and-typing.md) D6: `Target`.** Không phải xung đột thật: `terminology.md:1407-1421` §78 đã định nghĩa Runtime là *"represented through a Target"*. `runtimes/` chỉ tồn tại ở hai dòng trong `cheatsheet.md` đã archive và ở chính dòng này.
 
 ## Các phương án đã cân nhắc
 

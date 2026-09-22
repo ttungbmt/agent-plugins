@@ -500,20 +500,39 @@ Xem §24 cho hình dạng của Package source.
 
 # 18. Discovery của Publisher — đã chuyển xuống Package
 
-Publisher **không có** `spec.discovery`. Discovery được khai báo theo từng Package:
+Publisher **không có** `spec.discovery`. Discovery được khai báo theo từng
+Package, và phải khai báo chiến lược của nó (ADR 0013 D1):
 
 ```yaml
 # catalog/packages/<id>.yaml
 spec:
   discovery:
+    strategy: manifest
     manifest: .claude-plugin/plugin.json
 ```
 
-Plugin manifest của upstream được đọc thay vì glob cả cây, vì một repository
-có thể chứa nhiều Component hơn số nó thực sự ship: `mattpocock/skills` có 38
-tệp `SKILL.md` nhưng chỉ ship 25.
+```yaml
+spec:
+  discovery:
+    strategy: convention
+```
 
-Cấu hình discovery không được chứa mapping Capability mang tính ngữ nghĩa.
+| `strategy` | Nguồn danh sách | `manifest:` |
+|---|---|---|
+| `manifest` | các mảng trong plugin manifest upstream | bắt buộc |
+| `convention` | layout plugin trên đĩa | tuỳ chọn, chỉ để lấy version |
+
+`manifest` tồn tại vì một repository có thể chứa nhiều Component hơn số nó
+thực sự ship: `mattpocock/skills` có 38 tệp `SKILL.md` nhưng chỉ ship 25. Dù
+vậy đó là thiểu số — năm trên sáu hệ sinh thái tham chiếu trong `README.md`
+không liệt kê component nào và phải dùng `convention`.
+
+Không có giá trị mặc định và không có fallback giữa hai chiến lược. Một
+`manifest` mà manifest không liệt kê gì sẽ fail với `DISCOVERY_EMPTY` thay vì
+resolve ra không Component nào.
+
+`convention` đọc layout ở §21a. Cấu hình discovery không được chứa mapping
+Capability mang tính ngữ nghĩa.
 
 ---
 
@@ -582,6 +601,7 @@ spec:
     ref: c55ee46073ed923f86ce59a5eb3b6d895095d1b7
 
   discovery:
+    strategy: manifest
     manifest: .claude-plugin/plugin.json
 
   targets:
@@ -597,6 +617,26 @@ do người curate khai báo, không bao giờ suy ra từ nội dung Component.
 
 ---
 
+# 21a. Layout của Component
+
+Mỗi type Component chiếm một slot riêng, và hai hình dạng khác nhau:
+
+```text
+skills/<name>/SKILL.md     skill      một thư mục, ship nguyên cả thư mục
+agents/<name>.md           agent      một tệp phẳng
+commands/<name>.md         command    một tệp phẳng
+```
+
+`hooks/` và `.mcp.json` là bề mặt kích hoạt ở cấp Package, không phải Component
+chọn được. Discovery báo cáo chúng để Policy có thể cấm; ADR 0010 D5 giữ chúng
+ngoài projection của `collection` ở V1.
+
+Tên Component phải là duy nhất xuyên các type trong cùng một Package. Va tên
+làm discovery fail với `DUPLICATE_COMPONENT`, thay vì type này ghi đè type kia
+(§58).
+
+---
+
 # 22. Các field bắt buộc của Package
 
 Một Package phải định nghĩa:
@@ -609,6 +649,7 @@ spec.publisher
 spec.materialization
 spec.source
 spec.discovery
+spec.discovery.strategy
 ```
 
 ---
