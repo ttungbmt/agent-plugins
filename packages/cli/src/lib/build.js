@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto'
-import {cpSync, linkSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs'
+import {cpSync, linkSync, mkdirSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync} from 'node:fs'
 import {basename, dirname, join, relative, resolve} from 'node:path'
 
 /**
@@ -55,6 +55,12 @@ export function marketplaceName(projectRootDir) {
 export const MATERIALIZE_MODES = ['symlink', 'hardlink', 'copy']
 
 function hardlinkTree(from, to) {
+  // An agent or a command is a single .md, not a directory (ADR 0013 D2).
+  if (statSync(from).isFile()) {
+    linkSync(from, to)
+    return
+  }
+
   mkdirSync(to, {recursive: true})
   for (const entry of readdirSync(from, {withFileTypes: true})) {
     const source = join(from, entry.name)
@@ -108,11 +114,14 @@ function materialize(mode, from, to) {
  * either. Materialising and, worse, spawning `claude plugin` subprocesses cost
  * three orders of magnitude more.
  */
-export function computeVersion({components, included, snapshotDir, upstreamVersion}) {
+export function computeVersion({components, included, upstreamVersion}) {
   const digest = createHash('sha256')
   for (const name of [...included].sort()) {
-    digest.update(name)
-    digest.update(readFileSync(join(snapshotDir, components.get(name).sourcePath, 'SKILL.md')))
+    const {raw, type} = components.get(name)
+    // Type is part of the identity: moving a Component from skills/ to agents/
+    // changes how it activates even if its bytes are untouched.
+    digest.update(`${type}:${name}`)
+    digest.update(raw)
   }
 
   return `${upstreamVersion}+${digest.digest('hex').slice(0, 12)}`
@@ -141,17 +150,24 @@ export function buildMarketplace({
   mkdirSync(join(marketplace, '.claude-plugin'), {recursive: true})
   mkdirSync(join(pluginRoot, '.claude-plugin'), {recursive: true})
 
-  const shipped = []
+  // Each type lands in its own slot, and a flat .md keeps its extension —
+  // Claude Code reads agents/<name>.md and skills/<name>/SKILL.md (ADR 0013 D2).
+  const SLOTS = {agent: {dir: 'agents', flat: true}, command: {dir: 'commands', flat: true}, skill: {dir: 'skills'}}
+
+  const shipped = {}
   const usedModes = new Set()
   for (const componentName of names) {
-    const {sourcePath} = components.get(componentName)
-    // sourcePath comes from the upstream plugin.json and already starts with
+    const {sourcePath, type} = components.get(componentName)
+    const slot = SLOTS[type]
+    if (!slot) throw new Error(`COMPONENT_ACTIVATION_UNSUPPORTED: "${componentName}" is a ${type}`)
+
+    // sourcePath may come from the upstream plugin.json and already start with
     // "./", so normalise rather than concatenate or the manifest ends up with
     // "././skills/...".
+    const leaf = slot.flat ? `${componentName}.md` : componentName
     const from = join(snapshotDir, relative('.', sourcePath))
-    const to = join(pluginRoot, 'skills', componentName)
-    usedModes.add(materialize(mode, from, to))
-    shipped.push(`./skills/${componentName}`)
+    usedModes.add(materialize(mode, from, join(pluginRoot, slot.dir, leaf)))
+    ;(shipped[slot.dir] ??= []).push(`./${slot.dir}/${leaf}`)
   }
 
   writeFileSync(
@@ -160,7 +176,7 @@ export function buildMarketplace({
       {
         description: `Projection of ${packageId} — ${names.length}/${components.size} components`,
         name: packageId,
-        skills: shipped,
+        ...shipped,
         version,
       },
       null,

@@ -12,11 +12,8 @@ spec:
     ref: 0123456789abcdef0123456789abcdef01234567
   discovery:
     strategy: manifest
-    manifest: .claude-plugin/plugin.json
   targets:
     - claude-code
   components:
     tdd:
       requires: [codebase-design]
-    codebase-design:
-      requires: [tdd]

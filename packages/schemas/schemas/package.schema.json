@@ -44,14 +44,24 @@
           }
         },
         "discovery": {
+          "description": "How the upstream's Components are found. ADR 0013 D1: declared per Package, with no fallback between strategies.",
           "type": "object",
           "additionalProperties": false,
-          "required": ["manifest"],
+          "required": ["strategy"],
           "properties": {
+            "strategy": {
+              "description": "`manifest` reads the arrays in the upstream plugin manifest; mattpocock/skills carries 38 SKILL.md but ships 25, so its tree is not its shipping list. `convention` reads the plugin layout instead — five of the six reference ecosystems in README.md carry no component arrays at all. There is no default and no fallback: a manifest that enumerates nothing fails rather than resolving to zero.",
+              "enum": ["manifest", "convention"]
+            },
             "manifest": {
-              "description": "Path to the upstream plugin manifest, read instead of globbing. source.js:113 throws when absent. Measured need: mattpocock/skills carries 38 SKILL.md but ships 25.",
+              "description": "Path to the upstream plugin manifest. Required by `strategy: manifest`; under `convention` it is optional and read only for the upstream version.",
               "$ref": "common.schema.json#/definitions/nonEmptyString"
             }
+          },
+          "if": {"properties": {"strategy": {"const": "manifest"}}, "required": ["strategy"]},
+          "then": {
+            "required": ["manifest"],
+            "properties": {"manifest": {"$ref": "common.schema.json#/definitions/nonEmptyString"}}
           }
         },
         "targets": {

@@ -1,6 +1,6 @@
 import {execFileSync} from 'node:child_process'
 import {chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync} from 'node:fs'
-import {join, resolve} from 'node:path'
+import {basename, join, resolve} from 'node:path'
 
 import {addRoot, forceRemove} from './store.js'
 
@@ -104,12 +104,78 @@ function makeReadOnly(path) {
 }
 
 /**
+ * The Claude Code plugin layout, and how each slot shapes a Component on disk.
+ *
+ * A skill is a DIRECTORY carrying SKILL.md plus its supporting files; an agent
+ * or a command is a single flat .md. `sourcePath` therefore points at whichever
+ * of the two a Component actually is, and build.js has to tell them apart.
+ */
+const LAYOUTS = [
+  {dir: 'skills', entry: 'SKILL.md', type: 'skill'},
+  {dir: 'agents', type: 'agent'},
+  {dir: 'commands', type: 'command'},
+]
+
+/** Package-level activation surfaces Policy can forbid (ADR 0010 D5). */
+const EXECUTABLES = [
+  {key: 'hooks', path: 'hooks', type: 'hook'},
+  {key: 'mcpServers', path: '.mcp.json', type: 'mcp'},
+  {key: 'lspServers', type: 'lsp'},
+]
+
+/** `name:` from the frontmatter, falling back to the path — never the body. */
+function parseComponent(raw, fallbackName) {
+  const match = raw.match(/^---\n([\s\S]*?)\n---\n?/)
+  const frontmatter = match ? match[1] : ''
+  return {
+    body: match ? raw.slice(match[0].length) : raw,
+    name: frontmatter.match(/^name:\s*(.+)$/m)?.[1]?.trim() ?? fallbackName,
+    // The exact bytes on disk. build.js digests these rather than re-reading,
+    // which keeps computeVersion pure and works for a flat agent .md as well
+    // as a skill directory.
+    raw,
+  }
+}
+
+function add(components, entry, packageId) {
+  const existing = components.get(entry.name)
+  if (existing) {
+    // catalog-spec.md:1396 — discovery fails on a collision rather than
+    // overwriting. Unreachable until ADR 0013 D2 made types real, because
+    // everything used to be a skill in one flat namespace.
+    throw new Error(
+      `DUPLICATE_COMPONENT: "${entry.name}" is both ${existing.type} and ${entry.type} in ${packageId}`,
+    )
+  }
+
+  components.set(entry.name, entry)
+}
+
+/**
  * Read the Components a Package actually ships.
  *
- * We read the upstream plugin manifest rather than globbing the tree:
- * mattpocock/skills carries 38 SKILL.md but ships only 25.
+ * Two strategies, declared per Package, with no fallback between them
+ * (ADR 0013 D1):
+ *
+ *   manifest    the upstream plugin manifest enumerates them. mattpocock/skills
+ *               carries 38 SKILL.md and ships 25, so its tree is not its
+ *               shipping list.
+ *   convention  the documented plugin layout is the list. Five of the six
+ *               reference ecosystems in README.md carry no component arrays at
+ *               all — superpowers, frontend-design, code-simplifier,
+ *               security-guidance and wshobson/agents.
+ *
+ * Reading a manifest that enumerates nothing is an error, not an empty result:
+ * that case used to install an empty projection and report success.
  */
 export function readComponents(pkg, snapshotDir) {
+  const strategy = pkg.spec.discovery?.strategy
+  if (strategy === 'manifest') return fromManifest(pkg, snapshotDir)
+  if (strategy === 'convention') return fromConvention(pkg, snapshotDir)
+  throw new Error(`package "${pkg.metadata.id}" has no spec.discovery.strategy`)
+}
+
+function fromManifest(pkg, snapshotDir) {
   const manifestRel = pkg.spec.discovery?.manifest
   if (!manifestRel) {
     throw new Error(`package "${pkg.metadata.id}" has no spec.discovery.manifest`)
@@ -117,17 +183,64 @@ export function readComponents(pkg, snapshotDir) {
 
   const manifest = JSON.parse(readFileSync(join(snapshotDir, manifestRel), 'utf8'))
   const components = new Map()
+  let enumerated = false
 
-  for (const rel of manifest.skills ?? []) {
-    const skillPath = join(snapshotDir, rel, 'SKILL.md')
-    const raw = readFileSync(skillPath, 'utf8')
-    const match = raw.match(/^---\n([\s\S]*?)\n---\n?/)
-    const frontmatter = match ? match[1] : ''
-    const body = match ? raw.slice(match[0].length) : raw
-    const name = frontmatter.match(/^name:\s*(.+)$/m)?.[1]?.trim() ?? rel.split('/').pop()
+  for (const {dir, entry, type} of LAYOUTS) {
+    const listed = manifest[dir]
+    if (!Array.isArray(listed)) continue
+    enumerated = true
 
-    components.set(name, {body, name, sourcePath: rel, type: 'skill'})
+    for (const rel of listed) {
+      const path = entry ? join(snapshotDir, rel, entry) : join(snapshotDir, rel)
+      const fallback = basename(rel, '.md')
+      add(components, {...parseComponent(readFileSync(path, 'utf8'), fallback), sourcePath: rel, type}, pkg.metadata.id)
+    }
   }
 
-  return {components, upstreamVersion: manifest.version ?? '0.0.0'}
+  if (!enumerated) {
+    throw new Error(
+      `DISCOVERY_EMPTY: "${manifestRel}" of ${pkg.metadata.id} enumerates no components ` +
+        '(use spec.discovery.strategy: convention if the upstream discovers by layout)',
+    )
+  }
+
+  const executables = new Set(EXECUTABLES.filter((e) => manifest[e.key]).map((e) => e.type))
+  return {components, executables, upstreamVersion: manifest.version ?? '0.0.0'}
+}
+
+function fromConvention(pkg, snapshotDir) {
+  const components = new Map()
+
+  for (const {dir, entry, type} of LAYOUTS) {
+    const root = join(snapshotDir, dir)
+    if (!existsSync(root)) continue
+
+    for (const item of readdirSync(root, {withFileTypes: true}).sort((a, b) => a.name.localeCompare(b.name))) {
+      // A skill is `skills/<name>/SKILL.md`; an agent is `agents/<name>.md`.
+      // Anything of the wrong shape is supporting material, not a Component.
+      const relative = entry ? join(dir, item.name) : join(dir, item.name)
+      const path = entry ? join(root, item.name, entry) : join(root, item.name)
+      if (entry ? !item.isDirectory() || !existsSync(path) : !item.isFile() || !item.name.endsWith('.md')) continue
+
+      const fallback = entry ? item.name : basename(item.name, '.md')
+      add(
+        components,
+        {...parseComponent(readFileSync(path, 'utf8'), fallback), sourcePath: relative, type},
+        pkg.metadata.id,
+      )
+    }
+  }
+
+  const executables = new Set(
+    EXECUTABLES.filter((e) => e.path && existsSync(join(snapshotDir, e.path))).map((e) => e.type),
+  )
+
+  // The manifest is not the shipping list here, but it still carries a version.
+  const manifestRel = pkg.spec.discovery?.manifest ?? '.claude-plugin/plugin.json'
+  const manifestPath = join(snapshotDir, manifestRel)
+  const version = existsSync(manifestPath)
+    ? (JSON.parse(readFileSync(manifestPath, 'utf8')).version ?? '0.0.0')
+    : '0.0.0'
+
+  return {components, executables, upstreamVersion: version}
 }

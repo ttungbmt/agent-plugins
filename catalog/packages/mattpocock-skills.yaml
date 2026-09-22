@@ -13,6 +13,7 @@ spec:
     # Immutable ref. security-model.md:831-835 forbids `main`/`latest`/`HEAD`.
     ref: c55ee46073ed923f86ce59a5eb3b6d895095d1b7
   discovery:
+    strategy: manifest
     # Read the upstream plugin manifest, do NOT glob skills/**.
     # The repo carries 38 SKILL.md but ships only 25.
     manifest: .claude-plugin/plugin.json

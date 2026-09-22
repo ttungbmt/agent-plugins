@@ -1,6 +1,3 @@
-import {readFileSync} from 'node:fs'
-import {join} from 'node:path'
-
 import {loadCatalog, loadManifest} from './catalog.js'
 import {requiresClosure} from './closure.js'
 import {distributionRoot, projectPaths, projectRoot, sourceStore} from './paths.js'
@@ -13,8 +10,17 @@ import {ensureSnapshot, readComponents} from './source.js'
  * The default V1 policy denies hook/mcp/lsp outright. That keeps
  * security-model.md:1904 ("V1 MUST NOT execute arbitrary package hooks") true
  * as written, instead of requiring it to be weakened.
+ *
+ * Until ADR 0013 D2 gave Components a real type, every one of them was labelled
+ * `skill`, so every rule here but `skill` was unreachable — `agent: deny` and
+ * `agent: allow` meant the same nothing. `executables` is discovered rather
+ * than read from the manifest for the same reason: under
+ * `strategy: convention` there is no manifest to declare them, and
+ * security-guidance ships hooks/ while declaring nothing at all.
+ *
+ * Pure: everything it judges has already been read off disk by readComponents.
  */
-function applyPolicy(policy, components, included, snapshotDir, manifestRel) {
+export function applyPolicy(policy, components, included, executables) {
   const rules = policy?.spec?.componentTypes ?? {}
   const denied = []
 
@@ -23,11 +29,8 @@ function applyPolicy(policy, components, included, snapshotDir, manifestRel) {
     if (rules[type] === 'deny') denied.push(`${name} (${type})`)
   }
 
-  const upstream = JSON.parse(readFileSync(join(snapshotDir, manifestRel), 'utf8'))
-  for (const [key, type] of [['hooks', 'hook'], ['mcpServers', 'mcp'], ['lspServers', 'lsp']]) {
-    if (upstream[key] && rules[type] === 'deny') {
-      denied.push(`package-level ${key}`)
-    }
+  for (const type of executables) {
+    if (rules[type] === 'deny') denied.push(`package-level ${type}`)
   }
 
   if (denied.length > 0) {
@@ -58,7 +61,7 @@ export function plan() {
 
   const snapshot = ensureSnapshot(pkg, sourceStore(), paths.root)
   const snapshotDir = snapshot.dir
-  const {components, upstreamVersion} = readComponents(pkg, snapshotDir)
+  const {components, executables, upstreamVersion} = readComponents(pkg, snapshotDir)
 
   const seeds = [...selections.values()].map((s) => s.component)
   for (const seed of seeds) {
@@ -72,7 +75,7 @@ export function plan() {
   const policyId = manifest.spec?.policy ?? 'default'
   const policy = catalog.policies.get(policyId)
   if (!policy) throw new Error(`unknown policy "${policyId}"`)
-  applyPolicy(policy, components, included, snapshotDir, pkg.spec.discovery.manifest)
+  applyPolicy(policy, components, included, executables)
 
   return {
     capabilities,

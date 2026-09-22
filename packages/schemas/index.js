@@ -61,11 +61,16 @@ export function validateManifest(kind, doc) {
 
   if (validator(doc)) return []
 
-  return validator.errors.map((error) => ({
-    code: codeFor(error, kind),
-    field: fieldPath(error),
-    message: describe(error),
-  }))
+  return validator.errors
+    // An `if` failure never stands alone — Ajv always reports the real cause
+    // from the matching `then` beside it. Surfacing both turns one problem
+    // into two diagnostics, the second of which names no actionable field.
+    .filter((error) => error.keyword !== 'if')
+    .map((error) => ({
+      code: codeFor(error, kind),
+      field: fieldPath(error),
+      message: describe(error),
+    }))
 }
 
 function fieldPath(error) {

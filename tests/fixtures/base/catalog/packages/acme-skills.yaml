@@ -11,6 +11,7 @@ spec:
     url: https://github.com/acme/skills.git
     ref: 0123456789abcdef0123456789abcdef01234567
   discovery:
+    strategy: manifest
     manifest: .claude-plugin/plugin.json
   targets:
     - claude-code

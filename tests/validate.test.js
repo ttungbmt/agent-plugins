@@ -60,6 +60,12 @@ describe('catalog validation', () => {
     assert.deepEqual(check('no-manifest').codes, ['MISSING_FIELD'])
   })
 
+  // ADR 0013 D1 — `strategy: manifest` without a path to read is the one
+  // combination the enum alone cannot reject; the schema's if/then does.
+  it('rejects the manifest strategy with no manifest path', () => {
+    assert.deepEqual(check('strategy-without-manifest').codes, ['MISSING_FIELD'])
+  })
+
   // ADR 0010 D2 defines `ecosystem`; build.js always filters to the closure,
   // so accepting the value would install the wrong thing silently.
   it('rejects an unimplemented materialization mode', () => {

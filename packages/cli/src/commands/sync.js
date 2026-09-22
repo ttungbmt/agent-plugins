@@ -34,7 +34,6 @@ export default class Sync extends Command {
     const version = computeVersion({
       components: p.components,
       included: p.included,
-      snapshotDir: p.snapshotDir,
       upstreamVersion: p.upstreamVersion,
     })
 
