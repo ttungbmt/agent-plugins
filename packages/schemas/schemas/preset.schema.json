@@ -31,11 +31,65 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "presets": { "$ref": "#/$defs/presetRefs" },
         "marketplaces": {
-          "description": "Marketplaces to register, as `owner/repo`.",
-          "type": "array",
-          "uniqueItems": true,
-          "items": { "$ref": "#/$defs/marketplaceSource" }
+          "description": "Marketplaces to register. Accepts a list of `owner/repo` strings, or a `name: { source }` map in the `extraKnownMarketplaces` format.",
+          "oneOf": [
+            {
+              "title": "Marketplace source list",
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/marketplaceSource" },
+              "examples": [["anthropics/claude-plugins-official"]]
+            },
+            {
+              "title": "Marketplace map",
+              "type": "object",
+              "propertyNames": { "$ref": "#/$defs/name" },
+              "additionalProperties": { "$ref": "#/$defs/marketplaceEntry" },
+              "examples": [
+                {
+                  "claude-plugins-official": {
+                    "source": {
+                      "source": "github",
+                      "repo": "anthropics/claude-plugins-official"
+                    },
+                    "autoUpdate": true
+                  },
+                  "security-plugins": {
+                    "source": {
+                      "source": "git",
+                      "url": "https://git.example.com/security/plugins.git"
+                    }
+                  },
+                  "internal-tools": {
+                    "source": {
+                      "source": "url",
+                      "url": "https://plugins.example.com/marketplace.json"
+                    }
+                  },
+                  "local-file": {
+                    "source": { "source": "file", "path": "./marketplace.json" }
+                  },
+                  "local-dev": {
+                    "source": { "source": "directory", "path": "./plugins" }
+                  },
+                  "team-tools": {
+                    "source": {
+                      "source": "settings",
+                      "name": "team-tools",
+                      "plugins": [
+                        {
+                          "name": "code-formatter",
+                          "source": { "source": "github", "repo": "acme-corp/code-formatter" }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
         },
         "plugins": {
           "description": "Plugins to install. Accepts a `name@marketplace: enabled` map, a list of `name@marketplace` strings, or a list of `{name, marketplace, enabled}` objects.",
@@ -102,6 +156,20 @@
     }
   },
   "$defs": {
+    "presetRefs": {
+      "description": "Presets to inherit, merged in order. A bare name is a built-in preset; `./` or `../` is a file relative to this one; `https://` is a remote preset pinned by content hash in agent-plugins.lock.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "anyOf": [
+          { "$ref": "#/$defs/name" },
+          { "pattern": "^\\.\\.?/" },
+          { "pattern": "^https://" }
+        ]
+      },
+      "examples": [["base", "./presets/team.yaml", "https://example.com/presets/shared.yaml"]]
+    },
     "name": {
       "type": "string",
       "description": "Kebab-case identifier.",
@@ -112,6 +180,317 @@
       "description": "GitHub repository of a marketplace, as `owner/repo`.",
       "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
       "examples": ["anthropics/claude-plugins-official"]
+    },
+    "marketplaceEntry": {
+      "type": "object",
+      "description": "Marketplace entry, as in Claude Code's `extraKnownMarketplaces` setting.",
+      "required": ["source"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "$ref": "#/$defs/marketplaceSourceObject" },
+        "autoUpdate": {
+          "type": "boolean",
+          "description": "Refresh the marketplace and update its installed plugins in the background after startup. When omitted, official Anthropic marketplaces default to `true` and third-party marketplaces to `false`."
+        }
+      },
+      "examples": [
+        {
+          "source": { "source": "github", "repo": "anthropics/claude-plugins-official" },
+          "autoUpdate": true
+        }
+      ]
+    },
+    "marketplaceSourceObject": {
+      "description": "Where to fetch a marketplace from, discriminated by `source`.",
+      "oneOf": [
+        {
+          "title": "GitHub",
+          "type": "object",
+          "description": "A GitHub repository.",
+          "required": ["source", "repo"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "github" },
+            "repo": { "$ref": "#/$defs/marketplaceSource" },
+            "ref": { "$ref": "#/$defs/gitRef" },
+            "path": { "$ref": "#/$defs/marketplaceJsonPath" },
+            "skipLfs": { "$ref": "#/$defs/skipLfs" }
+          },
+          "examples": [
+            { "source": "github", "repo": "anthropics/claude-plugins-official" },
+            { "source": "github", "repo": "acme-corp/claude-plugins", "ref": "v1.0.0" },
+            { "source": "github", "repo": "acme-corp/monorepo", "path": "plugins/.claude-plugin/marketplace.json" }
+          ]
+        },
+        {
+          "title": "Git",
+          "type": "object",
+          "description": "Any git repository, including self-hosted GitLab and Bitbucket. Cloned with the machine's git credentials.",
+          "required": ["source", "url"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "git" },
+            "url": { "type": "string", "description": "Full git repository URL." },
+            "ref": { "$ref": "#/$defs/gitRef" },
+            "path": { "$ref": "#/$defs/marketplaceJsonPath" },
+            "skipLfs": { "$ref": "#/$defs/skipLfs" }
+          },
+          "examples": [
+            { "source": "git", "url": "https://git.example.com/security/plugins.git" },
+            { "source": "git", "url": "https://git.example.com/security/plugins.git", "ref": "release" },
+            {
+              "source": "git",
+              "url": "git@gitlab.example.com:acme/plugins.git",
+              "ref": "v2.0.0",
+              "path": "marketplace/.claude-plugin/marketplace.json"
+            }
+          ]
+        },
+        {
+          "title": "URL",
+          "type": "object",
+          "description": "A direct URL to a `marketplace.json` file.",
+          "required": ["source", "url"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "url" },
+            "url": { "type": "string", "format": "uri", "description": "Direct URL to the `marketplace.json` file." },
+            "headers": { "$ref": "#/$defs/headers" },
+            "headersHelper": { "$ref": "#/$defs/headersHelper" }
+          },
+          "examples": [
+            { "source": "url", "url": "https://plugins.example.com/marketplace.json" },
+            {
+              "source": "url",
+              "url": "https://plugins.example.com/marketplace.json",
+              "headers": { "Authorization": "Bearer ${TOKEN}" }
+            },
+            {
+              "source": "url",
+              "url": "https://plugins.example.com/marketplace.json",
+              "headersHelper": "/opt/bin/mint-token.sh"
+            }
+          ]
+        },
+        {
+          "title": "File",
+          "type": "object",
+          "description": "A local `marketplace.json` file.",
+          "required": ["source", "path"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "file" },
+            "path": { "type": "string", "description": "Local path to the `marketplace.json` file." }
+          },
+          "examples": [{ "source": "file", "path": "./marketplace.json" }]
+        },
+        {
+          "title": "Directory",
+          "type": "object",
+          "description": "A local directory. For development only.",
+          "required": ["source", "path"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "directory" },
+            "path": { "type": "string", "description": "Local directory containing `.claude-plugin/marketplace.json`." }
+          },
+          "examples": [{ "source": "directory", "path": "./plugins" }]
+        },
+        {
+          "title": "Settings",
+          "type": "object",
+          "description": "An inline marketplace declared without a hosted repository. Plugins still need enabling separately.",
+          "required": ["source", "name", "plugins"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "settings" },
+            "name": {
+              "$ref": "#/$defs/name",
+              "description": "Name of the inline marketplace. Must match the marketplace key."
+            },
+            "plugins": {
+              "type": "array",
+              "description": "Plugins declared inline.",
+              "items": { "$ref": "#/$defs/inlinePlugin" }
+            }
+          },
+          "examples": [
+            {
+              "source": "settings",
+              "name": "team-tools",
+              "plugins": [
+                {
+                  "name": "code-formatter",
+                  "source": { "source": "github", "repo": "acme-corp/code-formatter", "ref": "v2.1.0" }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "inlinePlugin": {
+      "type": "object",
+      "description": "Plugin declared inline in a `settings` marketplace. Must reference an external source.",
+      "required": ["name", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/name", "description": "Plugin name." },
+        "source": { "$ref": "#/$defs/pluginSourceObject" },
+        "headers": { "$ref": "#/$defs/headers" },
+        "headersHelper": { "$ref": "#/$defs/headersHelper" }
+      },
+      "examples": [
+        { "name": "code-formatter", "source": { "source": "github", "repo": "acme-corp/code-formatter" } },
+        {
+          "name": "my-plugin",
+          "source": {
+            "source": "archive",
+            "url": "https://registry.example.com/plugins/my-plugin-2.1.0.zip"
+          },
+          "headers": { "X-Registry-Org": "acme" },
+          "headersHelper": "/opt/bin/mint-registry-token.sh"
+        }
+      ]
+    },
+    "pluginSourceObject": {
+      "description": "External source a plugin is fetched from, discriminated by `source`.",
+      "oneOf": [
+        {
+          "title": "GitHub",
+          "type": "object",
+          "required": ["source", "repo"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "github" },
+            "repo": { "$ref": "#/$defs/marketplaceSource", "description": "GitHub repository, as `owner/repo`." },
+            "ref": { "$ref": "#/$defs/gitRef" },
+            "sha": { "$ref": "#/$defs/gitSha" }
+          },
+          "examples": [
+            { "source": "github", "repo": "acme-corp/code-formatter", "ref": "v2.1.0" },
+            { "source": "github", "repo": "acme-corp/code-formatter", "sha": "0123456789abcdef0123456789abcdef01234567" }
+          ]
+        },
+        {
+          "title": "Git URL",
+          "type": "object",
+          "required": ["source", "url"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "url" },
+            "url": { "type": "string", "description": "Full git repository URL (`https://` or `git@`). The `.git` suffix is optional." },
+            "ref": { "$ref": "#/$defs/gitRef" },
+            "sha": { "$ref": "#/$defs/gitSha" }
+          },
+          "examples": [
+            { "source": "url", "url": "https://gitlab.example.com/acme/linter.git", "ref": "v1.4.0" },
+            {
+              "source": "url",
+              "url": "https://gitlab.example.com/acme/linter.git",
+              "sha": "0123456789abcdef0123456789abcdef01234567"
+            }
+          ]
+        },
+        {
+          "title": "Git subdirectory",
+          "type": "object",
+          "required": ["source", "url", "path"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "git-subdir" },
+            "url": { "type": "string", "description": "Git repository URL, GitHub `owner/repo` shorthand, or SSH URL." },
+            "path": { "type": "string", "description": "Subdirectory within the repo containing the plugin. Cloned sparsely.", "examples": ["tools/claude-plugin"] },
+            "ref": { "$ref": "#/$defs/gitRef" },
+            "sha": { "$ref": "#/$defs/gitSha" }
+          },
+          "examples": [
+            {
+              "source": "git-subdir",
+              "url": "https://gitlab.example.com/acme/monorepo.git",
+              "path": "tools/linter",
+              "sha": "0123456789abcdef0123456789abcdef01234567"
+            },
+            {
+              "source": "git-subdir",
+              "url": "acme-corp/monorepo",
+              "path": "tools/claude-plugin",
+              "ref": "v3.0.0"
+            }
+          ]
+        },
+        {
+          "title": "npm",
+          "type": "object",
+          "required": ["source", "package"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "npm" },
+            "package": { "type": "string", "description": "Package name, optionally scoped.", "examples": ["@org/plugin"] },
+            "version": { "type": "string", "description": "Version or version range.", "examples": ["2.1.0", "^2.0.0"] },
+            "registry": { "type": "string", "format": "uri", "description": "Custom npm registry URL." }
+          },
+          "examples": [
+            { "source": "npm", "package": "@acme/claude-plugin" },
+            {
+              "source": "npm",
+              "package": "@acme/claude-plugin",
+              "version": "^2.0.0",
+              "registry": "https://npm.example.com"
+            }
+          ]
+        },
+        {
+          "title": "Archive",
+          "type": "object",
+          "description": "Zip archive downloaded over HTTPS. Requires Claude Code v2.1.224 or later.",
+          "required": ["source", "url"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "archive" },
+            "url": { "type": "string", "format": "uri", "pattern": "^https://", "description": "HTTPS URL of the zip archive." },
+            "sha256": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$", "description": "SHA-256 digest of the archive, as 64 hex characters." }
+          },
+          "examples": [
+            {
+              "source": "archive",
+              "url": "https://registry.example.com/plugins/my-plugin-2.1.0.zip",
+              "sha256": "6bfa50e3d2e00c052b46abe51fff89346ac803e45771f76dcf6df1ab74cca5e1"
+            }
+          ]
+        }
+      ]
+    },
+    "gitRef": {
+      "type": "string",
+      "description": "Git branch or tag. Defaults to the repository's default branch.",
+      "examples": ["main", "v1.0.0"]
+    },
+    "gitSha": {
+      "type": "string",
+      "description": "Full 40-character git commit SHA to pin to.",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "marketplaceJsonPath": {
+      "type": "string",
+      "description": "Path to `marketplace.json` within the repo. Defaults to `.claude-plugin/marketplace.json`."
+    },
+    "skipLfs": {
+      "type": "boolean",
+      "description": "Accepted but has no effect since Claude Code v2.1.274, which never downloads Git LFS content for marketplaces.",
+      "deprecated": true
+    },
+    "headers": {
+      "type": "object",
+      "description": "HTTP headers sent with the download, such as `Authorization`.",
+      "additionalProperties": { "type": "string" },
+      "examples": [{ "Authorization": "Bearer <token>" }]
+    },
+    "headersHelper": {
+      "type": "string",
+      "description": "Command that prints a JSON object of headers, for short-lived credentials. Requires Claude Code v2.1.238 or later.",
+      "maxLength": 500,
+      "examples": ["/opt/bin/mint-registry-token.sh"]
     },
     "pluginRef": {
       "type": "string",

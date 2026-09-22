@@ -1,0 +1,8 @@
+{
+  "name": "presets",
+  "version": "1.0.0",
+  "description": "Preset mặc định đi kèm CLI `ap`, tham chiếu bằng tên trần trong `spec.presets`.",
+  "type": "module",
+  "files": ["*.yaml"],
+  "license": "ISC"
+}

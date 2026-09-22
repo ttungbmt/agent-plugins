@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ttungbmt/agent-plugins/packages/schemas/schemas/config.schema.json",
+  "title": "Config",
+  "description": "agent-plugins.yaml: the single entry point `ap` reads. Selects presets and may declare its own marketplaces, which override presets.",
+  "type": "object",
+  "required": ["kind", "metadata", "spec"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "description": "Resource kind. Always `Config`.",
+      "const": "Config"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "preset.schema.json#/$defs/name" },
+        "description": { "type": "string" }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "presets": { "$ref": "preset.schema.json#/$defs/presetRefs" },
+        "marketplaces": { "$ref": "preset.schema.json#/properties/spec/properties/marketplaces" }
+      }
+    }
+  }
+}

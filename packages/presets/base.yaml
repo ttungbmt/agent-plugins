@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=../schemas/schemas/preset.schema.json
+
+kind: Preset
+
+metadata:
+  name: base
+
+spec:
+  marketplaces:
+    - anthropics/claude-plugins-official

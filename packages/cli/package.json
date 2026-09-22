@@ -2,16 +2,35 @@
   "name": "cli",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "type": "module",
+  "bin": {
+    "ap": "./bin/run.js"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "oclif": {
+    "bin": "ap",
+    "dirname": "ap",
+    "commands": "./dist/commands"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@oclif/core": "^5.0.0",
+    "yaml": "^2.9.1",
+    "presets": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
-  "type": "module",
-  "devDependencies": {
-    "@oclif/core": "^5.0.0",
-    "yaml": "^2.9.1"
-  }
+  "license": "ISC"
 }
