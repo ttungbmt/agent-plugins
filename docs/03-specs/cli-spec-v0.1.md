@@ -1,6 +1,19 @@
 # Agent Plugins CLI Cheatsheet
 
-**Status:** Archived — describes a retired design (the `Source` entity, `catalog/sources/`, `dist/` output). Superseded by `docs/03-specs/` and ADR 0010. Kept for history; do not treat as current.
+**Status:** Archived — describes a retired design (Gen 2: the `Source` entity, `catalog/sources/`, `dist/` output). Superseded by `cli-spec.md`, `docs/01-domain/` and ADR 0010/0011/0012. Kept for history; **do not treat as current.**
+
+Retired names still used below, and what they map to today:
+
+| In this file | Current design | Where |
+|---|---|---|
+| `source` command, `Source`, `catalog/sources/` | **Publisher**, `catalog/publishers/`; fetch coordinates live on `Package.spec.source` | ADR 0011 |
+| `profile` command — "Manage runtime configurations" | two separate things today: a **Role** (`roles/`, who is working) and the **Project** manifest (`agent-plugins.yaml`, which sets `spec.targets`) | ADR 0012, `manifest-spec.md` |
+| `--profile <id>` | `--role <id>`, or `spec.role` in `agent-plugins.yaml` | `role.schema.json` |
+| `--profile claude-code` | `claude-code` is a **Target**, not a Role — it belongs in `spec.targets` | `domain-model.md` section 36 |
+| `runtime` command | **Target** — a runtime is represented in the domain through a Target | `terminology.md` |
+| `dist/` output | `.agent-plugins/` generated tree | `paths.js` |
+
+The shipped commands today are `validate`, `resolve`, `sync`, `audit`, `clean`, `doctor`, `explain` and `prune`; the `source`/`profile`/`runtime` commands below were never implemented.
 
 Quick operational reference for the `agent-plugins` CLI.
 

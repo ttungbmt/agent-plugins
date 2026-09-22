@@ -9,7 +9,7 @@ Retired names still used below, and what they map to today:
 | `Source`, `catalog/sources/` | **Publisher**, `catalog/publishers/` | `publisher.schema.json`, ADR 0011 |
 | `Profile` = runtime/env config, `spec.{runtime, preset, policy}` | **Project** — `agent-plugins.yaml` with `spec.{role, presets, policy, targets}` | `manifest-spec.md:133-151` |
 | `Preset` example `software-engineer` | that is a **Role**; presets are slash-paths like `engineering/core` | `role.schema.json`, `preset.schema.json` |
-| `profiles/` | `roles/` | ADR 0004 |
+| `profiles/` | `roles/` | ADR 0012 |
 | `dist/` output | `.agent-plugins/` generated tree | `paths.js` |
 
 In the current model the four are distinct: **Role** = who is working, **Preset** = which capabilities group together, **Project** = what this repository additionally needs, **Target** = which agent runtime it is materialized into.
