@@ -17,5 +17,8 @@
     }
   },
   "packageManager": "pnpm@12.5.1",
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "cli": "workspace:*"
+  }
 }

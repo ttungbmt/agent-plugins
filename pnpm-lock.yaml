@@ -164,7 +164,11 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      cli:
+        specifier: workspace:*
+        version: link:packages/cli
 
   packages/cli:
     dependencies:
