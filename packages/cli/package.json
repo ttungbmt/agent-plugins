@@ -1,0 +1,24 @@
+{
+  "name": "@agent-plugins/cli",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "ap": "node ./bin/run.js"
+  },
+  "bin": {
+    "ap": "./bin/run.js"
+  },
+  "files": [
+    "bin",
+    "src"
+  ],
+  "oclif": {
+    "bin": "ap",
+    "dirname": "ap",
+    "commands": "./src/commands"
+  },
+  "dependencies": {
+    "@oclif/core": "^5.0.0"
+  }
+}
