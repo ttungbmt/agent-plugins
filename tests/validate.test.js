@@ -46,6 +46,12 @@ describe('catalog validation', () => {
     assert.deepEqual(check('duplicate-id').codes, ['DUPLICATE_CAPABILITY'])
   })
 
+  // manifest-spec.md:2364-2383 — an unrecognized version "must fail clearly",
+  // not under the INVALID_MANIFEST umbrella and never by best-effort parsing.
+  it('rejects an unrecognized apiVersion by name', () => {
+    assert.deepEqual(check('bad-api-version').codes, ['UNSUPPORTED_API_VERSION'])
+  })
+
   it('rejects an implementation pointing at no Package', () => {
     assert.deepEqual(check('missing-ref').codes, ['UNKNOWN_PACKAGE'])
   })

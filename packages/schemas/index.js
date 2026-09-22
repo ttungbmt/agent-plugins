@@ -40,6 +40,10 @@ function codeFor(error, kind) {
   if (error.keyword === 'required') return 'MISSING_FIELD'
 
   const path = error.instancePath
+  // manifest-spec.md:2364-2383 — "it must fail clearly", not under the generic
+  // umbrella, and never by best-effort parsing.
+  if (path === '/apiVersion') return 'UNSUPPORTED_API_VERSION'
+
   if (error.keyword === 'pattern' && path === '/metadata/id') {
     return `INVALID_${kind.toUpperCase()}_ID`
   }

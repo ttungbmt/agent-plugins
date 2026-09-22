@@ -189,10 +189,10 @@ knowing:
   `buildMarketplace` always filters to the selected closure — so declaring `ecosystem` today
   would install the wrong thing without saying so. The enum is narrowed to the one honest
   value until that path is built.
-- **`apiVersion` accepts both spellings.** Every spec document says
-  `agent-plugins.dev/v1alpha1`; every real file and `sync.js:73` say `agent-plugins/v1`.
-  They do not overlap anywhere. Settling it is an ADR, not a schema decision, so both are
-  accepted for now and `--strict` flags the legacy one.
+- **`apiVersion` accepts one value: `agent-plugins.dev/v1alpha1`.** ADR 0014 settled the
+  split. `v1` is the name manifest-spec.md:2325-2338 reserves for the end of the lifecycle
+  `v1alpha1 -> v1beta1 -> v1`, so emitting it before the V1.0 gate claimed a stability the
+  project has not reached. An unrecognized value fails with `UNSUPPORTED_API_VERSION`.
 
 ## Deviations from the specs
 

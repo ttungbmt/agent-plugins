@@ -4,8 +4,8 @@
   "title": "Shared manifest definitions",
   "definitions": {
     "apiVersion": {
-      "description": "Serialized schema version. `agent-plugins.dev/v1alpha1` is the value every spec document uses; `agent-plugins/v1` is what the CLI currently emits and every catalog file carries. Both are accepted until the divergence is settled by ADR; `ap validate --strict` reports the legacy value.",
-      "enum": ["agent-plugins/v1", "agent-plugins.dev/v1alpha1"]
+      "description": "Serialized schema version. `v1` is the stable milestone manifest-spec.md:2325-2338 reserves for the end of the lifecycle v1alpha1 -> v1beta1 -> v1, so the alpha value is the honest one until the V1.0 gate is met (ADR 0014). An unrecognized value fails with UNSUPPORTED_API_VERSION rather than being parsed best-effort.",
+      "enum": ["agent-plugins.dev/v1alpha1"]
     },
     "publisherId": {
       "description": "Lowercase kebab-case, globally unique within the Catalog (catalog-spec.md:286-308).",

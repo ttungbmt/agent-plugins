@@ -182,6 +182,7 @@ Accepted ADRs:
 - [`0011-publisher-terminology.md`](./decisions/adr/0011-publisher-terminology.md) — the `Provider` entity becomes `Publisher` and the word "provider" is retired; fetch coordinates stay on `Package.spec.source` and the access mechanism stays an enum, not an entity.
 - [`0012-role-terminology.md`](./decisions/adr/0012-role-terminology.md) — the `Profile` entity becomes `Role`, matching the word its own definition already used; `spec.profile` becomes `spec.role`.
 - [`0013-component-discovery-and-typing.md`](./decisions/adr/0013-component-discovery-and-typing.md) — discovery declares `strategy: manifest | convention`; Components carry a real `type`, so Policy's `componentTypes` stop being a false control. Closes two of ADR 0011's open questions.
+- [`0014-api-version.md`](./decisions/adr/0014-api-version.md) — `apiVersion` settles on `agent-plugins.dev/v1alpha1`; `v1` is the name reserved for the stable milestone, and `UNSUPPORTED_API_VERSION` is implemented rather than merely described.
 
 ADRs are written alongside the main documentation rather than at the end of the documentation process.
 

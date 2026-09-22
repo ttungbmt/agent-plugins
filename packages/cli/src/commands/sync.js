@@ -4,6 +4,7 @@ import {join, relative} from 'node:path'
 import {stringify} from 'yaml'
 
 import {buildMarketplace, computeVersion, marketplaceName, MATERIALIZE_MODES} from '../lib/build.js'
+import {API_VERSION} from '../lib/catalog.js'
 import {installProjection, loadedSkills} from '../lib/install.js'
 import {plan} from '../lib/pipeline.js'
 
@@ -103,7 +104,7 @@ export default class Sync extends Command {
   #writeLock(p, built) {
     const pkg = p.catalog.packages.get(p.packageId)
     const lock = {
-      apiVersion: 'agent-plugins/v1',
+      apiVersion: API_VERSION,
       kind: 'ProjectLock',
       spec: {
         capabilities: [...p.selections.entries()]

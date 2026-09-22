@@ -4,6 +4,9 @@ import {join} from 'node:path'
 import {validateManifest} from '@agent-plugins/schemas'
 import {parse} from 'yaml'
 
+/** The one accepted serialized schema version (ADR 0014 D1). */
+export const API_VERSION = 'agent-plugins.dev/v1alpha1'
+
 /** Directory -> entity kind. These six hold the authoritative domain data. */
 const SOURCES = [
   {dir: ['catalog', 'publishers'], key: 'publishers', kind: 'Publisher'},
@@ -195,6 +198,15 @@ export function loadManifest(manifestPath) {
   const doc = parse(readFileSync(manifestPath, 'utf8'))
   if (doc?.kind !== 'Project') {
     throw new Error(`${manifestPath}: expected kind Project, found ${doc?.kind}`)
+  }
+
+  // There is no project.schema.json, so this is the only validation the project
+  // manifest gets beyond its kind. manifest-spec.md:2364-2383 makes the version
+  // the one thing that must fail clearly rather than be parsed best-effort.
+  if (doc.apiVersion !== API_VERSION) {
+    throw new Error(
+      `UNSUPPORTED_API_VERSION: ${manifestPath} declares "${doc.apiVersion ?? '(none)'}", expected "${API_VERSION}"`,
+    )
   }
 
   return doc

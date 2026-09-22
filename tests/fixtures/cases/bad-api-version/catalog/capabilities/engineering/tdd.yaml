@@ -1,4 +1,4 @@
-apiVersion: agent-plugins.dev/v1alpha1
+apiVersion: agent-plugins.dev/v99
 kind: Capability
 metadata:
   id: engineering.testing.tdd
@@ -6,5 +6,5 @@ spec:
   description: Drive implementation test-first.
   cardinality: one
   implementations:
-    - package: nonexistent
+    - package: acme-skills
       component: tdd

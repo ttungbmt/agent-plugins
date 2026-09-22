@@ -1,4 +1,4 @@
-apiVersion: agent-plugins/v1
+apiVersion: agent-plugins.dev/v1alpha1
 kind: Policy
 metadata:
   id: default
