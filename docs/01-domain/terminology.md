@@ -1808,7 +1808,7 @@ Materialized
 
 | Term | Short Definition |
 |---|---|
-| Publisher | Source or publisher of Packages |
+| Publisher | The party that publishes Packages |
 | Package | Installable/distributable unit |
 | Component | Functional unit inside a Package |
 | Capability | Publisher-independent semantic ability |

@@ -1807,7 +1807,7 @@ Materialized
 
 | Thuật ngữ | Định nghĩa ngắn |
 |---|---|
-| Publisher | Nguồn hoặc nhà phát hành các Package |
+| Publisher | Bên xuất bản các Package |
 | Package | Đơn vị có thể cài đặt/phân phối |
 | Component | Đơn vị chức năng bên trong một Package |
 | Capability | Khả năng ngữ nghĩa độc lập với publisher |

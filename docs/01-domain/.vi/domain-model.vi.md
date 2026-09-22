@@ -119,7 +119,7 @@ Các ranh giới này nên được giữ tách biệt về mặt khái niệm, 
 
 ## Định nghĩa
 
-Một **Publisher** đại diện cho nguồn gốc, nhà phát hành hoặc upstream source chịu trách nhiệm cho một hoặc nhiều package.
+Một **Publisher** đại diện cho bên chịu trách nhiệm xuất bản một hoặc nhiều Package: một dự án upstream, hoặc một chủ sở hữu first-party.
 
 Một Publisher trả lời câu hỏi:
 

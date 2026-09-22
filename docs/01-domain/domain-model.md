@@ -119,7 +119,7 @@ These boundaries should remain conceptually distinct even when the implementatio
 
 ## Definition
 
-A **Publisher** represents the origin, publisher, or upstream source responsible for one or more packages.
+A **Publisher** represents the party responsible for publishing one or more Packages: an upstream project, or a first-party owner.
 
 A Publisher answers:
 
