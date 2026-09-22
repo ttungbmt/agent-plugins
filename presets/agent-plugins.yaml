@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=../packages/schemas/schemas/preset.schema.json
+
+kind: Preset
+
+metadata:
+  name: agent-plugins
+
+spec:
+    
+  marketplaces:
+    - anthropics/claude-plugins-official
+     
+  plugins:
+    context7@claude-plugins-official: true
+    claude-code-setup@claude-plugins-official: true
+    typescript-lsp@claude-plugins-official: true
+    claude-md-management@claude-plugins-official: true
+    mattpocock-skills@claude-plugins-official: true
+
+  agents:
+    - ecc-universal/typescript-reviewer
+
+  # commands:
+
+  # hooks:
+
+  mcpServers:
+    - context7
+    - github
+    - firecrawl
+
+  # lspServers:

@@ -1,0 +1,13 @@
+{
+  "name": "agent-plugins-c6a4c1e2",
+  "owner": {
+    "name": "agent-plugins"
+  },
+  "plugins": [
+    {
+      "description": "generated projection",
+      "name": "mattpocock-skills",
+      "source": "./plugins/mattpocock-skills"
+    }
+  ]
+}

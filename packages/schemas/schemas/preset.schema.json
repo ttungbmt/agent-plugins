@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ttungbmt/agent-plugins/packages/schemas/schemas/preset.schema.json",
+  "title": "Preset",
+  "description": "",
+  "type": "object",
+  "required": ["kind", "metadata", "spec"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "description": "Resource kind. Always `Preset`.",
+      "const": "Preset"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name",
+          "description": "Unique preset name.",
+          "examples": ["agent-plugins"]
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable summary of the preset."
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "marketplaces": {
+          "description": "Marketplaces to register, as `owner/repo`.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/marketplaceSource" }
+        },
+        "plugins": {
+          "description": "Plugins to install. Accepts a `name@marketplace: enabled` map, a list of `name@marketplace` strings, or a list of `{name, marketplace, enabled}` objects.",
+          "oneOf": [
+            {
+              "title": "Plugin map",
+              "type": "object",
+              "propertyNames": { "$ref": "#/$defs/pluginRef" },
+              "additionalProperties": {
+                "type": "boolean",
+                "description": "Whether the plugin is enabled."
+              },
+              "examples": [{ "context7@claude-plugins-official": true }]
+            },
+            {
+              "title": "Plugin ref list",
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/pluginRef" },
+              "examples": [["context7@claude-plugins-official"]]
+            },
+            {
+              "title": "Plugin object list",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "marketplace"],
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "$ref": "#/$defs/name",
+                    "description": "Plugin name.",
+                    "examples": ["context7"]
+                  },
+                  "marketplace": {
+                    "$ref": "#/$defs/name",
+                    "description": "Marketplace the plugin comes from.",
+                    "examples": ["claude-plugins-official"]
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Whether the plugin is enabled.",
+                    "default": true
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "agents": {
+          "description": "Agents to include, as `plugin/agent`.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/componentRef" }
+        },
+        "mcpServers": {
+          "description": "MCP servers to include, by name.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/name" },
+          "examples": [["context7", "github"]]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "name": {
+      "type": "string",
+      "description": "Kebab-case identifier.",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "marketplaceSource": {
+      "type": "string",
+      "description": "GitHub repository of a marketplace, as `owner/repo`.",
+      "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+      "examples": ["anthropics/claude-plugins-official"]
+    },
+    "pluginRef": {
+      "type": "string",
+      "description": "Plugin reference, as `name@marketplace`.",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*@[a-z0-9]+(-[a-z0-9]+)*$",
+      "examples": ["context7@claude-plugins-official"]
+    },
+    "componentRef": {
+      "type": "string",
+      "description": "Component reference, as `plugin/component`.",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*$",
+      "examples": ["ecc-universal/typescript-reviewer"]
+    }
+  }
+}
