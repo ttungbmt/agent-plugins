@@ -12,10 +12,10 @@ const OFFICIAL = {
 }
 const FORK = { name: OFFICIAL.name, source: { source: 'git', url: 'https://example.com/fork.git' } }
 
-async function setup(files: Record<string, string>, failOn?: string[]) {
+async function setup(files: Record<string, string>, failOn?: string[], marketplaces: Parameters<typeof fakeClaude>[0]['marketplaces'] = {}) {
   const cwd = await makeTree(files)
   const homedir = await makeTree({})
-  const claude = fakeClaude({ cwd, homedir, marketplaces: { 'anthropics/claude-plugins-official': OFFICIAL, [FORK.source.url]: FORK }, failOn })
+  const claude = fakeClaude({ cwd, homedir, marketplaces: { 'anthropics/claude-plugins-official': OFFICIAL, [FORK.source.url]: FORK, ...marketplaces }, failOn })
   const deps = {
     exec: claude.exec,
     fetch: async () => {
@@ -54,6 +54,24 @@ describe('sync', () => {
       marketplaces: [{ name: 'claude-plugins-official', source: OFFICIAL.source, origin: 'agent-plugins.yaml' }],
     })
   })
+  it('declares a git URL shorthand pinned to a ref, passing the ref to claude', async () => {
+    const pinned = { name: FORK.name, source: { ...FORK.source, ref: 'v1' } }
+    const t = await setup(
+      { 'agent-plugins.yaml': 'kind: Config\nmetadata: { name: demo }\nspec:\n  marketplaces: ["https://example.com/fork.git#v1"]\n' },
+      undefined,
+      { 'https://example.com/fork.git#v1': pinned },
+    )
+
+    await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+    const again = await sync({ cwd: t.cwd, scope: 'project', mode: 'check' }, t.deps)
+
+    expect(t.claude.calls).toEqual([
+      ['claude', 'plugin', 'marketplace', 'add', 'https://example.com/fork.git#v1', '--scope', 'project'],
+    ])
+    expect(await t.settings()).toEqual({ extraKnownMarketplaces: { [FORK.name]: { source: pinned.source } } })
+    expect(again.inSync).toBe(true)
+  })
+
   it('only reports the plan in dry-run and check modes, without calling claude or writing files', async () => {
     const t = await setup({ 'agent-plugins.yaml': CONFIG })
 
@@ -92,6 +110,23 @@ describe('sync', () => {
     await sync({ cwd: t.cwd, scope: 'project', mode: 'dry-run' }, { ...t.deps, onProgress })
 
     expect(events).toEqual(['start add', 'end add done', 'start readd', 'end readd done'])
+  })
+
+  it('adopts a manual entry that already matches the declaration, without calling claude', async () => {
+    const t = await setup({
+      'agent-plugins.yaml': CONFIG,
+      '.claude/settings.json': JSON.stringify({ extraKnownMarketplaces: { 'claude-plugins-official': { source: OFFICIAL.source } } }),
+    })
+
+    expect((await sync({ cwd: t.cwd, scope: 'project', mode: 'check' }, t.deps)).notices).toEqual([])
+    const report = await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+
+    expect(report).toEqual({ actions: [], conflicts: [], notices: [expect.stringContaining('now manages "claude-plugins-official"')], inSync: true })
+    expect(t.claude.calls).toEqual([])
+    expect(parse((await t.read('agent-plugins.lock'))!)).toEqual({
+      marketplaces: [{ name: 'claude-plugins-official', source: OFFICIAL.source, origin: 'agent-plugins.yaml' }],
+    })
+    expect((await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)).notices).toEqual([])
   })
 
   it('is in sync on a second run', async () => {

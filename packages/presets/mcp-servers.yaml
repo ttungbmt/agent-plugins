@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=../schemas/schemas/mcp-catalog.schema.json
+
+# Danh mục MCP: cấu hình MCP server mà Preset/Config bật bằng `<name>: true` trong `spec.mcpServers` (ADR 0006).
+kind: McpCatalog
+
+servers:
+  firecrawl:
+    command: npx
+    args: [-y, firecrawl-mcp@3.25.3]
+    env:
+      FIRECRAWL_API_KEY: ${FIRECRAWL_API_KEY}
+
+  cloudflare-docs:
+    type: http
+    url: https://docs.mcp.cloudflare.com/mcp

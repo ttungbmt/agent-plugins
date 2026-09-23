@@ -1,6 +1,6 @@
 import { resolve } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
-import type { Conflict, MarketplaceDeclaration, MarketplaceSource, Scope } from './types.js'
+import type { Conflict, KnownEntry, ManagedEntry, MarketplaceDeclaration, MarketplaceSource, PluginDeclaration, Scope } from './types.js'
 
 export function sameSource(a: MarketplaceSource, b: MarketplaceSource): boolean {
   return isDeepStrictEqual(a, b)
@@ -22,6 +22,24 @@ function absolute(source: MarketplaceSource, cwd: string): MarketplaceSource {
 /** Khai báo có chỉ tới marketplace này không: theo tên, hoặc theo source với dạng rút gọn chưa biết tên. */
 export function identifies(declaration: MarketplaceDeclaration, marketplace: { name: string; source: MarketplaceSource }) {
   return declaration.name ? declaration.name === marketplace.name : sameSource(declaration.source, marketplace.source)
+}
+
+/** Tên của marketplace một khai báo chỉ tới; dạng rút gọn chưa biết tên thì tra theo source trong Lock/State, rồi trong settings. */
+export function knownName(declaration: MarketplaceDeclaration, managed: ManagedEntry[], actual: KnownEntry[]): string | null {
+  return (
+    declaration.name ??
+    managed.find((m) => identifies(declaration, m))?.name ??
+    actual.find((e) => sameSource(e.source, declaration.source))?.name ??
+    null
+  )
+}
+
+export function missingMarketplaceConflict(plugin: PluginDeclaration): Conflict {
+  return {
+    name: plugin.id,
+    reason: 'missing-marketplace',
+    detail: `${plugin.origin} enables "${plugin.id}" but no preset or Config declares a marketplace named "${plugin.marketplace}"`,
+  }
 }
 
 export function manualEntryConflict(name: string, why = 'a different source'): Conflict {

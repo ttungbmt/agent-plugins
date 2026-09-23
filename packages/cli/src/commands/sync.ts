@@ -7,18 +7,18 @@ import { Listr, ListrLogger, PRESET_TIMER, ProcessOutput } from 'listr2'
 import { SCOPES } from '../sync/files.js'
 import { sync, type SyncProgress, type SyncReport } from '../sync/index.js'
 import type { Exec } from '../sync/registry.js'
-import { ConfigError } from '../sync/resolve.js'
+import { ConfigError, describeItemSource } from '../sync/resolve.js'
 
 export default class Sync extends Command {
-  static override description = 'Sync marketplaces declared in agent-plugins.yaml into Claude Code extraKnownMarketplaces'
+  static override description = 'Sync marketplaces, plugins, skills, agents and MCP servers declared in agent-plugins.yaml into Claude Code'
 
   static override flags = {
     scope: Flags.option({ options: SCOPES, default: 'project' as const, description: 'settings scope to write' })(),
     'dry-run': Flags.boolean({ description: 'print the plan without changing anything', exclusive: ['check'] }),
     check: Flags.boolean({ description: 'exit non-zero if settings are out of sync', exclusive: ['dry-run'] }),
-    force: Flags.boolean({ description: 'overwrite manual entries with the same name' }),
-    update: Flags.boolean({ description: 'accept changed content of remote presets' }),
-    verbose: Flags.boolean({ description: 'stream output of the underlying claude commands' }),
+    force: Flags.boolean({ description: 'overwrite manual entries with the same name, plugin id, skill, agent or MCP server name, and skills or agents edited on disk' }),
+    update: Flags.boolean({ description: 'accept changed content of remote presets and fetch the latest commit of skill and agent sources' }),
+    verbose: Flags.boolean({ description: 'stream output of the underlying claude and git commands' }),
   }
 
   async run(): Promise<void> {
@@ -34,6 +34,7 @@ export default class Sync extends Command {
           exec: createExec({ stream: flags.verbose }),
           fetch: fetchText,
           homedir: homedir(),
+          claudeDir: process.env.CLAUDE_CONFIG_DIR || undefined,
           defaultPresetsDir: defaultPresetsDir(),
           onProgress: progress.onProgress,
         },
@@ -46,17 +47,19 @@ export default class Sync extends Command {
     await progress.done()
 
     for (const a of report.actions) {
-      this.log(`${a.status.padEnd(7)} ${a.kind.padEnd(6)} ${target(a)}${a.error ? ` — ${a.error}` : ''}`)
+      this.log(`${a.status.padEnd(7)} ${a.kind.padEnd(9)} ${target(a)}${a.error ? ` — ${a.error}` : ''}`)
     }
     for (const n of report.notices) this.log(`note    ${n}`)
     for (const c of report.conflicts) this.logToStderr(`conflict ${c.name}: ${c.detail}`)
-    if (report.inSync && report.actions.length === 0) this.log('marketplaces are in sync')
+    if (report.inSync && report.actions.length === 0) this.log('marketplaces, plugins, skills, agents and MCP servers are in sync')
     // dry-run chỉ báo lỗi khi có xung đột; check và apply báo lỗi khi còn lệch.
     if (mode === 'dry-run' ? report.conflicts.length > 0 : !report.inSync) this.exit(1)
   }
 }
 
 function target(a: SyncProgress['action']): string {
+  if ((a.target === 'skill' || a.target === 'agent') && !a.name && a.source) return `${a.target}s from ${describeItemSource(a.source)}`
+  if (a.target === 'mcp') return `MCP server ${a.name}`
   return a.name ?? (a.source ? JSON.stringify(a.source) : '?')
 }
 
@@ -78,7 +81,7 @@ function createProgress({ plain }: { plain: boolean }) {
     const finished = new Promise<void>((resolve, reject) => {
       settle = (error) => (error === undefined ? resolve() : reject(new Error(error)))
     })
-    const list = new Listr([{ title: `${event.action.kind.padEnd(6)} ${target(event.action)}`, task: () => finished }], {
+    const list = new Listr([{ title: `${event.action.kind.padEnd(9)} ${target(event.action)}`, task: () => finished }], {
       exitOnError: false,
       renderer: 'default',
       rendererOptions: { timer: PRESET_TIMER, collapseErrors: false, logger },

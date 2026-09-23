@@ -24,7 +24,7 @@ describe('planSync', () => {
       { force: false },
     )
 
-    expect(plan).toEqual({ actions: [], conflicts: [], forgotten: [] })
+    expect(plan).toEqual({ actions: [], conflicts: [], adopted: [], forgotten: [] })
   })
   it('removes a managed entry that is no longer declared', () => {
     const plan = planSync(
@@ -34,13 +34,13 @@ describe('planSync', () => {
       { force: false },
     )
 
-    expect(plan).toEqual({ actions: [{ kind: 'remove', name: 'claude-plugins-official' }], conflicts: [], forgotten: [] })
+    expect(plan).toEqual({ actions: [{ kind: 'remove', name: 'claude-plugins-official' }], conflicts: [], adopted: [], forgotten: [] })
   })
 
   it('never removes a manual entry', () => {
     const manual = { name: 'my-own', source: { source: 'git', url: 'https://example.com/x.git' }, extras: {} }
 
-    expect(planSync([], [manual], [], { force: false })).toEqual({ actions: [], conflicts: [], forgotten: [] })
+    expect(planSync([], [manual], [], { force: false })).toEqual({ actions: [], conflicts: [], adopted: [], forgotten: [] })
   })
   describe('when a manual entry has the same name but a different source', () => {
     const manual = { name: official.name!, source: { source: 'git', url: 'https://example.com/fork.git' }, extras: {} }
@@ -57,7 +57,7 @@ describe('planSync', () => {
     it('overwrites it with --force', () => {
       const plan = planSync([official], [manual], [], { force: true })
 
-      expect(plan).toEqual({ actions: [{ kind: 'add', name: 'claude-plugins-official', declaration: official }], conflicts: [], forgotten: [] })
+      expect(plan).toEqual({ actions: [{ kind: 'add', name: 'claude-plugins-official', declaration: official }], conflicts: [], adopted: [], forgotten: [] })
     })
   })
   it('re-adds a managed entry that was deleted from settings by hand', () => {
@@ -65,7 +65,7 @@ describe('planSync', () => {
       force: false,
     })
 
-    expect(plan).toEqual({ actions: [{ kind: 'readd', name: 'claude-plugins-official', declaration: official }], conflicts: [], forgotten: [] })
+    expect(plan).toEqual({ actions: [{ kind: 'readd', name: 'claude-plugins-official', declaration: official }], conflicts: [], adopted: [], forgotten: [] })
   })
 
   it('patches extra fields when the source already matches', () => {
@@ -77,7 +77,7 @@ describe('planSync', () => {
       { force: false },
     )
 
-    expect(plan).toEqual({ actions: [{ kind: 'patch', name: 'claude-plugins-official', declaration: declared }], conflicts: [], forgotten: [] })
+    expect(plan).toEqual({ actions: [{ kind: 'patch', name: 'claude-plugins-official', declaration: declared }], conflicts: [], adopted: [], forgotten: [] })
   })
   describe('review fixes', () => {
     const shorthand: MarketplaceDeclaration = { ...official, name: null }
@@ -90,8 +90,13 @@ describe('planSync', () => {
       expect(plan.actions).toEqual([{ kind: 'readd', name: 'claude-plugins-official', declaration: shorthand }])
     })
 
-    it('treats a shorthand declaration as satisfied by a manual entry with the same source', () => {
-      expect(planSync([shorthand], [entry()], [], { force: false })).toEqual({ actions: [], conflicts: [], forgotten: [] })
+    it('adopts a manual entry with the same source as a shorthand declaration', () => {
+      expect(planSync([shorthand], [entry()], [], { force: false })).toEqual({
+        actions: [],
+        conflicts: [],
+        adopted: [{ name: 'claude-plugins-official', declaration: shorthand }],
+        forgotten: [],
+      })
     })
 
     it('does not patch a manual entry whose extra fields differ, unless forced', () => {
@@ -114,7 +119,7 @@ describe('planSync', () => {
     it('leaves a managed entry alone while its declaration is blocked by a conflict', () => {
       const plan = planSync([], [entry()], [managedOfficial], { force: false, blocked: ['claude-plugins-official'] })
 
-      expect(plan).toEqual({ actions: [], conflicts: [], forgotten: [] })
+      expect(plan).toEqual({ actions: [], conflicts: [], adopted: [], forgotten: [] })
     })
 
     it('only forgets a managed entry that another Config still claims', () => {
@@ -123,6 +128,7 @@ describe('planSync', () => {
       expect(planSync([], [entry()], [managedOfficial], { force: false, shared })).toEqual({
         actions: [],
         conflicts: [],
+        adopted: [],
         forgotten: ['claude-plugins-official'],
       })
     })
@@ -135,6 +141,7 @@ describe('planSync', () => {
       expect(plan).toEqual({
         actions: [],
         conflicts: [{ name: 'claude-plugins-official', reason: 'shared-clash', detail: expect.stringContaining('/other/agent-plugins.yaml') }],
+        adopted: [],
         forgotten: [],
       })
     })
@@ -145,6 +152,7 @@ describe('planSync', () => {
       expect(planSync([official], [], [], { force: true, elsewhere })).toEqual({
         actions: [],
         conflicts: [{ name: 'claude-plugins-official', reason: 'cross-scope', detail: expect.stringContaining('user settings') }],
+        adopted: [],
         forgotten: [],
       })
     })
@@ -156,6 +164,7 @@ describe('planSync', () => {
       expect(planSync([local], [], [], { force: false, elsewhere })).toEqual({
         actions: [{ kind: 'add', name: 'local-mk', declaration: local }],
         conflicts: [],
+        adopted: [],
         forgotten: [],
       })
     })
@@ -164,6 +173,7 @@ describe('planSync', () => {
       expect(planSync([], [], [managedOfficial], { force: false })).toEqual({
         actions: [],
         conflicts: [],
+        adopted: [],
         forgotten: ['claude-plugins-official'],
       })
     })

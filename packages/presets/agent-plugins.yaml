@@ -20,16 +20,33 @@ spec:
     claude-md-management@claude-plugins-official: true
     mattpocock-skills@claude-plugins-official: true
 
+  skills:
+    - source: vercel-labs/agent-skills
+      skills: [vercel-composition-patterns, vercel-react-best-practices]
+
+    - source: hmcuongit/cuonghm-ai-workflow-lab
+      path: claude/skills
+      skills: [jira-worklog-sync]
+
+    - source: github/awesome-copilot
+      skills: [documentation-writer]
+
+
   agents:
-    - ecc-universal/typescript-reviewer
+    - source: affaan-m/ECC
+      agents: [typescript-reviewer]
 
-  # commands:
+    - source: hmcuongit/cuonghm-ai-workflow-lab
+      path: claude/agents
+      agents: [docs-technical-writer]
 
-  # hooks:
+  rules:
+
+  hooks:
 
   mcpServers:
-    - context7
-    - github
-    - firecrawl
+    firecrawl: true
+    cloudflare-docs: true
+   
 
   # lspServers:

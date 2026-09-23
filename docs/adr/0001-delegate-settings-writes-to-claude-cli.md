@@ -11,3 +11,4 @@
 
 - `ap sync` (chế độ ghi) cần CLI `claude` trong PATH; `--dry-run`/`--check` thì không.
 - Hành vi phụ thuộc vào định dạng output/settings của `claude`; khi Claude Code đổi, bước bổ sung field phải được kiểm tra lại.
+- Plugin: `install`, `enable`, `uninstall` giao cho `claude`. Riêng ghi `false` và xoá khoá của plugin không có Bản cài thì `ap` tự ghi settings, vì `claude plugin disable` không tạo được `false` khi scope chưa có khoá và `uninstall` không xoá khoá của plugin chưa cài. Đây vẫn là bổ sung sau lệnh `claude`, cùng loại với việc bổ sung field phụ, chứ không thay nó.

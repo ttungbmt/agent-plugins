@@ -212,6 +212,71 @@ spec:
       expect(offline.declarations).toEqual(online.declarations)
     })
   })
+  describe('plugins', () => {
+    const OFFICIAL_MAP = `
+  marketplaces:
+    claude-plugins-official:
+      source: { source: github, repo: anthropics/claude-plugins-official }`
+
+    it('merges plugin declarations parent first, then child, then Config, the later value winning', async () => {
+      const result = await resolveIn({
+        'agent-plugins.yaml': `
+kind: Config
+metadata: { name: demo }
+spec:
+  presets: [./team.yaml]
+  plugins:
+    lsp@claude-plugins-official: true
+`,
+        'team.yaml': `
+kind: Preset
+metadata: { name: team }
+spec:
+  extends: base
+  plugins:
+    context7@claude-plugins-official: false
+    lsp@claude-plugins-official: false
+`,
+        'default-presets/base.yaml': `
+kind: Preset
+metadata: { name: base }
+spec:${OFFICIAL_MAP}
+  plugins: [context7@claude-plugins-official, review@claude-plugins-official]
+`,
+      })
+
+      expect(result.conflicts).toEqual([])
+      expect(result.plugins).toEqual([
+        { id: 'context7@claude-plugins-official', marketplace: 'claude-plugins-official', enabled: false, origin: 'team.yaml' },
+        { id: 'review@claude-plugins-official', marketplace: 'claude-plugins-official', enabled: true, origin: 'base' },
+        { id: 'lsp@claude-plugins-official', marketplace: 'claude-plugins-official', enabled: true, origin: 'agent-plugins.yaml' },
+      ])
+    })
+
+    it('keeps a plugin whose marketplace is declared but clashing, so sync can hold it', async () => {
+      const result = await resolveIn({
+        'agent-plugins.yaml': `
+kind: Config
+metadata: { name: demo }
+spec:
+  presets: [./a.yaml, ./b.yaml]
+  plugins: [context7@mkt]
+`,
+        'a.yaml': 'kind: Preset\nmetadata: { name: a }\nspec:\n  marketplaces:\n    mkt: { source: { source: github, repo: a/mkt } }\n',
+        'b.yaml': 'kind: Preset\nmetadata: { name: b }\nspec:\n  marketplaces:\n    mkt: { source: { source: github, repo: b/mkt } }\n',
+      })
+
+      expect(result.conflicts.map((c) => c.reason)).toEqual(['preset-clash'])
+      expect(result.plugins.map((p) => p.id)).toEqual(['context7@mkt'])
+    })
+
+    it('rejects a plugin reference without an @marketplace suffix', async () => {
+      await expect(
+        resolveIn({ 'agent-plugins.yaml': 'kind: Config\nmetadata: { name: demo }\nspec:\n  plugins: [context7]\n' }),
+      ).rejects.toThrow(/context7.*name@marketplace/)
+    })
+  })
+
   it('asks for `ap init` when there is no Config', async () => {
     await expect(resolveIn({})).rejects.toThrow(/agent-plugins.yaml not found.*ap init/)
   })
@@ -261,6 +326,16 @@ spec:
       const result = await resolveIn({
         'agent-plugins.yaml': 'kind: Config\nmetadata: { name: demo }\nspec:\n  presets: [./presets/team.yaml]\n',
         'presets/team.yaml': 'kind: Preset\nmetadata: { name: team }\nspec:\n  marketplaces:\n    mk: { source: { source: directory, path: ./mk } }\n',
+      })
+
+      expect(result.declarations[0]!.source).toEqual({ source: 'directory', path: './presets/mk' })
+    })
+
+    it('reads a shorthand path relative to the preset that declares it, like the map form', async () => {
+      const result = await resolveIn({
+        'agent-plugins.yaml': 'kind: Config\nmetadata: { name: demo }\nspec:\n  presets: [./presets/team.yaml]\n',
+        'presets/team.yaml': 'kind: Preset\nmetadata: { name: team }\nspec:\n  marketplaces:\n    - ./mk/\n',
+        'presets/mk/.claude-plugin/marketplace.json': '{}',
       })
 
       expect(result.declarations[0]!.source).toEqual({ source: 'directory', path: './presets/mk' })

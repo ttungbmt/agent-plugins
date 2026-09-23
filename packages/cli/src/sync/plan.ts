@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from 'node:util'
-import { crossScopeConflict, identifies, manualEntryConflict, sameInstall, sameSource, sharedClashConflict } from './identity.js'
+import { crossScopeConflict, knownName, manualEntryConflict, sameInstall, sameSource, sharedClashConflict } from './identity.js'
 import type { Conflict, KnownEntry, ManagedEntry, MarketplaceDeclaration, ScopedEntry, SharedClaim } from './types.js'
 
 export type PlannedAction =
@@ -9,6 +9,8 @@ export type PlannedAction =
 export type Plan = {
   actions: PlannedAction[]
   conflicts: Conflict[]
+  /** Manual entry khớp đúng khai báo: nhận quản lý mà không cần sửa settings. */
+  adopted: Array<{ name: string; declaration: MarketplaceDeclaration }>
   /**
    * Managed entry không còn được khai báo mà không cần gỡ khỏi settings, vì nó đã không còn ở đó
    * hoặc Config khác vẫn claim nó: chỉ cần xoá khỏi Lock/State.
@@ -32,15 +34,12 @@ export function planSync(
 ): Plan {
   const actions: PlannedAction[] = []
   const conflicts: Conflict[] = []
+  const adopted: Plan['adopted'] = []
   const claimed = new Set(opts.blocked)
 
   for (const declaration of desired) {
     // Dạng rút gọn chưa biết tên: nhận ra qua source trong Lock/State, rồi trong settings.
-    const name =
-      declaration.name ??
-      managed.find((m) => identifies(declaration, m))?.name ??
-      actual.find((e) => sameSource(e.source, declaration.source))?.name ??
-      null
+    const name = knownName(declaration, managed, actual)
     if (name) claimed.add(name)
 
     const clash = opts.shared?.find((c) => c.name === name && !sameDeclaration(c, declaration))
@@ -69,6 +68,9 @@ export function planSync(
       if (!isDeepStrictEqual(entry.extras, declaration.extras)) actions.push({ kind: 'patch', name, declaration })
     } else if (!isDeepStrictEqual(pick(entry.extras, declaration.extras), declaration.extras)) {
       conflicts.push(manualEntryConflict(entry.name, 'different fields'))
+    } else if (isDeepStrictEqual(entry.extras, declaration.extras) && !opts.shared?.some((c) => c.name === entry.name)) {
+      // Có thêm field chưa khai báo thì để nguyên: nhận quản lý sẽ gỡ chúng. Config khác đang claim thì để luật bàn giao xử lý.
+      adopted.push({ name: entry.name, declaration })
     }
   }
 
@@ -80,7 +82,7 @@ export function planSync(
     else forgotten.push(record.name)
   }
 
-  return { actions, conflicts, forgotten }
+  return { actions, conflicts, adopted, forgotten }
 }
 
 function sameDeclaration(claim: SharedClaim, declaration: MarketplaceDeclaration) {

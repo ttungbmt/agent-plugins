@@ -7,10 +7,7 @@
   "required": ["kind", "metadata", "spec"],
   "additionalProperties": false,
   "properties": {
-    "kind": {
-      "description": "Resource kind. Always `Preset`.",
-      "const": "Preset"
-    },
+    "kind": { "description": "Resource kind. Always `Preset`.", "const": "Preset" },
     "metadata": {
       "type": "object",
       "required": ["name"],
@@ -21,10 +18,7 @@
           "description": "Unique preset name.",
           "examples": ["agent-plugins"]
         },
-        "description": {
-          "type": "string",
-          "description": "Human-readable summary of the preset."
-        }
+        "description": { "type": "string", "description": "Human-readable summary of the preset." }
       }
     },
     "spec": {
@@ -33,21 +27,20 @@
       "properties": {
         "extends": {
           "description": "Presets this preset inherits from, loaded before it. This preset overrides any declaration made in its `extends` tree. Accepts one reference or a list.",
-          "oneOf": [
-            { "$ref": "#/$defs/presetRef" },
-            { "$ref": "#/$defs/presetRefs" }
-          ],
+          "oneOf": [{ "$ref": "#/$defs/presetRef" }, { "$ref": "#/$defs/presetRefs" }],
           "examples": ["base", ["base", "./team.yaml"]]
         },
         "marketplaces": {
-          "description": "Marketplaces to register. Accepts a list of `owner/repo` strings, or a `name: { source }` map in the `extraKnownMarketplaces` format.",
+          "description": "Marketplaces to register. Accepts a list of shorthand source strings (`owner/repo`, a git URL, a URL to `marketplace.json`, or a local path), or a `name: { source }` map in the `extraKnownMarketplaces` format.",
           "oneOf": [
             {
               "title": "Marketplace source list",
               "type": "array",
               "uniqueItems": true,
-              "items": { "$ref": "#/$defs/marketplaceSource" },
-              "examples": [["anthropics/claude-plugins-official"]]
+              "items": { "$ref": "#/$defs/marketplaceShorthand" },
+              "examples": [
+                ["anthropics/claude-plugins-official", "acme-corp/claude-plugins@v1.0.0", "git@github.com:acme-corp/plugins.git", "https://git.example.com/security/plugins.git#release", "https://plugins.example.com/marketplace.json", "./plugins"]
+              ]
             },
             {
               "title": "Marketplace map",
@@ -57,30 +50,17 @@
               "examples": [
                 {
                   "claude-plugins-official": {
-                    "source": {
-                      "source": "github",
-                      "repo": "anthropics/claude-plugins-official"
-                    },
+                    "source": { "source": "github", "repo": "anthropics/claude-plugins-official" },
                     "autoUpdate": true
                   },
                   "security-plugins": {
-                    "source": {
-                      "source": "git",
-                      "url": "https://git.example.com/security/plugins.git"
-                    }
+                    "source": { "source": "git", "url": "https://git.example.com/security/plugins.git" }
                   },
                   "internal-tools": {
-                    "source": {
-                      "source": "url",
-                      "url": "https://plugins.example.com/marketplace.json"
-                    }
+                    "source": { "source": "url", "url": "https://plugins.example.com/marketplace.json" }
                   },
-                  "local-file": {
-                    "source": { "source": "file", "path": "./marketplace.json" }
-                  },
-                  "local-dev": {
-                    "source": { "source": "directory", "path": "./plugins" }
-                  },
+                  "local-file": { "source": { "source": "file", "path": "./marketplace.json" } },
+                  "local-dev": { "source": { "source": "directory", "path": "./plugins" } },
                   "team-tools": {
                     "source": {
                       "source": "settings",
@@ -127,18 +107,153 @@
             }
           ]
         },
-        "agents": {
-          "description": "Agents to include, as `plugin/agent`.",
+        "skills": {
+          "description": "Standalone skills to copy into the scope's skills directory (`.claude/skills/` or `~/.claude/skills/`). Each item is a skill source: a string installs every skill in it, a map either selects some of them (`skills`) or installs all but some (`exclude`). A map may add `path`, the folder of the source that holds the skills. Skills are found at `SKILL.md`, `skills/*/SKILL.md` or `*/SKILL.md` of the source (or of its `path`), named by the `name` in their frontmatter.",
           "type": "array",
-          "uniqueItems": true,
-          "items": { "$ref": "#/$defs/componentRef" }
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/skillSource" },
+              {
+                "title": "Skills under a path",
+                "type": "object",
+                "required": ["source", "path"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/skillSource" },
+                  "path": { "$ref": "#/$defs/skillPath" }
+                }
+              },
+              {
+                "title": "Skill selection",
+                "type": "object",
+                "required": ["source", "skills"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/skillSource" },
+                  "path": { "$ref": "#/$defs/skillPath" },
+                  "skills": {
+                    "description": "Skills of the source to install, by name.",
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": { "type": "string" }
+                  }
+                }
+              },
+              {
+                "title": "Skill exclusion",
+                "type": "object",
+                "required": ["source", "exclude"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/skillSource" },
+                  "path": { "$ref": "#/$defs/skillPath" },
+                  "exclude": {
+                    "description": "Skills of the source not to install, by name; every other skill is installed.",
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": { "type": "string" }
+                  }
+                }
+              }
+            ]
+          },
+          "examples": [
+            [
+              "vercel-labs/agent-skills",
+              { "source": "anthropics/skills@main", "skills": ["pdf", "docx"] },
+              { "source": "acme/skills", "exclude": ["experimental"] },
+              { "source": "acme/workflow-lab", "path": "claude/skills", "skills": ["task-manager"] },
+              "./skills"
+            ]
+          ]
+        },
+        "agents": {
+          "description": "Standalone agents (subagent files) to copy into the scope's agents directory (`.claude/agents/` or `~/.claude/agents/`). Each item is an agent source: a string installs every agent in it, a map either selects some of them (`agents`) or installs all but some (`exclude`). A map may add `path`, the folder of the source that holds the agents. Agents are the `*.md` files of `agents/`, `.claude/agents/` or the root of the source (the first that has any), or of its `path`, named by the `name` in their frontmatter; files without a `name` are skipped unless the source declares a `path`. Agents bundled in a plugin are enabled through `plugins` instead.",
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/agentSource" },
+              {
+                "title": "Agents under a path",
+                "type": "object",
+                "required": ["source", "path"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/agentSource" },
+                  "path": { "$ref": "#/$defs/agentPath" }
+                }
+              },
+              {
+                "title": "Agent selection",
+                "type": "object",
+                "required": ["source", "agents"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/agentSource" },
+                  "path": { "$ref": "#/$defs/agentPath" },
+                  "agents": {
+                    "description": "Agents of the source to install, by name.",
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": { "type": "string" }
+                  }
+                }
+              },
+              {
+                "title": "Agent exclusion",
+                "type": "object",
+                "required": ["source", "exclude"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/agentSource" },
+                  "path": { "$ref": "#/$defs/agentPath" },
+                  "exclude": {
+                    "description": "Agents of the source not to install, by name; every other agent is installed.",
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": { "type": "string" }
+                  }
+                }
+              }
+            ]
+          },
+          "examples": [
+            [
+              "affaan-m/ECC",
+              { "source": "affaan-m/ECC", "agents": ["typescript-reviewer"] },
+              { "source": "acme/workflow-lab", "path": "claude/agents" },
+              "./agents"
+            ]
+          ]
         },
         "mcpServers": {
-          "description": "MCP servers to include, by name.",
-          "type": "array",
-          "uniqueItems": true,
-          "items": { "$ref": "#/$defs/name" },
-          "examples": [["context7", "github"]]
+          "description": "MCP servers to add to Claude Code's MCP configuration of the scope (`.mcp.json` for project), by name. `true` takes the server as-is from the catalog shipped with `ap`; an object is the server configuration inline, in Claude Code's `.mcp.json` format; `false` drops a server declared by an inherited preset. Secrets must be written as `${VAR}` placeholders, which Claude Code expands at run time.",
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/name" },
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "boolean",
+                "description": "`true`: the catalog's configuration for this name. `false`: drop an inherited server."
+              },
+              { "$ref": "#/$defs/mcpServer" }
+            ]
+          },
+          "examples": [
+            {
+              "firecrawl": true,
+              "docs": {
+                "type": "http",
+                "url": "https://example.com/mcp",
+                "headers": { "Authorization": "Bearer ${DOCS_TOKEN}" }
+              },
+              "legacy": false
+            }
+          ]
         }
       }
     }
@@ -147,11 +262,7 @@
     "presetRef": {
       "description": "A preset reference: a bare name is a default preset shipped with `ap`; `./` or `../` is a file relative to the file that references it; `https://` is a remote preset pinned by content hash in agent-plugins.lock.",
       "type": "string",
-      "anyOf": [
-        { "$ref": "#/$defs/name" },
-        { "pattern": "^\\.\\.?/" },
-        { "pattern": "^https://" }
-      ]
+      "anyOf": [{ "$ref": "#/$defs/name" }, { "pattern": "^\\.\\.?/" }, { "pattern": "^https://" }]
     },
     "presetRefs": {
       "type": "array",
@@ -163,6 +274,48 @@
       "type": "string",
       "description": "Kebab-case identifier.",
       "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "marketplaceShorthand": {
+      "type": "string",
+      "description": "Where to fetch a marketplace from, read the way `claude plugin marketplace add` reads it: `owner/repo[@ref]` (GitHub); `git@host:path` or `ssh://...` (git); an https URL ending in `.git` or on github.com/gitlab.com (git, `#ref` pins a ref); any other https URL (a `marketplace.json`); or a path starting with `./`, `../` or `/`, relative to the file that declares it (a directory, or a `.json` file).",
+      "anyOf": [
+        { "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(@.+)?$" },
+        { "pattern": "^(git@|ssh://|https?://)" },
+        { "pattern": "^(\\./|\\.\\./|/)" }
+      ],
+      "examples": ["anthropics/claude-plugins-official", "git@github.com:owner/repo.git", "https://example.com/marketplace.json", "./path/to/marketplace"]
+    },
+    "skillSource": {
+      "type": "string",
+      "description": "Where to fetch skills from: `owner/repo[@ref]` (GitHub); `git@host:path`, `ssh://...` or an https git URL (`#ref` pins a ref); or a local directory starting with `./`, `../` or `/`, relative to the file that declares it.",
+      "anyOf": [
+        { "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(@.+)?$" },
+        { "pattern": "^(git@|ssh://|https?://)" },
+        { "pattern": "^(\\./|\\.\\./|/)" }
+      ],
+      "examples": ["vercel-labs/agent-skills", "https://git.example.com/team/skills.git#v1", "./skills"]
+    },
+    "skillPath": {
+      "type": "string",
+      "description": "Folder inside the skill source that holds the skills, relative to its root; part of the source's identity in agent-plugins.lock.",
+      "not": { "pattern": "^(/|\\.\\.(/|$))" },
+      "examples": ["claude/skills"]
+    },
+    "agentSource": {
+      "type": "string",
+      "description": "Where to fetch agents from: `owner/repo[@ref]` (GitHub); `git@host:path`, `ssh://...` or an https git URL (`#ref` pins a ref); or a local directory starting with `./`, `../` or `/`, relative to the file that declares it.",
+      "anyOf": [
+        { "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(@.+)?$" },
+        { "pattern": "^(git@|ssh://|https?://)" },
+        { "pattern": "^(\\./|\\.\\./|/)" }
+      ],
+      "examples": ["affaan-m/ECC", "https://git.example.com/team/agents.git#v1", "./agents"]
+    },
+    "agentPath": {
+      "type": "string",
+      "description": "Folder inside the agent source that holds the agents, relative to its root; part of the source's identity in agent-plugins.lock.",
+      "not": { "pattern": "^(/|\\.\\.(/|$))" },
+      "examples": ["claude/agents"]
     },
     "marketplaceSource": {
       "type": "string",
@@ -208,7 +361,11 @@
           "examples": [
             { "source": "github", "repo": "anthropics/claude-plugins-official" },
             { "source": "github", "repo": "acme-corp/claude-plugins", "ref": "v1.0.0" },
-            { "source": "github", "repo": "acme-corp/monorepo", "path": "plugins/.claude-plugin/marketplace.json" }
+            {
+              "source": "github",
+              "repo": "acme-corp/monorepo",
+              "path": "plugins/.claude-plugin/marketplace.json"
+            }
           ]
         },
         {
@@ -243,7 +400,11 @@
           "additionalProperties": false,
           "properties": {
             "source": { "const": "url" },
-            "url": { "type": "string", "format": "uri", "description": "Direct URL to the `marketplace.json` file." },
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "description": "Direct URL to the `marketplace.json` file."
+            },
             "headers": { "$ref": "#/$defs/headers" },
             "headersHelper": { "$ref": "#/$defs/headersHelper" }
           },
@@ -281,7 +442,10 @@
           "additionalProperties": false,
           "properties": {
             "source": { "const": "directory" },
-            "path": { "type": "string", "description": "Local directory containing `.claude-plugin/marketplace.json`." }
+            "path": {
+              "type": "string",
+              "description": "Local directory containing `.claude-plugin/marketplace.json`."
+            }
           },
           "examples": [{ "source": "directory", "path": "./plugins" }]
         },
@@ -330,7 +494,10 @@
         "headersHelper": { "$ref": "#/$defs/headersHelper" }
       },
       "examples": [
-        { "name": "code-formatter", "source": { "source": "github", "repo": "acme-corp/code-formatter" } },
+        {
+          "name": "code-formatter",
+          "source": { "source": "github", "repo": "acme-corp/code-formatter" }
+        },
         {
           "name": "my-plugin",
           "source": {
@@ -352,13 +519,20 @@
           "additionalProperties": false,
           "properties": {
             "source": { "const": "github" },
-            "repo": { "$ref": "#/$defs/marketplaceSource", "description": "GitHub repository, as `owner/repo`." },
+            "repo": {
+              "$ref": "#/$defs/marketplaceSource",
+              "description": "GitHub repository, as `owner/repo`."
+            },
             "ref": { "$ref": "#/$defs/gitRef" },
             "sha": { "$ref": "#/$defs/gitSha" }
           },
           "examples": [
             { "source": "github", "repo": "acme-corp/code-formatter", "ref": "v2.1.0" },
-            { "source": "github", "repo": "acme-corp/code-formatter", "sha": "0123456789abcdef0123456789abcdef01234567" }
+            {
+              "source": "github",
+              "repo": "acme-corp/code-formatter",
+              "sha": "0123456789abcdef0123456789abcdef01234567"
+            }
           ]
         },
         {
@@ -368,7 +542,10 @@
           "additionalProperties": false,
           "properties": {
             "source": { "const": "url" },
-            "url": { "type": "string", "description": "Full git repository URL (`https://` or `git@`). The `.git` suffix is optional." },
+            "url": {
+              "type": "string",
+              "description": "Full git repository URL (`https://` or `git@`). The `.git` suffix is optional."
+            },
             "ref": { "$ref": "#/$defs/gitRef" },
             "sha": { "$ref": "#/$defs/gitSha" }
           },
@@ -388,8 +565,15 @@
           "additionalProperties": false,
           "properties": {
             "source": { "const": "git-subdir" },
-            "url": { "type": "string", "description": "Git repository URL, GitHub `owner/repo` shorthand, or SSH URL." },
-            "path": { "type": "string", "description": "Subdirectory within the repo containing the plugin. Cloned sparsely.", "examples": ["tools/claude-plugin"] },
+            "url": {
+              "type": "string",
+              "description": "Git repository URL, GitHub `owner/repo` shorthand, or SSH URL."
+            },
+            "path": {
+              "type": "string",
+              "description": "Subdirectory within the repo containing the plugin. Cloned sparsely.",
+              "examples": ["tools/claude-plugin"]
+            },
             "ref": { "$ref": "#/$defs/gitRef" },
             "sha": { "$ref": "#/$defs/gitSha" }
           },
@@ -415,8 +599,16 @@
           "additionalProperties": false,
           "properties": {
             "source": { "const": "npm" },
-            "package": { "type": "string", "description": "Package name, optionally scoped.", "examples": ["@org/plugin"] },
-            "version": { "type": "string", "description": "Version or version range.", "examples": ["2.1.0", "^2.0.0"] },
+            "package": {
+              "type": "string",
+              "description": "Package name, optionally scoped.",
+              "examples": ["@org/plugin"]
+            },
+            "version": {
+              "type": "string",
+              "description": "Version or version range.",
+              "examples": ["2.1.0", "^2.0.0"]
+            },
             "registry": { "type": "string", "format": "uri", "description": "Custom npm registry URL." }
           },
           "examples": [
@@ -437,8 +629,17 @@
           "additionalProperties": false,
           "properties": {
             "source": { "const": "archive" },
-            "url": { "type": "string", "format": "uri", "pattern": "^https://", "description": "HTTPS URL of the zip archive." },
-            "sha256": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$", "description": "SHA-256 digest of the archive, as 64 hex characters." }
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https://",
+              "description": "HTTPS URL of the zip archive."
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{64}$",
+              "description": "SHA-256 digest of the archive, as 64 hex characters."
+            }
           },
           "examples": [
             {
@@ -487,11 +688,47 @@
       "pattern": "^[a-z0-9]+(-[a-z0-9]+)*@[a-z0-9]+(-[a-z0-9]+)*$",
       "examples": ["context7@claude-plugins-official"]
     },
-    "componentRef": {
-      "type": "string",
-      "description": "Component reference, as `plugin/component`.",
-      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*$",
-      "examples": ["ecc-universal/typescript-reviewer"]
+    "mcpServer": {
+      "description": "An MCP server configuration as in Claude Code's `.mcp.json`: stdio (`command`, `args`, `env`) or remote (`type: http|sse`, `url`, `headers`). `${VAR}` and `${VAR:-default}` are expanded by Claude Code.",
+      "oneOf": [
+        {
+          "title": "stdio server",
+          "type": "object",
+          "required": ["command"],
+          "properties": {
+            "type": { "const": "stdio" },
+            "command": {
+              "type": "string",
+              "description": "Executable to run; relative paths resolve against the project root."
+            },
+            "args": { "type": "array", "items": { "type": "string" } },
+            "env": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "Environment variables; write secrets as `${VAR}`."
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "title": "remote server",
+          "type": "object",
+          "required": ["type", "url"],
+          "properties": {
+            "type": {
+              "enum": ["http", "sse"],
+              "description": "`sse` is deprecated in Claude Code; prefer `http`."
+            },
+            "url": { "type": "string" },
+            "headers": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "HTTP headers; write secrets as `${VAR}`."
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
     }
   }
 }
