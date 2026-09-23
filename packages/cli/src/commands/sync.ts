@@ -1,10 +1,11 @@
-import { execFile } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { homedir } from 'node:os'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Command, Flags } from '@oclif/core'
+import { Listr, ListrLogger, PRESET_TIMER, ProcessOutput } from 'listr2'
 import { SCOPES } from '../sync/files.js'
-import { sync, type SyncReport } from '../sync/index.js'
+import { sync, type SyncProgress, type SyncReport } from '../sync/index.js'
 import type { Exec } from '../sync/registry.js'
 import { ConfigError } from '../sync/resolve.js'
 
@@ -17,26 +18,35 @@ export default class Sync extends Command {
     check: Flags.boolean({ description: 'exit non-zero if settings are out of sync', exclusive: ['dry-run'] }),
     force: Flags.boolean({ description: 'overwrite manual entries with the same name' }),
     update: Flags.boolean({ description: 'accept changed content of remote presets' }),
+    verbose: Flags.boolean({ description: 'stream output of the underlying claude commands' }),
   }
 
   async run(): Promise<void> {
     const { flags } = await this.parse(Sync)
     const mode = flags['dry-run'] ? 'dry-run' : flags.check ? 'check' : 'apply'
 
+    const progress = createProgress({ plain: flags.verbose || !process.stderr.isTTY })
     let report: SyncReport
     try {
       report = await sync(
         { cwd: process.cwd(), scope: flags.scope, mode, force: flags.force, update: flags.update },
-        { exec, fetch: fetchText, homedir: homedir(), defaultPresetsDir: defaultPresetsDir() },
+        {
+          exec: createExec({ stream: flags.verbose }),
+          fetch: fetchText,
+          homedir: homedir(),
+          defaultPresetsDir: defaultPresetsDir(),
+          onProgress: progress.onProgress,
+        },
       )
     } catch (error) {
+      await progress.done()
       if (error instanceof ConfigError) this.error(error.message, { exit: 2 })
       throw error
     }
+    await progress.done()
 
     for (const a of report.actions) {
-      const target = a.name ?? (a.source ? JSON.stringify(a.source) : '?')
-      this.log(`${a.status.padEnd(7)} ${a.kind.padEnd(6)} ${target}${a.error ? ` — ${a.error}` : ''}`)
+      this.log(`${a.status.padEnd(7)} ${a.kind.padEnd(6)} ${target(a)}${a.error ? ` — ${a.error}` : ''}`)
     }
     for (const n of report.notices) this.log(`note    ${n}`)
     for (const c of report.conflicts) this.logToStderr(`conflict ${c.name}: ${c.detail}`)
@@ -46,13 +56,62 @@ export default class Sync extends Command {
   }
 }
 
-const exec: Exec = (command, args) =>
-  new Promise((resolve) => {
-    execFile(command, args, (error, stdout, stderr) => {
-      const code = error ? (typeof error.code === 'number' ? error.code : 127) : 0
-      resolve({ code, stdout, stderr: stderr || (error && !stderr ? error.message : '') })
+function target(a: SyncProgress['action']): string {
+  return a.name ?? (a.source ? JSON.stringify(a.source) : '?')
+}
+
+/**
+ * Hiện tiến độ bằng listr2 trên stderr để stdout vẫn chỉ có bảng tổng kết.
+ * Các action chạy tuần tự nên mỗi action là một Listr một-task, chạy nối tiếp nhau.
+ * `plain` dùng renderer simple (không vẽ lại dòng) khi không có TTY hoặc output của `claude` được stream ra.
+ */
+function createProgress({ plain }: { plain: boolean }) {
+  let settle: ((error?: string) => void) | undefined
+  let running: Promise<unknown> = Promise.resolve()
+  const logger = new ListrLogger({ useIcons: true, processOutput: new ProcessOutput(process.stderr, process.stderr) })
+
+  const onProgress = (event: SyncProgress): void => {
+    if (event.phase === 'end') {
+      settle?.(event.action.status === 'failed' ? (event.action.error ?? 'failed') : undefined)
+      return
+    }
+    const finished = new Promise<void>((resolve, reject) => {
+      settle = (error) => (error === undefined ? resolve() : reject(new Error(error)))
     })
-  })
+    const list = new Listr([{ title: `${event.action.kind.padEnd(6)} ${target(event.action)}`, task: () => finished }], {
+      exitOnError: false,
+      renderer: 'default',
+      rendererOptions: { timer: PRESET_TIMER, collapseErrors: false, logger },
+      fallbackRenderer: 'simple',
+      fallbackRendererOptions: { timer: PRESET_TIMER, logger },
+      fallbackRendererCondition: plain,
+    })
+    // Lỗi của action đã có trong báo cáo; listr chỉ cần hiện ✖.
+    running = running.then(() => list.run()).catch(() => {})
+  }
+
+  return { onProgress, done: () => running }
+}
+
+/** Chạy `claude`; `stream` chuyển tiếp output của nó ra stderr (vd. tiến độ clone), vẫn gom stderr để báo lỗi. */
+function createExec({ stream }: { stream: boolean }): Exec {
+  return (command, args) =>
+    new Promise((resolve) => {
+      const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+      let stdout = ''
+      let stderr = ''
+      child.stdout.on('data', (chunk) => {
+        stdout += chunk
+        if (stream) process.stderr.write(chunk)
+      })
+      child.stderr.on('data', (chunk) => {
+        stderr += chunk
+        if (stream) process.stderr.write(chunk)
+      })
+      child.on('error', (error) => resolve({ code: 127, stdout, stderr: stderr || error.message }))
+      child.on('close', (code) => resolve({ code: code ?? 1, stdout, stderr }))
+    })
+}
 
 async function fetchText(url: string): Promise<string> {
   const response = await fetch(url)

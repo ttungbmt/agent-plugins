@@ -22,10 +22,15 @@ export type SyncReport = {
   inSync: boolean
 }
 
+/** Báo tiến độ từng action khi apply, vì mỗi action gọi `claude` và có thể phải clone marketplace. */
+export type SyncProgress =
+  | { phase: 'start'; action: ReturnType<typeof describe> }
+  | { phase: 'end'; action: SyncReport['actions'][number]; ms: number }
+
 /** Đồng bộ Khai báo marketplace của Config vào `extraKnownMarketplaces` của một Scope. */
 export async function sync(
   opts: { cwd: string; scope: Scope; mode: SyncMode; force?: boolean; update?: boolean },
-  deps: { exec: Exec; fetch: Fetch; homedir: string; defaultPresetsDir: string },
+  deps: { exec: Exec; fetch: Fetch; homedir: string; defaultPresetsDir: string; onProgress?: (event: SyncProgress) => void },
 ): Promise<SyncReport> {
   const { cwd, scope, mode } = opts
   const location = { cwd, homedir: deps.homedir }
@@ -57,6 +62,8 @@ export async function sync(
   for (const name of plan.forgotten) records.delete(name)
   const actions: SyncReport['actions'] = []
   for (const action of plan.actions) {
+    const started = Date.now()
+    deps.onProgress?.({ phase: 'start', action: describe(action) })
     try {
       if (action.kind === 'remove') {
         await registry.remove(action.name, scope)
@@ -77,6 +84,7 @@ export async function sync(
       if (error instanceof ConflictError) conflicts.push(error.conflict)
       actions.push({ ...describe(action), status: 'failed', error: (error as Error).message })
     }
+    deps.onProgress?.({ phase: 'end', action: actions.at(-1)!, ms: Date.now() - started })
   }
 
   const claims = claimsOf(resolved.declarations, [...records.values()], actual, conflicts)

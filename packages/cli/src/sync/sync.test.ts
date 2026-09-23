@@ -1,9 +1,9 @@
-import { readFile } from 'node:fs/promises'
+import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 import { fakeClaude } from './fake-claude.js'
-import { sync } from './index.js'
+import { sync, type SyncProgress } from './index.js'
 import { makeTree } from './test-helpers.js'
 
 const OFFICIAL = {
@@ -79,6 +79,19 @@ describe('sync', () => {
     expect(report.actions).toEqual([expect.objectContaining({ kind: 'remove', name: 'claude-plugins-official', status: 'done' })])
     expect(await t.settings()).toEqual({ extraKnownMarketplaces: {} })
     expect(await t.read('agent-plugins.lock')).toBe('')
+  })
+
+  it('reports progress around each claude call while applying', async () => {
+    const t = await setup({ 'agent-plugins.yaml': CONFIG })
+    const events: string[] = []
+    const onProgress = (e: SyncProgress) => events.push(`${e.phase} ${e.action.kind} ${'status' in e.action ? e.action.status : ''}`.trim())
+
+    await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, { ...t.deps, onProgress })
+    await writeFile(join(t.cwd, '.claude/settings.json'), '{}')
+    await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, { ...t.deps, onProgress })
+    await sync({ cwd: t.cwd, scope: 'project', mode: 'dry-run' }, { ...t.deps, onProgress })
+
+    expect(events).toEqual(['start add', 'end add done', 'start readd', 'end readd done'])
   })
 
   it('is in sync on a second run', async () => {
