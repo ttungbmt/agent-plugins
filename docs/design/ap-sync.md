@@ -39,6 +39,11 @@ Thuật ngữ: xem [CONTEXT.md](../../CONTEXT.md). Quyết định kiến trúc:
 - `--scope project|local|user`, mặc định `project`.
 - Thêm: `claude plugin marketplace add <source> --scope <scope>`; sau đó `ap` bổ sung field phụ (`autoUpdate`, `ref`…) và sửa `path` của nguồn `directory` về tương đối.
 - Gỡ: `claude plugin marketplace remove <name> --scope <scope>`.
+- Khai báo chia theo scope, nhưng bản cài (`~/.claude/plugins/known_marketplaces.json`) dùng chung cả máy theo tên. Đã kiểm chứng với `claude` 2.1.280:
+  - `remove --scope X` chỉ gỡ khai báo ở X, giữ bản cài khi scope khác còn khai báo tên đó.
+  - `add` cùng tên khác source ở scope khác thì thay bản cài, làm hỏng entry của scope kia.
+  - Vì vậy trùng tên khác source với entry ở scope khác → xung đột `cross-scope`, `--force` không vượt qua. So `path` của `directory`/`file` sau khi quy về tuyệt đối.
+  - Dạng rút gọn chỉ biết tên sau `add`: nếu trùng thì gỡ khai báo vừa thêm và `add` lại nguồn của scope kia để khôi phục bản cài. Khôi phục Manual entry cùng scope cũng `add` lại nguồn cũ vì lý do này.
 - Giới hạn v1: nguồn `settings` và `hostPattern` chưa hỗ trợ (action báo `failed`); `ref`/`path` của github chỉ được ghi vào settings sau `add`, bản cài tại máy vẫn là bản `add` tải về.
 
 ### Sở hữu
@@ -52,6 +57,10 @@ Thuật ngữ: xem [CONTEXT.md](../../CONTEXT.md). Quyết định kiến trúc:
 - Dạng rút gọn chưa biết tên trước `add`: khớp theo source đã chuẩn hoá với Lock/State. Sau `add`, nếu tên trả về trùng một Manual entry khác source → khôi phục entry cũ, báo xung đột.
 - Lock `agent-plugins.lock` (scope `project`, commit, YAML): Managed entry (`name`, `source`, preset khai báo) + `sha256` các Preset từ xa. State: `.agent-plugins/state.local.json` (`local`, gitignore), `~/.agent-plugins/state.json` (`user`, chia theo đường dẫn Config để repo khác không gỡ nhầm).
 - Managed entry đã biến khỏi settings và không còn được khai báo → chỉ xoá khỏi Lock/State.
+- Scope `user` dùng chung settings giữa các repo: State của mỗi Config ghi thêm các tên nó khai báo và đã khớp (claim), kể cả khi không sở hữu.
+  - Managed entry không còn được khai báo nhưng Config khác vẫn claim cùng tên → không gỡ, chỉ bỏ sở hữu và giao cho các Config đang claim cùng source. Config cuối cùng bỏ khai báo sẽ gỡ.
+  - Khai báo khác (source hoặc field phụ) với claim của Config khác → xung đột `shared-clash`, `--force` không vượt qua, để hai repo không ghi đè nhau mỗi lần sync.
+  - Config đã không còn trên đĩa thì claim của nó bị bỏ qua.
 
 ### Chế độ và lỗi
 
@@ -88,7 +97,7 @@ export type SyncReport = {
     status: 'planned' | 'done' | 'failed'
     error?: string
   }>
-  conflicts: Array<{ name: string; reason: 'manual-entry' | 'preset-clash'; detail: string }>
+  conflicts: Array<{ name: string; reason: 'manual-entry' | 'preset-clash' | 'shared-clash' | 'cross-scope'; detail: string }>
   notices: string[]
   inSync: boolean
 }

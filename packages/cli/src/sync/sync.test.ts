@@ -10,11 +10,12 @@ const OFFICIAL = {
   name: 'claude-plugins-official',
   source: { source: 'github', repo: 'anthropics/claude-plugins-official' },
 }
+const FORK = { name: OFFICIAL.name, source: { source: 'git', url: 'https://example.com/fork.git' } }
 
 async function setup(files: Record<string, string>, failOn?: string[]) {
   const cwd = await makeTree(files)
   const homedir = await makeTree({})
-  const claude = fakeClaude({ cwd, homedir, marketplaces: { 'anthropics/claude-plugins-official': OFFICIAL }, failOn })
+  const claude = fakeClaude({ cwd, homedir, marketplaces: { 'anthropics/claude-plugins-official': OFFICIAL, [FORK.source.url]: FORK }, failOn })
   const deps = {
     exec: claude.exec,
     fetch: async () => {
@@ -103,6 +104,7 @@ describe('sync', () => {
       { name: 'claude-plugins-official', reason: 'manual-entry', detail: expect.stringContaining('--force') },
     ])
     expect(await t.settings()).toEqual({ extraKnownMarketplaces: { 'claude-plugins-official': fork } })
+    expect(await t.claude.installed()).toEqual({ 'claude-plugins-official': fork })
     expect(await t.read('agent-plugins.lock')).toBeUndefined()
   })
   it('writes extra fields and keeps directory paths relative after claude adds the marketplace', async () => {
@@ -224,6 +226,112 @@ spec:
       join(a.cwd, 'agent-plugins.yaml'),
     ])
   })
+  it('keeps a user-scope marketplace while another repo still declares it, then hands it over', async () => {
+    const fs = await import('node:fs/promises')
+    const a = await setup({ 'agent-plugins.yaml': CONFIG })
+    const b = await makeTree({ 'agent-plugins.yaml': CONFIG })
+    const bDeps = { ...a.deps, exec: fakeClaude({ cwd: b, homedir: a.homedir, marketplaces: {} }).exec }
+    const userSettings = async () => JSON.parse(await readFile(join(a.homedir, '.claude/settings.json'), 'utf8'))
+    const drop = (cwd: string) => fs.writeFile(join(cwd, 'agent-plugins.yaml'), 'kind: Config\nmetadata: { name: demo }\nspec: {}\n')
+
+    await sync({ cwd: a.cwd, scope: 'user', mode: 'apply' }, a.deps)
+    await sync({ cwd: b, scope: 'user', mode: 'apply' }, bDeps)
+    await drop(a.cwd)
+    const aReport = await sync({ cwd: a.cwd, scope: 'user', mode: 'apply' }, a.deps)
+
+    expect(aReport.actions).toEqual([])
+    expect(Object.keys((await userSettings()).extraKnownMarketplaces)).toEqual(['claude-plugins-official'])
+
+    await drop(b)
+    const bReport = await sync({ cwd: b, scope: 'user', mode: 'apply' }, bDeps)
+
+    expect(bReport.actions).toEqual([expect.objectContaining({ kind: 'remove', name: 'claude-plugins-official', status: 'done' })])
+    expect((await userSettings()).extraKnownMarketplaces).toEqual({})
+  })
+
+  it('refuses to fight another repo over a user-scope marketplace declared differently', async () => {
+    const a = await setup({ 'agent-plugins.yaml': CONFIG })
+    const b = await makeTree({
+      'agent-plugins.yaml': `kind: Config
+metadata: { name: other }
+spec:
+  marketplaces:
+    claude-plugins-official:
+      source: { source: github, repo: anthropics/claude-plugins-official }
+      autoUpdate: true
+`,
+    })
+    const bDeps = { ...a.deps, exec: fakeClaude({ cwd: b, homedir: a.homedir, marketplaces: {} }).exec }
+
+    await sync({ cwd: a.cwd, scope: 'user', mode: 'apply' }, a.deps)
+    const report = await sync({ cwd: b, scope: 'user', mode: 'apply', force: true }, bDeps)
+
+    expect(report.inSync).toBe(false)
+    expect(report.conflicts).toEqual([expect.objectContaining({ name: 'claude-plugins-official', reason: 'shared-clash' })])
+    expect(JSON.parse(await readFile(join(a.homedir, '.claude/settings.json'), 'utf8'))).toEqual({
+      extraKnownMarketplaces: { 'claude-plugins-official': { source: OFFICIAL.source } },
+    })
+  })
+
+  describe('with a marketplace added by hand in user settings', () => {
+    /** Như `claude plugin marketplace add <fork> --scope user`: khai báo ở user và bản cài chung trỏ vào fork. */
+    async function withManualUserFork(config: string) {
+      const t = await setup({ 'agent-plugins.yaml': config })
+      await t.claude.exec('claude', ['plugin', 'marketplace', 'add', FORK.source.url, '--scope', 'user'])
+      t.claude.calls.length = 0
+      const userSettings = async () => JSON.parse(await readFile(join(t.homedir, '.claude/settings.json'), 'utf8'))
+      return { ...t, userSettings }
+    }
+
+    it('refuses to declare the same name from another source in project scope, even with --force', async () => {
+      const t = await withManualUserFork(`kind: Config
+metadata: { name: demo }
+spec:
+  marketplaces:
+    claude-plugins-official: { source: { source: github, repo: anthropics/claude-plugins-official } }
+`)
+
+      const report = await sync({ cwd: t.cwd, scope: 'project', mode: 'apply', force: true }, t.deps)
+
+      expect(report.conflicts).toEqual([
+        { name: 'claude-plugins-official', reason: 'cross-scope', detail: expect.stringContaining('user settings') },
+      ])
+      expect(t.claude.calls).toEqual([])
+      expect(await t.claude.installed()).toEqual({ 'claude-plugins-official': { source: FORK.source } })
+    })
+
+    it('restores the shared install when a shorthand declaration turns out to clash', async () => {
+      const t = await withManualUserFork(CONFIG)
+
+      const report = await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+
+      expect(report.actions).toEqual([expect.objectContaining({ kind: 'add', status: 'failed' })])
+      expect(report.conflicts).toEqual([expect.objectContaining({ name: 'claude-plugins-official', reason: 'cross-scope' })])
+      expect(await t.settings()).toEqual({ extraKnownMarketplaces: {} })
+      expect(await t.userSettings()).toEqual({ extraKnownMarketplaces: { 'claude-plugins-official': { source: FORK.source } } })
+      expect(await t.claude.installed()).toEqual({ 'claude-plugins-official': { source: FORK.source } })
+      expect(await t.read('agent-plugins.lock')).toBeUndefined()
+    })
+
+    it('shares it when the project declares the same source, and keeps it installed after the project drops it', async () => {
+      const t = await withManualUserFork(`kind: Config
+metadata: { name: demo }
+spec:
+  marketplaces:
+    claude-plugins-official: { source: { source: git, url: "https://example.com/fork.git" } }
+`)
+      await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+      const fs = await import('node:fs/promises')
+      await fs.writeFile(join(t.cwd, 'agent-plugins.yaml'), 'kind: Config\nmetadata: { name: demo }\nspec: {}\n')
+
+      const report = await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+
+      expect(report.actions).toEqual([expect.objectContaining({ kind: 'remove', status: 'done' })])
+      expect(await t.userSettings()).toEqual({ extraKnownMarketplaces: { 'claude-plugins-official': { source: FORK.source } } })
+      expect(await t.claude.installed()).toEqual({ 'claude-plugins-official': { source: FORK.source } })
+    })
+  })
+
   it('keeps a managed entry installed while two presets clash over it', async () => {
     const preset = (name: string, repo: string) =>
       `kind: Preset\nmetadata: { name: ${name} }\nspec:\n  marketplaces:\n    claude-plugins-official: { source: { source: github, repo: ${repo} } }\n`

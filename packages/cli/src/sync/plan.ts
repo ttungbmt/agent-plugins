@@ -1,6 +1,6 @@
 import { isDeepStrictEqual } from 'node:util'
-import { identifies, manualEntryConflict, sameSource } from './identity.js'
-import type { Conflict, KnownEntry, ManagedEntry, MarketplaceDeclaration } from './types.js'
+import { crossScopeConflict, identifies, manualEntryConflict, sameInstall, sameSource, sharedClashConflict } from './identity.js'
+import type { Conflict, KnownEntry, ManagedEntry, MarketplaceDeclaration, ScopedEntry, SharedClaim } from './types.js'
 
 export type PlannedAction =
   | { kind: 'add' | 'readd' | 'patch'; name: string | null; declaration: MarketplaceDeclaration }
@@ -9,19 +9,26 @@ export type PlannedAction =
 export type Plan = {
   actions: PlannedAction[]
   conflicts: Conflict[]
-  /** Managed entry không còn được khai báo và cũng không còn trong settings: chỉ cần xoá khỏi Lock/State. */
+  /**
+   * Managed entry không còn được khai báo mà không cần gỡ khỏi settings, vì nó đã không còn ở đó
+   * hoặc Config khác vẫn claim nó: chỉ cần xoá khỏi Lock/State.
+   */
   forgotten: string[]
 }
 
 /**
  * Tính các bước đưa settings của một scope về khớp khai báo, theo luật sở hữu của ADR 0003.
  * `blocked` là các tên đang vướng xung đột khai báo: Managed entry của chúng được giữ nguyên.
+ * `shared` là claim của các Config khác ở scope user: tên còn được claim thì không bị gỡ,
+ * và khai báo khác claim đó là xung đột, `--force` cũng không vượt qua để hai Config không ghi đè nhau mãi.
+ * `elsewhere` là entry ở các scope khác: Claude Code chỉ cài một marketplace mỗi tên cho cả máy, nên cùng tên
+ * mà khác source thì `add` sẽ thay bản cài của scope kia — xung đột, `--force` không vượt qua.
  */
 export function planSync(
   desired: MarketplaceDeclaration[],
   actual: KnownEntry[],
   managed: ManagedEntry[],
-  opts: { force: boolean; blocked?: string[] },
+  opts: { force: boolean; blocked?: string[]; shared?: SharedClaim[]; elsewhere?: { cwd: string; entries: ScopedEntry[] } },
 ): Plan {
   const actions: PlannedAction[] = []
   const conflicts: Conflict[] = []
@@ -35,6 +42,19 @@ export function planSync(
       actual.find((e) => sameSource(e.source, declaration.source))?.name ??
       null
     if (name) claimed.add(name)
+
+    const clash = opts.shared?.find((c) => c.name === name && !sameDeclaration(c, declaration))
+    if (clash) {
+      conflicts.push(sharedClashConflict(clash.name, clash.config))
+      continue
+    }
+    const other = opts.elsewhere?.entries.find(
+      (e) => e.name === name && !sameInstall(e.source, declaration.source, opts.elsewhere!.cwd),
+    )
+    if (other) {
+      conflicts.push(crossScopeConflict(other.name, other.scope))
+      continue
+    }
 
     const entry = actual.find((e) => e.name === name)
     const isManaged = managed.some((m) => m.name === name)
@@ -55,11 +75,16 @@ export function planSync(
   const forgotten: string[] = []
   for (const record of managed) {
     if (claimed.has(record.name)) continue
-    if (actual.some((e) => e.name === record.name)) actions.push({ kind: 'remove', name: record.name })
+    const stillClaimed = opts.shared?.some((c) => c.name === record.name)
+    if (!stillClaimed && actual.some((e) => e.name === record.name)) actions.push({ kind: 'remove', name: record.name })
     else forgotten.push(record.name)
   }
 
   return { actions, conflicts, forgotten }
+}
+
+function sameDeclaration(claim: SharedClaim, declaration: MarketplaceDeclaration) {
+  return sameSource(claim.source, declaration.source) && isDeepStrictEqual(claim.extras, declaration.extras)
 }
 
 function pick(fields: Record<string, unknown>, like: Record<string, unknown>): Record<string, unknown> {

@@ -1,9 +1,10 @@
 import { join } from 'node:path'
+import { identifies, sameSource } from './identity.js'
 import { planSync, type PlannedAction } from './plan.js'
 import { ConflictError, createRegistry, type Exec } from './registry.js'
 import { resolveConfig, type Fetch } from './resolve.js'
 import { createStore } from './store.js'
-import type { Conflict, ManagedEntry, MarketplaceDeclaration, MarketplaceSource, Scope } from './types.js'
+import type { Claim, Conflict, KnownEntry, ManagedEntry, MarketplaceDeclaration, MarketplaceSource, Scope } from './types.js'
 
 export type { Scope } from './types.js'
 export type SyncMode = 'apply' | 'dry-run' | 'check'
@@ -31,7 +32,7 @@ export async function sync(
   const registry = createRegistry({ exec: deps.exec, ...location })
   const store = createStore(location)
 
-  const { managed, pins } = await store.load(scope)
+  const { managed, pins, shared } = await store.load(scope)
   const resolved = await resolveConfig(join(cwd, 'agent-plugins.yaml'), {
     fetch: deps.fetch,
     pins,
@@ -42,7 +43,8 @@ export async function sync(
   })
   const actual = await registry.list(scope)
   const blocked = resolved.conflicts.map((c) => c.name)
-  const plan = planSync(resolved.declarations, actual, managed, { force: opts.force ?? false, blocked })
+  const elsewhere = { cwd, entries: await registry.listElsewhere(scope) }
+  const plan = planSync(resolved.declarations, actual, managed, { force: opts.force ?? false, blocked, shared, elsewhere })
   const conflicts = [...resolved.conflicts, ...plan.conflicts]
 
   if (mode !== 'apply') {
@@ -51,6 +53,7 @@ export async function sync(
   }
 
   const records = new Map(managed.map((m) => [m.name, m]))
+  const released = managed.filter((m) => plan.forgotten.includes(m.name))
   for (const name of plan.forgotten) records.delete(name)
   const actions: SyncReport['actions'] = []
   for (const action of plan.actions) {
@@ -76,13 +79,24 @@ export async function sync(
     }
   }
 
-  await store.save(scope, [...records.values()], resolved.pins)
+  const claims = claimsOf(resolved.declarations, [...records.values()], actual, conflicts)
+  await store.save(scope, [...records.values()], resolved.pins, { claims, released })
   return {
     actions,
     conflicts,
     notices: resolved.notices,
     inSync: conflicts.length === 0 && actions.every((a) => a.status === 'done'),
   }
+}
+
+/** Tên Config này khai báo và đã khớp được; tên đang xung đột không được claim để Config khác không bị chặn theo. */
+function claimsOf(declarations: MarketplaceDeclaration[], owned: ManagedEntry[], actual: KnownEntry[], conflicts: Conflict[]): Claim[] {
+  return declarations.flatMap((d) => {
+    const name =
+      d.name ?? owned.find((m) => identifies(d, m))?.name ?? actual.find((e) => sameSource(e.source, d.source))?.name
+    if (!name || conflicts.some((c) => c.name === name)) return []
+    return [{ name, source: d.source, extras: d.extras, origin: d.origin }]
+  })
 }
 
 function describe(action: PlannedAction) {

@@ -1,8 +1,8 @@
 import { resolve } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
-import { readJson, settingsPath, writeJson, type Location } from './files.js'
-import { manualEntryConflict, sameSource } from './identity.js'
-import type { Conflict, KnownEntry, MarketplaceDeclaration, Scope } from './types.js'
+import { readJson, SCOPES, settingsPath, writeJson, type Location } from './files.js'
+import { crossScopeConflict, manualEntryConflict, sameInstall, sameSource } from './identity.js'
+import type { Conflict, KnownEntry, MarketplaceDeclaration, MarketplaceSource, Scope, ScopedEntry } from './types.js'
 
 export type Exec = (command: string, args: string[]) => Promise<{ code: number; stdout: string; stderr: string }>
 
@@ -26,15 +26,29 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
     return Object.entries(known).map(([name, { source, ...extras }]: [string, any]) => ({ name, source, extras }))
   }
 
-  async function writeEntry(scope: Scope, name: string, entry: Record<string, unknown>) {
+  /** Entry của các scope còn lại: chúng dùng chung bản cài với scope đang sync. */
+  async function listElsewhere(scope: Scope): Promise<ScopedEntry[]> {
+    const others = SCOPES.filter((s) => s !== scope)
+    return (await Promise.all(others.map(async (s) => (await list(s)).map((e) => ({ ...e, scope: s }))))).flat()
+  }
+
+  async function writeEntry(scope: Scope, name: string, entry: Record<string, unknown> | undefined) {
     const settings = await readSettings(scope)
-    settings.extraKnownMarketplaces = { ...settings.extraKnownMarketplaces, [name]: entry }
+    const { [name]: _, ...rest } = settings.extraKnownMarketplaces ?? {}
+    settings.extraKnownMarketplaces = entry ? { ...rest, [name]: entry } : rest
     await writeJson(settingsPath(scope, location), settings)
+  }
+
+  /** Cài lại một entry có sẵn: `add` lại nguồn của nó để bản cài chung trỏ về đó, rồi ghi lại entry nguyên dạng. */
+  async function reinstall(scope: Scope, entry: KnownEntry) {
+    await runMarketplaceCommand('add', sourceArgument(entry.source), '--scope', scope)
+    await writeEntry(scope, entry.name, { source: entry.source, ...entry.extras })
   }
 
   /**
    * Khai báo marketplace qua `claude plugin marketplace add`. Tên do claude resolve; nếu tên đó đè lên
-   * một entry khác source mà `mayReplace` không cho phép, entry cũ được khôi phục và ném ConflictError.
+   * một entry khác source mà `mayReplace` không cho phép, hoặc trùng tên khác source với entry của scope khác
+   * (dạng rút gọn chỉ biết tên sau `add`), entry cũ và bản cài của nó được khôi phục rồi ném ConflictError.
    */
   async function put(
     declaration: MarketplaceDeclaration,
@@ -42,15 +56,22 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
     { mayReplace }: { mayReplace: (name: string) => boolean },
   ): Promise<{ name: string }> {
     const before = await list(scope)
-    await runMarketplaceCommand('add', addArgument(declaration), '--scope', scope)
+    const elsewhere = await listElsewhere(scope)
+    await runMarketplaceCommand('add', sourceArgument(declaration.source), '--scope', scope)
     const after = await list(scope)
     const changed = after.find((e) => !before.some((b) => isDeepStrictEqual(b, e)))
     const name = declaration.name ?? changed?.name
-    if (!name) throw new Error(`claude did not declare a marketplace for ${addArgument(declaration)}`)
+    if (!name) throw new Error(`claude did not declare a marketplace for ${sourceArgument(declaration.source)}`)
 
     const previous = before.find((b) => b.name === name)
+    const other = elsewhere.find((e) => e.name === name && !sameInstall(e.source, declaration.source, location.cwd))
+    if (other) {
+      await writeEntry(scope, name, previous && { source: previous.source, ...previous.extras })
+      await reinstall(other.scope, other)
+      throw new ConflictError(crossScopeConflict(name, other.scope))
+    }
     if (previous && !sameSource(previous.source, declaration.source) && !mayReplace(name)) {
-      await writeEntry(scope, name, { source: previous.source, ...previous.extras })
+      await reinstall(scope, previous)
       throw new ConflictError(manualEntryConflict(name))
     }
     await patch(declaration, name, scope)
@@ -66,7 +87,7 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
     await runMarketplaceCommand('remove', name, '--scope', scope)
   }
 
-  function addArgument({ source }: MarketplaceDeclaration): string {
+  function sourceArgument(source: MarketplaceSource): string {
     switch (source.source) {
       case 'github':
         return source.repo as string
@@ -81,5 +102,5 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
     }
   }
 
-  return { list, put, patch, remove }
+  return { list, listElsewhere, put, patch, remove }
 }

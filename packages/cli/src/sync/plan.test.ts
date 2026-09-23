@@ -117,6 +117,49 @@ describe('planSync', () => {
       expect(plan).toEqual({ actions: [], conflicts: [], forgotten: [] })
     })
 
+    it('only forgets a managed entry that another Config still claims', () => {
+      const shared = [{ ...official, name: official.name!, config: '/other/agent-plugins.yaml' }]
+
+      expect(planSync([], [entry()], [managedOfficial], { force: false, shared })).toEqual({
+        actions: [],
+        conflicts: [],
+        forgotten: ['claude-plugins-official'],
+      })
+    })
+
+    it('reports a clash with another Config that declares the name differently, even with --force', () => {
+      const shared = [{ ...official, name: official.name!, extras: { autoUpdate: true }, config: '/other/agent-plugins.yaml' }]
+
+      const plan = planSync([official], [entry({ autoUpdate: true })], [managedOfficial], { force: true, shared })
+
+      expect(plan).toEqual({
+        actions: [],
+        conflicts: [{ name: 'claude-plugins-official', reason: 'shared-clash', detail: expect.stringContaining('/other/agent-plugins.yaml') }],
+        forgotten: [],
+      })
+    })
+
+    it('reports a clash with another scope that has the name from a different source, even with --force', () => {
+      const elsewhere = { cwd: '/repo', entries: [{ name: official.name!, source: { source: 'git', url: 'https://x/fork.git' }, extras: {}, scope: 'user' as const }] }
+
+      expect(planSync([official], [], [], { force: true, elsewhere })).toEqual({
+        actions: [],
+        conflicts: [{ name: 'claude-plugins-official', reason: 'cross-scope', detail: expect.stringContaining('user settings') }],
+        forgotten: [],
+      })
+    })
+
+    it('compares directory sources of other scopes as absolute paths', () => {
+      const local: MarketplaceDeclaration = { name: 'local-mk', source: { source: 'directory', path: './local-mk' }, extras: {}, origin: 'base' }
+      const elsewhere = { cwd: '/repo', entries: [{ name: 'local-mk', source: { source: 'directory', path: '/repo/local-mk' }, extras: {}, scope: 'user' as const }] }
+
+      expect(planSync([local], [], [], { force: false, elsewhere })).toEqual({
+        actions: [{ kind: 'add', name: 'local-mk', declaration: local }],
+        conflicts: [],
+        forgotten: [],
+      })
+    })
+
     it('forgets a managed entry that is neither declared nor in settings', () => {
       expect(planSync([], [], [managedOfficial], { force: false })).toEqual({
         actions: [],
