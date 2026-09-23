@@ -91,7 +91,7 @@ spec:
 kind: Preset
 metadata: { name: team }
 spec:
-  presets: [./common.yaml]
+  extends: [./common.yaml]
   marketplaces: [acme/team-plugins]
 `,
       'presets/common.yaml': 'kind: Preset\nmetadata: { name: common }\nspec:\n  marketplaces: [acme/common-plugins]\n',
@@ -107,8 +107,8 @@ spec:
     await expect(
       resolveIn({
         'agent-plugins.yaml': 'kind: Config\nmetadata: { name: demo }\nspec:\n  presets: [./a.yaml]\n',
-        'a.yaml': 'kind: Preset\nmetadata: { name: a }\nspec:\n  presets: [./b.yaml]\n',
-        'b.yaml': 'kind: Preset\nmetadata: { name: b }\nspec:\n  presets: [./a.yaml]\n',
+        'a.yaml': 'kind: Preset\nmetadata: { name: a }\nspec:\n  extends: [./b.yaml]\n',
+        'b.yaml': 'kind: Preset\nmetadata: { name: b }\nspec:\n  extends: ./a.yaml\n',
       }),
     ).rejects.toThrow(/cycle: a.yaml -> b.yaml -> a.yaml/)
   })
@@ -161,10 +161,10 @@ spec:
     const REMOTE = 'https://example.com/presets/remote.yaml'
     const COMMON = 'https://example.com/presets/common.yaml'
     const pages: Record<string, string> = {
-      [REMOTE]: 'kind: Preset\nmetadata: { name: remote }\nspec:\n  presets: [./common.yaml]\n  marketplaces: [acme/remote-plugins]\n',
+      [REMOTE]: 'kind: Preset\nmetadata: { name: remote }\nspec:\n  extends: ./common.yaml\n  marketplaces: [acme/remote-plugins]\n',
       [COMMON]: 'kind: Preset\nmetadata: { name: common }\nspec: {}\n',
     }
-    const REMOTE_SHA = 'b548644c1903f470154a600ca5836e112263beb50a04b5d4c927e02ccd11d3a2'
+    const REMOTE_SHA = '91d9d5d164c29225cc85b920b5243a74205ffc4ab0329c4b78dbcd26a0134f3e'
     const COMMON_SHA = '5011e0f7e395af515ec308a72e1ed87403daa593ac89d48fdc25394461275c14'
     const web = async (url: string) => {
       const page = pages[url]
@@ -275,6 +275,71 @@ spec:
           { fetch: async () => page },
         ),
       ).rejects.toThrow(/relative path "\.\/mk".*remote preset/)
+    })
+  })
+  describe('preset inheritance (extends)', () => {
+    const cfg = (presets: string) => `kind: Config\nmetadata: { name: demo }\nspec:\n  presets: ${presets}\n`
+    const preset = (name: string, body: string) => `kind: Preset\nmetadata: { name: ${name} }\nspec:\n${body}`
+    const official = (repo: string, extra = '') =>
+      `  marketplaces:\n    claude-plugins-official: { source: { source: github, repo: ${repo} }${extra} }\n`
+
+    it('lets a local preset extend a default preset by bare name', async () => {
+      const result = await resolveIn({
+        'agent-plugins.yaml': cfg('[./team.yaml]'),
+        'team.yaml': preset('team', '  extends: base\n  marketplaces: [acme/team]\n'),
+        'default-presets/base.yaml': preset('base', official('anthropics/claude-plugins-official')),
+      })
+
+      expect(result.declarations.map((d) => d.origin)).toEqual(['base', 'team.yaml'])
+    })
+
+    it('rejects `presets` in a Preset and `extends` in a Config', async () => {
+      await expect(
+        resolveIn({ 'agent-plugins.yaml': cfg('[./team.yaml]'), 'team.yaml': preset('team', '  presets: [base]\n') }),
+      ).rejects.toThrow(/team\.yaml: a Preset inherits with `spec\.extends`/)
+      await expect(
+        resolveIn({ 'agent-plugins.yaml': 'kind: Config\nmetadata: { name: demo }\nspec:\n  extends: base\n' }),
+      ).rejects.toThrow(/agent-plugins\.yaml: a Config selects presets with `spec\.presets`/)
+    })
+
+    it('lets a child preset replace a parent declaration entirely, with a notice', async () => {
+      const result = await resolveIn({
+        'agent-plugins.yaml': cfg('[./child.yaml]'),
+        'child.yaml': preset('child', '  extends: ./parent.yaml\n' + official('anthropics/claude-plugins-official')),
+        'parent.yaml': preset('parent', official('anthropics/claude-plugins-official', ', autoUpdate: true')),
+      })
+
+      expect(result.conflicts).toEqual([])
+      expect(result.declarations).toEqual([
+        expect.objectContaining({ name: 'claude-plugins-official', extras: {}, origin: 'child.yaml' }),
+      ])
+      expect(result.notices).toEqual(['child.yaml overrides "claude-plugins-official" declared by parent.yaml'])
+    })
+
+    it('loads a shared parent once and still lets every preset that extends it override it', async () => {
+      const result = await resolveIn({
+        'agent-plugins.yaml': cfg('[./x.yaml, ./y.yaml]'),
+        'x.yaml': preset('x', '  extends: ./base.yaml\n'),
+        'y.yaml': preset('y', '  extends: ./base.yaml\n' + official('someone/fork')),
+        'base.yaml': preset('base', official('anthropics/claude-plugins-official')),
+      })
+
+      expect(result.conflicts).toEqual([])
+      expect(result.declarations).toEqual([
+        expect.objectContaining({ source: { source: 'github', repo: 'someone/fork' }, origin: 'y.yaml' }),
+      ])
+    })
+
+    it('still reports a clash between presets that do not extend one another', async () => {
+      const result = await resolveIn({
+        'agent-plugins.yaml': cfg('[./x.yaml, ./y.yaml]'),
+        'x.yaml': preset('x', '  extends: ./base.yaml\n' + official('acme/one')),
+        'y.yaml': preset('y', '  extends: ./base.yaml\n' + official('acme/two')),
+        'base.yaml': preset('base', official('anthropics/claude-plugins-official')),
+      })
+
+      expect(result.declarations).toEqual([])
+      expect(result.conflicts).toEqual([expect.objectContaining({ name: 'claude-plugins-official', reason: 'preset-clash' })])
     })
   })
 })

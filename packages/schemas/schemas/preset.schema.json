@@ -31,7 +31,14 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "presets": { "$ref": "#/$defs/presetRefs" },
+        "extends": {
+          "description": "Presets this preset inherits from, loaded before it. This preset overrides any declaration made in its `extends` tree. Accepts one reference or a list.",
+          "oneOf": [
+            { "$ref": "#/$defs/presetRef" },
+            { "$ref": "#/$defs/presetRefs" }
+          ],
+          "examples": ["base", ["base", "./team.yaml"]]
+        },
         "marketplaces": {
           "description": "Marketplaces to register. Accepts a list of `owner/repo` strings, or a `name: { source }` map in the `extraKnownMarketplaces` format.",
           "oneOf": [
@@ -92,50 +99,31 @@
           ]
         },
         "plugins": {
-          "description": "Plugins to install. Accepts a `name@marketplace: enabled` map, a list of `name@marketplace` strings, or a list of `{name, marketplace, enabled}` objects.",
+          "description": "Plugins to enable, as in Claude Code's `enabledPlugins` setting. The `@marketplace` suffix must name a declared marketplace. Accepts a `name@marketplace: enabled` map (canonical), or a list of `name@marketplace` strings as shorthand for all `true`.",
           "oneOf": [
             {
               "title": "Plugin map",
+              "description": "Canonical form. `false` disables a plugin, including one enabled by an inherited preset.",
               "type": "object",
               "propertyNames": { "$ref": "#/$defs/pluginRef" },
               "additionalProperties": {
                 "type": "boolean",
                 "description": "Whether the plugin is enabled."
               },
-              "examples": [{ "context7@claude-plugins-official": true }]
+              "examples": [
+                {
+                  "context7@claude-plugins-official": true,
+                  "typescript-lsp@claude-plugins-official": false
+                }
+              ]
             },
             {
               "title": "Plugin ref list",
+              "description": "Shorthand that enables every listed plugin. Cannot disable a plugin; use the map form for that.",
               "type": "array",
               "uniqueItems": true,
               "items": { "$ref": "#/$defs/pluginRef" },
               "examples": [["context7@claude-plugins-official"]]
-            },
-            {
-              "title": "Plugin object list",
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": ["name", "marketplace"],
-                "additionalProperties": false,
-                "properties": {
-                  "name": {
-                    "$ref": "#/$defs/name",
-                    "description": "Plugin name.",
-                    "examples": ["context7"]
-                  },
-                  "marketplace": {
-                    "$ref": "#/$defs/name",
-                    "description": "Marketplace the plugin comes from.",
-                    "examples": ["claude-plugins-official"]
-                  },
-                  "enabled": {
-                    "type": "boolean",
-                    "description": "Whether the plugin is enabled.",
-                    "default": true
-                  }
-                }
-              }
             }
           ]
         },
@@ -156,18 +144,19 @@
     }
   },
   "$defs": {
+    "presetRef": {
+      "description": "A preset reference: a bare name is a default preset shipped with `ap`; `./` or `../` is a file relative to the file that references it; `https://` is a remote preset pinned by content hash in agent-plugins.lock.",
+      "type": "string",
+      "anyOf": [
+        { "$ref": "#/$defs/name" },
+        { "pattern": "^\\.\\.?/" },
+        { "pattern": "^https://" }
+      ]
+    },
     "presetRefs": {
-      "description": "Presets to inherit, merged in order. A bare name is a built-in preset; `./` or `../` is a file relative to this one; `https://` is a remote preset pinned by content hash in agent-plugins.lock.",
       "type": "array",
       "uniqueItems": true,
-      "items": {
-        "type": "string",
-        "anyOf": [
-          { "$ref": "#/$defs/name" },
-          { "pattern": "^\\.\\.?/" },
-          { "pattern": "^https://" }
-        ]
-      },
+      "items": { "$ref": "#/$defs/presetRef" },
       "examples": [["base", "./presets/team.yaml", "https://example.com/presets/shared.yaml"]]
     },
     "name": {

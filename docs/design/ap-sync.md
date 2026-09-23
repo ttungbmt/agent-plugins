@@ -7,23 +7,31 @@ Thuật ngữ: xem [CONTEXT.md](../../CONTEXT.md). Quyết định kiến trúc:
 - Chỉ đồng bộ `marketplaces` → `extraKnownMarketplaces`.
 - Để sau: `plugins` → `enabledPlugins`, sinh marketplace cục bộ `.agent-plugins/marketplace`, cú pháp `github:owner/repo/path@ref` cho preset.
 
+### `plugins` (để sau, đã chốt luật)
+
+- Dạng chuẩn: map `name@marketplace: bool`, khớp 1:1 với `enabledPlugins`. Dạng list `name@marketplace` là viết tắt cho toàn bộ `true`.
+- Gộp như `marketplaces`: Preset cha trước, con sau, `spec.plugins` của Config gộp cuối; trùng khoá → giá trị sau thắng, nên `false` tắt được plugin Preset cha đã bật.
+- Hậu tố `@marketplace` phải là tên một marketplace khai báo dạng map trong chuỗi gộp; không có → lỗi. Dạng rút gọn `owner/repo` chưa biết tên trước `add` nên không tham chiếu được.
+- Bật plugin nguồn ngoài qua `enabledPlugins` ở scope `project` không cài cho người khác → `ap` gọi `claude plugin install <plugin>@<marketplace> --scope <scope>`, không chỉ ghi settings.
+
 ## Hành vi
 
 ### Đầu vào
 
 - `agent-plugins.yaml` (`kind: Config`, schema `config.schema.json`). Thiếu file → lỗi, gợi ý `ap init`.
-- `spec.presets` — mỗi tham chiếu:
+- `spec.presets` của Config (chọn Preset) và `spec.extends` của Preset (kế thừa, một tham chiếu hoặc list) — mỗi tham chiếu:
   - tên trần → Preset mặc định trong `packages/presets`, tìm theo tên file; `metadata.name` phải trùng tên file.
   - `./…`, `../…` → Preset cục bộ, tương đối với file chứa tham chiếu.
   - `https://…` → Preset từ xa; `sha256` nội dung ghim trong Lock, cache ở `.agent-plugins/cache/`; nội dung đổi → lỗi, `--update` để chấp nhận.
-- Preset có thể có `spec.presets` (kế thừa tuỳ độ sâu). Phát hiện vòng lặp. Gộp theo chiều sâu: cha trước, con sau. Tham chiếu tương đối trong Preset từ xa phân giải theo URL của nó.
+- Preset kế thừa bằng `spec.extends` (tuỳ độ sâu); Config chỉ dùng `spec.presets`. Dùng lẫn → lỗi kèm gợi ý. Phát hiện vòng lặp. Mỗi Preset chỉ nạp một lần, ở lần gặp đầu tiên; thứ tự: cha trước, con sau. Tham chiếu tương đối trong Preset từ xa phân giải theo URL của nó.
 - `spec.marketplaces` của Config được gộp cuối.
 - Dạng rút gọn `owner/repo` → `{ source: { source: github, repo } }`. Dạng map giữ nguyên mọi field.
 - `path` tương đối của nguồn `directory`/`file` trong một Preset cục bộ được tính theo file Preset đó rồi quy về thư mục Config; trong Preset từ xa thì là lỗi.
 
 ### Luật trùng khai báo
 
-- Hai Preset cùng tên, cùng source → gộp, field phụ của Preset sau thắng; khác source → lỗi. Managed entry của tên đang lỗi được giữ nguyên.
+- Preset thắng mọi Preset nằm trong cây `extends` của nó (theo đồ thị, kể cả khi Preset cha đã nạp qua nhánh khác): thay cả entry (source + field phụ), in thông báo nếu khác.
+- Hai Preset ngang hàng (không Preset nào kế thừa Preset kia) cùng tên, cùng source → gộp, field phụ của Preset sau thắng; khác source → lỗi. Managed entry của tên đang lỗi được giữ nguyên.
 - Config trùng tên (hoặc trùng source với khai báo rút gọn) với Preset → Config thắng, in thông báo nếu khác.
 
 ### Ghi settings

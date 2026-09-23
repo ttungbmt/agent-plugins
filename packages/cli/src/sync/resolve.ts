@@ -31,28 +31,32 @@ export type ResolvedConfig = {
 
 export class ConfigError extends Error {}
 
-type PresetDocument = { kind?: string; metadata?: { name?: string }; spec?: { presets?: unknown; marketplaces?: unknown } }
+type PresetDocument = { kind?: string; metadata?: { name?: string }; spec?: { presets?: unknown; extends?: unknown; marketplaces?: unknown } }
 type LoadedPreset = { id: string; label: string; doc: PresetDocument; dir: string }
 type Resolution = ResolveContext & { root: string; usedPins: PresetPins }
 
 /** Phân giải Config thành tập Khai báo marketplace, theo docs/design/ap-sync.md. */
 export async function resolveConfig(configPath: string, ctx: ResolveContext): Promise<ResolvedConfig> {
+  const configLabel = basename(configPath)
   const text = await readFile(configPath, 'utf8').catch(() => {
-    throw new ConfigError(`${basename(configPath)} not found; run \`ap init\` to create one`)
+    throw new ConfigError(`${configLabel} not found; run \`ap init\` to create one`)
   })
   const config = parse(text) as PresetDocument
+  if (config.spec?.extends !== undefined) {
+    throw new ConfigError(`${configLabel}: a Config selects presets with \`spec.presets\`, not \`spec.extends\``)
+  }
   const resolution: Resolution = { ...ctx, root: dirname(configPath), usedPins: {} }
-  const fromPresets: MarketplaceDeclaration[] = []
-  for (const ref of presetRefs(config)) await collect(ref, resolution.root, [], fromPresets, resolution)
+  const graph: PresetGraph = { ancestors: new Map(), contributions: [] }
+  for (const ref of list(config.spec?.presets)) await collect(ref, resolution.root, [], graph, resolution)
 
-  const own = readMarketplaces(config.spec?.marketplaces, basename(configPath))
-  const merged = mergePresets(fromPresets)
-  const notices: string[] = []
+  const own = readMarketplaces(config.spec?.marketplaces, configLabel)
+  const merged = mergePresets(graph)
+  const notices = [...merged.notices]
   const kept = merged.declarations.filter((d) => {
     const override = own.find((o) => (o.name !== null && o.name === d.name) || sameSource(o.source, d.source))
     if (!override) return true
     if (!sameSource(override.source, d.source) || !isDeepStrictEqual(override.extras, d.extras)) {
-      notices.push(`${override.origin} overrides "${d.name ?? override.name ?? d.source.repo}" declared by ${d.origin}`)
+      notices.push(overrideNotice(override, d))
     }
     return false
   })
@@ -66,39 +70,99 @@ export async function resolveConfig(configPath: string, ctx: ResolveContext): Pr
   }
 }
 
-/** Gộp khai báo giữa các Preset: cùng marketplace và source thì gộp field phụ (Preset sau thắng), khác source thì là preset-clash. */
-function mergePresets(all: MarketplaceDeclaration[]): { declarations: MarketplaceDeclaration[]; conflicts: Conflict[] } {
-  const kept: MarketplaceDeclaration[] = []
-  const conflicts: Conflict[] = []
-  const clashed = new Set<string>()
+/** Khai báo của một Preset, kèm Preset đó để so thứ tự ưu tiên. */
+type Contribution = { declaration: MarketplaceDeclaration; presetId: string }
+type PresetGraph = {
+  /** Preset → mọi Preset nằm trong cây `extends` của nó (trực tiếp hoặc gián tiếp). */
+  ancestors: Map<string, Set<string>>
+  contributions: Contribution[]
+}
 
-  for (const d of all) {
-    const index = kept.findIndex((k) => (d.name ? k.name === d.name : !k.name && sameSource(k.source, d.source)))
-    const same = kept[index]
-    if (!same) {
-      kept.push(d)
-    } else if (sameSource(same.source, d.source)) {
-      kept[index] = { ...same, extras: { ...same.extras, ...d.extras } }
-    } else if (!clashed.has(d.name as string)) {
-      const name = d.name as string
-      clashed.add(name)
-      conflicts.push({ name, reason: 'preset-clash', detail: `"${name}" is declared differently by ${same.origin} and ${d.origin}` })
+/**
+ * Gộp khai báo giữa các Preset (ADR 0004):
+ * - Preset thắng mọi Preset trong cây `extends` của nó, thay cả entry;
+ * - còn lại là ngang hàng: cùng source thì gộp field phụ (khai báo sau thắng), khác source thì là preset-clash.
+ */
+function mergePresets({ ancestors, contributions }: PresetGraph) {
+  const groups: Contribution[][] = []
+  for (const c of contributions) {
+    const group = groups.find((g) => g.some((m) => sameMarketplace(m.declaration, c.declaration)))
+    if (group) group.push(c)
+    else groups.push([c])
+  }
+
+  const declarations: MarketplaceDeclaration[] = []
+  const conflicts: Conflict[] = []
+  const notices: string[] = []
+  const extendsPreset = (child: Contribution, parent: Contribution) => ancestors.get(child.presetId)?.has(parent.presetId)
+
+  for (const group of groups) {
+    const winners = group.filter((m) => !group.some((o) => extendsPreset(o, m)))
+    const [first, ...rest] = winners.map((w) => w.declaration)
+    if (!first) continue
+    const rival = rest.find((d) => !sameSource(d.source, first.source))
+    if (rival) {
+      const name = (first.name ?? rival.name) as string
+      conflicts.push({ name, reason: 'preset-clash', detail: `"${name}" is declared differently by ${first.origin} and ${rival.origin}` })
+      continue
+    }
+    const winner = rest.reduce(
+      (acc, d) => ({ ...acc, name: acc.name ?? d.name, extras: { ...acc.extras, ...d.extras } }),
+      first,
+    )
+    declarations.push(winner)
+
+    for (const loser of group.filter((m) => !winners.includes(m))) {
+      const overrider = group.find((o) => winners.includes(o) && extendsPreset(o, loser)) ?? winners[0]!
+      const d = loser.declaration
+      if (!sameSource(d.source, overrider.declaration.source) || !isDeepStrictEqual(d.extras, overrider.declaration.extras)) {
+        notices.push(overrideNotice(overrider.declaration, d))
+      }
     }
   }
 
-  return { declarations: kept.filter((d) => !d.name || !clashed.has(d.name)), conflicts }
+  return { declarations, conflicts, notices }
 }
 
-async function collect(ref: string, from: string, stack: LoadedPreset[], out: MarketplaceDeclaration[], resolution: Resolution) {
+/** Cùng một marketplace: cùng tên, hoặc cùng source khi một bên là dạng rút gọn chưa biết tên. */
+function sameMarketplace(a: MarketplaceDeclaration, b: MarketplaceDeclaration): boolean {
+  if (a.name && b.name) return a.name === b.name
+  return sameSource(a.source, b.source)
+}
+
+function overrideNotice(winner: MarketplaceDeclaration, loser: MarketplaceDeclaration): string {
+  return `${winner.origin} overrides "${loser.name ?? winner.name ?? loser.source.repo}" declared by ${loser.origin}`
+}
+
+/** Nạp một Preset và cây `extends` của nó; mỗi Preset chỉ nạp một lần. Trả về id của Preset. */
+async function collect(ref: string, from: string, stack: LoadedPreset[], graph: PresetGraph, resolution: Resolution) {
   const preset = await load(ref, from, resolution)
   if (stack.some((p) => p.id === preset.id)) {
     const start = stack.findIndex((p) => p.id === preset.id)
     const chain = [...stack.slice(start), preset].map((p) => p.label).join(' -> ')
     throw new ConfigError(`preset cycle: ${chain}`)
   }
-  for (const child of presetRefs(preset.doc)) await collect(child, preset.dir, [...stack, preset], out, resolution)
-  const declarations = readMarketplaces(preset.doc.spec?.marketplaces, preset.label)
-  out.push(...declarations.map((d) => ({ ...d, source: rebasePath(d.source, preset, resolution.root) })))
+  if (graph.ancestors.has(preset.id)) return preset.id
+
+  const ancestors = new Set<string>()
+  graph.ancestors.set(preset.id, ancestors)
+  for (const parent of extendsRefs(preset)) {
+    const id = await collect(parent, preset.dir, [...stack, preset], graph, resolution)
+    ancestors.add(id)
+    for (const a of graph.ancestors.get(id) ?? []) ancestors.add(a)
+  }
+
+  for (const d of readMarketplaces(preset.doc.spec?.marketplaces, preset.label)) {
+    graph.contributions.push({ declaration: { ...d, source: rebasePath(d.source, preset, resolution.root) }, presetId: preset.id })
+  }
+  return preset.id
+}
+
+function extendsRefs(preset: LoadedPreset): string[] {
+  if (preset.doc.spec?.presets !== undefined) {
+    throw new ConfigError(`${preset.label}: a Preset inherits with \`spec.extends\`, not \`spec.presets\``)
+  }
+  return list(preset.doc.spec?.extends)
 }
 
 /** Đường dẫn tương đối trong một Preset được tính theo file Preset đó, rồi quy về thư mục Config. */
@@ -176,8 +240,10 @@ function sha256(text: string): string {
   return createHash('sha256').update(text).digest('hex')
 }
 
-function presetRefs(doc: PresetDocument): string[] {
-  return (doc.spec?.presets as string[] | undefined) ?? []
+/** `extends`/`presets` nhận một tham chiếu hoặc một list. */
+function list(refs: unknown): string[] {
+  if (refs === undefined || refs === null) return []
+  return Array.isArray(refs) ? refs : [refs as string]
 }
 
 function readMarketplaces(raw: unknown, origin: string): MarketplaceDeclaration[] {

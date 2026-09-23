@@ -12,6 +12,14 @@ _Avoid_: Manifest, Project, profile
 Một khối khai báo tái sử dụng được (`kind: Preset`), có thể kế thừa Preset khác.
 _Avoid_: template, bundle
 
+**Kế thừa**:
+Quan hệ một Preset khai báo qua `spec.extends`: Preset con nhận khai báo của Preset cha và được ghi đè chúng.
+_Avoid_: include, import, chọn (dùng cho Config)
+
+**Chọn Preset**:
+Việc Config liệt kê Preset qua `spec.presets`; các Preset được chọn là ngang hàng với nhau.
+_Avoid_: extends, kế thừa (dùng cho Preset)
+
 **Preset mặc định**:
 Preset đi kèm `ap`, được tham chiếu bằng tên trần.
 _Avoid_: built-in preset, default config

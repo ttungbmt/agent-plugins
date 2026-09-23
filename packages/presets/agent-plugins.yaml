@@ -6,19 +6,19 @@ metadata:
   name: agent-plugins
 
 spec:
-    
+  extends: base
+
   marketplaces:
-    claude-plugins-official:
-      source:
-        source: github
-        repo: anthropics/claude-plugins-official
+    - mvanhorn/last30days-skill
+    - affaan-m/everything-claude-code
+    - wshobson/agents
      
   plugins:
     context7@claude-plugins-official: true
     claude-code-setup@claude-plugins-official: true
     typescript-lsp@claude-plugins-official: true
     claude-md-management@claude-plugins-official: true
-    # mattpocock-skills@claude-plugins-official: true
+    mattpocock-skills@claude-plugins-official: true
 
   agents:
     - ecc-universal/typescript-reviewer
