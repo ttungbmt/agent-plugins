@@ -1,0 +1,21 @@
+marketplaces:
+  - name: claude-plugins-official
+    source:
+      source: github
+      repo: anthropics/claude-plugins-official
+    origin: base
+  - name: last30days-skill
+    source:
+      source: github
+      repo: mvanhorn/last30days-skill
+    origin: agent-plugins
+  - name: ecc
+    source:
+      source: github
+      repo: affaan-m/everything-claude-code
+    origin: agent-plugins
+  - name: claude-code-workflows
+    source:
+      source: github
+      repo: wshobson/agents
+    origin: agent-plugins
