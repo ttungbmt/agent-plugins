@@ -199,9 +199,10 @@ export type Declarations = {
 
 /**
  * Validate every `spec.*` key of one document: first the shape of every key in one parse, then the semantic steps
- * (Shorthand sources, the MCP catalog) in the order marketplaces, items (`ITEM_KINDS`), MCP servers. Throws a
- * ConfigError for the first problem. `dir` is the document's directory, against which local paths are resolved;
- * `mcpCatalog` is only called for a server taken from the MCP catalog.
+ * (Shorthand sources, the MCP catalog) in the order marketplaces, items (`ITEM_KINDS`), MCP servers. Throws one
+ * ConfigError holding every shape problem or, when the shape is valid, every semantic problem in entry order.
+ * `dir` is the document's directory, against which local paths are resolved; `mcpCatalog` is only called for a
+ * server taken from the MCP catalog.
  */
 export async function readDeclarations(
   doc: PresetDocument,
@@ -209,10 +210,20 @@ export async function readDeclarations(
   mcpCatalog: McpCatalog,
 ): Promise<Declarations> {
   const parsed = Spec.safeParse(doc.spec)
-  if (!parsed.success) throw new ConfigError(issueLines(parsed.error.issues, doc.spec, origin)[0]!)
+  if (!parsed.success) throw new ConfigError(issueLines(parsed.error.issues, doc.spec, origin))
   const spec = parsed.data ?? {}
 
-  const marketplaces = await Promise.all(
+  const errors: string[] = []
+  /** Run every step of one section; keep each ConfigError, in entry order, and return the steps that succeeded. */
+  const settle = async <T>(steps: Promise<T>[]): Promise<T[]> =>
+    (await Promise.allSettled(steps)).flatMap((result) => {
+      if (result.status === 'fulfilled') return [result.value]
+      if (!(result.reason instanceof ConfigError)) throw result.reason
+      errors.push(...result.reason.messages)
+      return []
+    })
+
+  const marketplaces = await settle(
     (spec.marketplaces ?? []).map(async (m): Promise<MarketplaceDeclaration> =>
       m.name === null ? { name: null, source: await parseShorthand(m.text, dir, origin), extras: {}, origin } : { ...m, origin },
     ),
@@ -220,7 +231,7 @@ export async function readDeclarations(
   const plugins = (spec.plugins ?? []).map((p) => ({ ...p, origin }))
   const items = byKind((): ItemPart[] => [])
   for (const kind of ITEM_KINDS) {
-    items[kind] = await Promise.all(
+    items[kind] = await settle(
       (spec[`${kind}s`] ?? []).map(async ({ source, subdir, select, scope }): Promise<ItemPart> => {
         // A `directory` source folds `path` into its own path; other sources keep it as a field.
         const shorthand = subdir && isLocal(source) ? `${source.replace(/\/+$/, '')}/${subdir}` : source
@@ -232,7 +243,7 @@ export async function readDeclarations(
       }),
     )
   }
-  const mcpServers = await Promise.all(
+  const mcpServers = await settle(
     Object.entries(spec.mcpServers ?? {}).map(async ([name, value]): Promise<McpPart> => {
       if (value.kind === 'drop') return { name, server: null, origin }
       const scope = 'scope' in value ? value.scope : undefined
@@ -244,6 +255,7 @@ export async function readDeclarations(
       return { name, server, ...(scope && { scope }), origin }
     }),
   )
+  if (errors.length) throw new ConfigError(errors)
   // A Hook group is written to settings exactly as the user wrote it, so it is taken from the input, not the parse output.
   const rawHooks = (doc.spec?.hooks ?? {}) as Record<string, HookGroup | false>
   const hooks = Object.keys(spec.hooks ?? {}).flatMap((name) => (rawHooks[name] === false ? [] : [{ name, group: rawHooks[name]!, origin }]))

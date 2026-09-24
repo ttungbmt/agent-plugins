@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { ConfigError } from './errors.js'
 import { presetRefs, readDeclarations, type McpCatalog, type PresetDocument } from './spec.js'
 
 const at = { origin: 'demo.yaml', dir: '/unused' }
@@ -156,6 +157,50 @@ describe('readDeclarations: inputs the hand-written parser let through or crashe
     const error = await read(spec as PresetDocument['spec']).then(() => null, (e: Error) => e)
     expect(error?.message).toMatch(/^demo\.yaml: /)
     expect(error?.message).not.toContain('Invalid input')
+  })
+})
+
+describe('readDeclarations: every error of a file (ADR 0015)', () => {
+  const messages = (spec: PresetDocument['spec'], catalog = noCatalog) =>
+    read(spec, catalog).then(
+      () => [],
+      (e: ConfigError) => e.messages,
+    )
+
+  it('reports every shape error, entries in file order and each entry\'s unknown keys first', async () => {
+    expect(
+      await messages({
+        marketplaces: { m: { source: { source: 'github', repo: 'acme/plugins' }, colour: 'red' } },
+        plugins: { 'a@acme': { enable: true } },
+        hooks: { h: true },
+      }),
+    ).toEqual([
+      'demo.yaml: marketplace "m" has unknown field "colour"',
+      'demo.yaml: plugin "a@acme" has unknown field "enable"',
+      'demo.yaml: plugin "a@acme" must set `enabled` to true or false',
+      'demo.yaml: hook "h" cannot be true: ap has no hook catalog yet; declare the hook inline',
+    ])
+  })
+
+  it('reports only the shape errors while there are any, not the semantic ones', async () => {
+    expect(await messages({ skills: ['not a source!'], hooks: { h: true } })).toEqual([
+      'demo.yaml: hook "h" cannot be true: ap has no hook catalog yet; declare the hook inline',
+    ])
+  })
+
+  it('reports every semantic error in entry order, however long each check takes', async () => {
+    // `./missing` fails only after an async `stat`; the next entry fails at once, yet is still reported second.
+    expect(await messages({ skills: ['./missing', 'not a source!'], mcpServers: { nope: true } }, async () => ({}))).toEqual([
+      'demo.yaml: skill path "./missing" does not exist',
+      'demo.yaml: unrecognised skill source "not a source!"; try owner/repo, https://..., git@host:path or ./path',
+      'demo.yaml: MCP server "nope" is not in the ap catalog; declare its configuration inline',
+    ])
+  })
+
+  it('keeps one error as one message', async () => {
+    const error = await read({ plugins: ['nope'] }).catch((e: ConfigError) => e)
+    expect(error).toBeInstanceOf(ConfigError)
+    expect((error as ConfigError).message).toBe('demo.yaml: plugin "nope" must be written as name@marketplace')
   })
 })
 

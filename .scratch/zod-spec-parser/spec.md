@@ -60,8 +60,9 @@ configs, which only exist after the lookup.
 - **Across Presets:** unchanged. A Preset's errors still stop resolution before the next Preset is loaded.
 - `ConfigError` carries `messages: string[]`. Its `message` is the lines joined with `\n`, so existing `toThrow(...)`
   tests and callers that print `error.message` keep working.
-- The commands print one line per error, each `<file>: <message>` (check how oclif's `this.error` renders a multi-line
-  message and keep every line self-contained).
+- The commands print one line per error to stderr, each `Error: <file>: <message>`, and exit with code 2. They don't use
+  `this.error`, because oclif wraps long lines to the terminal width and prefixes every line with ` ›`, which would split
+  a message.
 
 ### Types
 

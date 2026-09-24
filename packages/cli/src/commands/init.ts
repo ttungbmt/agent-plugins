@@ -19,7 +19,11 @@ export default class Init extends Command {
     try {
       result = await init({ cwd, name: flags.name, force: flags.force })
     } catch (error) {
-      if (error instanceof ConfigError) this.error(error.message, { exit: 2 })
+      if (error instanceof ConfigError) {
+        // One unwrapped line per problem, so each stays whole for grep; `this.error` would wrap them to the terminal width.
+        for (const line of error.messages) this.logToStderr(`Error: ${line}`)
+        this.exit(2)
+      }
       throw error
     }
 

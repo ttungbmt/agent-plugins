@@ -1,6 +1,6 @@
 ---
 title: Report every shape error of a file, then every semantic error in entry order
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [01]
 ---
 
