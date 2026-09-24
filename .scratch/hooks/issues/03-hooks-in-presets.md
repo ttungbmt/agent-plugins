@@ -18,4 +18,5 @@ Spec: [../spec.md](../spec.md). ADR 0007. Thuật ngữ: CONTEXT.md mục Hook v
 - [ ] Gộp cùng luật MCP server: con thắng cha theo cả khối, Config thắng mọi Preset, ghi đè khác nội dung có notice, `false` xoá tên sau khi gộp.
 - [ ] Hai Preset ngang hàng cùng tên khác nội dung → `preset-clash`; Managed hook của tên đó giữ nguyên.
 - [ ] `preset.schema.json` và `config.schema.json` thêm `hooks`: map tên → `false` hoặc nhóm; handler `additionalProperties: true`; `event` là chuỗi có gợi ý các event đã biết, không enum đóng; `true` không hợp lệ. Gộp cẩn thận với thay đổi chưa commit trong `preset.schema.json`.
+- [ ] Thêm `hooks` vào `PRESET_SPEC_KEYS` (`resolve.ts`, hiện Preset có `hooks` bị từ chối) và xoá mục `hooks` khỏi `KNOWN_GAPS` trong `spec-schema.test.ts`.
 - [ ] Test gộp trong `resolve.test.ts`; test sync một hook kế thừa, ghi đè, `false`, `preset-clash` trong `sync-hooks.test.ts`.

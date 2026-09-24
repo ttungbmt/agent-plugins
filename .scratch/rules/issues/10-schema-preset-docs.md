@@ -13,5 +13,6 @@ Spec: [../spec.md](../spec.md) (mục Schema, preset, tài liệu). User story 3
 - Cân nhắc dịch `docs/research/rules.md` sang tiếng Việt.
 
 ## Acceptance
+- Xoá hai mục `rules` khỏi `KNOWN_GAPS` trong `packages/cli/src/sync/spec-schema.test.ts`; test đó xanh.
 - Test schema hiện có (nếu có) xanh; ví dụ trong spec validate được, ví dụ có cả `rules` + `exclude` bị từ chối.
 - `pnpm ap sync` ở gốc repo cài `.claude/rules/ecc/{common,typescript,web}/…` và ghi vào `agent-plugins.lock`.

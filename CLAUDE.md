@@ -48,8 +48,9 @@ Extending it:
 
 - Skills, agents, rules and workflows share one `ItemHandler` (`items.ts`), registered in `ITEM_KINDS` (`types.ts`) and
   `HANDLERS` (`index.ts`). A new item kind follows the same shape.
-- A new `spec.*` key touches three places: the parser in `resolve.ts` (the only runtime validation),
-  `config.schema.json` and `preset.schema.json`.
+- A new `spec.*` key touches three places: `PRESET_SPEC_KEYS`/`CONFIG_SPEC_KEYS` and the parser in `resolve.ts` (the
+  only runtime validation, which rejects unknown keys), `config.schema.json` and `preset.schema.json`.
+  `spec-schema.test.ts` names whichever one was missed.
 
 ## Testing
 
