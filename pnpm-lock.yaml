@@ -187,6 +187,9 @@ importers:
       '@types/react':
         specifier: ^19.3.0
         version: 19.3.0
+      acorn:
+        specifier: ^8.18.0
+        version: 8.18.0
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -651,6 +654,11 @@ packages:
 
   '@vitest/spy@5.0.1':
     resolution: {integrity: sha512-rbto/mF/SGERxEgYOek7Xm6B9b+y+mVoo+f4b2LymYO8zM1b7uB5nHuhVMTP2hxdzgxvGiZYGxGIaMvL5y180Q==}
+
+  acorn@8.18.0:
+    resolution: {integrity: sha512-lGq+9yr1/GuAWaVYIHRjvvySG5/4VfKIvC8EWxStPdcDh/Ka7FG3twP6v4d5BkravUilhIAsG4Qj83t02LWUPQ==}
+    engines: {node: '>=0.4.0'}
+    hasBin: true
 
   ajv@8.20.0:
     resolution: {integrity: sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==}
@@ -1533,6 +1541,8 @@ snapshots:
       vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(yaml@2.9.1)
 
   '@vitest/spy@5.0.1': {}
+
+  acorn@8.18.0: {}
 
   ajv@8.20.0:
     dependencies:
