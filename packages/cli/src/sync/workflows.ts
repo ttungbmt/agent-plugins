@@ -47,7 +47,7 @@ export async function findWorkflows(root: string, source: ItemSource): Promise<F
     if (isPluginBound(refs)) found.blocked = `it calls ${refs.agentTypes.filter((t) => t.includes(':')).join(', ')}`
     workflows.push(found)
   }
-  return workflows.sort((a, b) => a.name.localeCompare(b.name))
+  return workflows.sort((a, b) => a.name.localeCompare(b.name, 'en'))
 }
 
 /**
@@ -57,7 +57,7 @@ export async function findWorkflows(root: string, source: ItemSource): Promise<F
  */
 export async function listInstalledWorkflows(dir: string): Promise<InstalledItem[]> {
   const byName = new Map<string, { file: string; symlink: boolean; sha256: string }[]>()
-  const entries = (await readdir(dir, { withFileTypes: true }).catch(() => [])).sort((a, b) => a.name.localeCompare(b.name))
+  const entries = (await readdir(dir, { withFileTypes: true }).catch(() => [])).sort((a, b) => a.name.localeCompare(b.name, 'en'))
   for (const entry of entries) {
     if ((!entry.isFile() && !entry.isSymbolicLink()) || !entry.name.endsWith('.js')) continue
     const text = await readFile(join(dir, entry.name)).catch(() => undefined)

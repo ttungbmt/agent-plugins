@@ -1,6 +1,6 @@
 ---
 title: Order workflows independently of the machine's locale
-labels: []
+labels: [done]
 blocked_by: [03]
 ---
 

@@ -1,6 +1,6 @@
 import { readdir, readFile, readlink, symlink, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { parse } from 'yaml'
 import { fakeClaude } from './fake-claude.js'
 import { sync, type SyncMode } from './index.js'
@@ -420,8 +420,8 @@ describe('sync workflows when workflows are switched off', () => {
 
 
 /**
- * Pins today's order, which comes from `localeCompare` with the machine's locale. These ASCII names sort the same under
- * `en`, `sv_SE`, `tr_TR` and `C`, so the expected values are the `en` order whatever `LC_ALL` the runner has.
+ * Workflows are ordered by `localeCompare(…, 'en')`, so the order and the Installed workflow do not depend on the
+ * machine's locale (ADR 0016).
  */
 describe('workflow order', () => {
   const NAMES = ['zeta2', 'Deploy-prod', 'audit', 'Zeta', 'deploy']
@@ -450,4 +450,36 @@ describe('workflow order', () => {
 
     expect(installed).toMatchObject({ name: 'deploy', files: ['b.js', 'B.js'], sha256: lower[0]!.sha256 })
   })
+
+  // `da` sorts `aa` after `z`, and `tr` sorts dotless `I` before `i`, so these ASCII names order differently there.
+  const LOCAL = ['zeta', 'ilk', 'aarhus', 'Istanbul']
+  const EN = ['aarhus', 'ilk', 'Istanbul', 'zeta']
+
+  it.each(['da', 'tr'])('keeps the `en` order when the default locale is %s', async (locale) => {
+    const source = await makeTree(Object.fromEntries(LOCAL.map((n) => [`workflows/${n}.js`, script(n)])))
+    const dir = await makeTree(Object.fromEntries(LOCAL.map((n) => [`${n}.js`, script(n)])))
+
+    const [found, installed] = await withDefaultLocale(locale, () =>
+      Promise.all([findWorkflows(source, { source: 'directory', path: source }), listInstalledWorkflows(dir)]),
+    )
+
+    expect(found.map((w) => w.name)).toEqual(EN)
+    expect(installed.map((w) => w.name)).toEqual(EN)
+  })
 })
+
+/**
+ * Runs `fn` as if Node had started under `LC_ALL=<locale>`: Node fixes its default locale at startup, so a
+ * `localeCompare` call without `locales` is made to use `locale` instead.
+ */
+async function withDefaultLocale<T>(locale: string, fn: () => Promise<T>): Promise<T> {
+  const original = String.prototype.localeCompare
+  const spy = vi.spyOn(String.prototype, 'localeCompare').mockImplementation(function (this: string, that, locales, options) {
+    return original.call(this, that, locales ?? locale, options)
+  })
+  try {
+    return await fn()
+  } finally {
+    spy.mockRestore()
+  }
+}
