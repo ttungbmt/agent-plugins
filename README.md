@@ -72,6 +72,8 @@ The [release workflow](.github/workflows/release.yml) tests, bundles, smoke-test
 with Node 22 and 24, attests it and creates the GitHub Release. A tag with a `-` (e.g. `v0.2.0-beta.1`) becomes a
 pre-release and does not move the `latest` link. See [ADR 0008](docs/adr/0008-distribute-ap-via-github-release-tarball.md).
 
+Full runbook (checks, pre-releases, troubleshooting): [docs/releasing.md](docs/releasing.md).
+
 ## Prior Art & Acknowledgements
 
 `agent-plugins` exists because these ecosystems already solve parts of the problem
