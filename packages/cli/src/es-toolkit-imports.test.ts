@@ -18,7 +18,8 @@ const BANNED_FUNCTIONS = [
   'reduceAsync',
   'flatMapAsync',
 ]
-const BANNED_PATHS = ['es-toolkit/server', 'es-toolkit/compat']
+/** Only `sync/guards.ts` may import `isPlainObject`; everything else goes through `isRecord`, which narrows without `any`. */
+const GUARDED: Record<string, string> = { isPlainObject: 'sync/guards.ts' }
 
 const src = fileURLToPath(new URL('.', import.meta.url))
 const sources = readdirSync(src, { recursive: true, encoding: 'utf8' })
@@ -36,12 +37,20 @@ function importedNames(clause: string): string[] {
     .filter(Boolean)
 }
 
+function violationsOf(file: string, path: string, clause: string): string[] {
+  // Subpaths include `es-toolkit/server` and `es-toolkit/compat`; a namespace import hides which names are used.
+  if (path !== 'es-toolkit') return [path]
+  if (clause.includes('*')) return ['* (namespace import)']
+  return importedNames(clause).filter((name) => BANNED_FUNCTIONS.includes(name) || (name in GUARDED && GUARDED[name] !== file))
+}
+
 it('imports no banned es-toolkit function or entry point', () => {
   const violations = sources.flatMap((file) =>
-    [...readFileSync(join(src, file), 'utf8').matchAll(ES_TOOLKIT_IMPORT)].flatMap(([statement, clause = '', path]) => {
-      const banned = BANNED_PATHS.includes(path!) ? [path!] : importedNames(clause).filter((name) => BANNED_FUNCTIONS.includes(name))
-      return banned.map((what) => `src/${file}: \`${what}\` is banned by ADR 0016, in \`${statement.replace(/\s+/g, ' ')}\``)
-    }),
+    [...readFileSync(join(src, file), 'utf8').matchAll(ES_TOOLKIT_IMPORT)].flatMap(([statement, clause = '', path]) =>
+      violationsOf(file.split('\\').join('/'), path!, clause).map(
+        (what) => `src/${file}: \`${what}\` is banned by ADR 0016, in \`${statement.replace(/\s+/g, ' ')}\``,
+      ),
+    ),
   )
   expect(violations).toEqual([])
 })
