@@ -1,5 +1,27 @@
 {
   "enabledPlugins": {
-    "mattpocock-skills@claude-plugins-official": true
+    "claude-code-setup@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true,
+    "hookify@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "obsidian@obsidian-skills": true
+  },
+  "extraKnownMarketplaces": {
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
+      }
+    },
+    "obsidian-skills": {
+      "source": {
+        "source": "github",
+        "repo": "kepano/obsidian-skills"
+      }
+    }
   }
 }

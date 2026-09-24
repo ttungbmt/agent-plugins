@@ -1,0 +1,20 @@
+marketplaces:
+  - name: claude-plugins-official
+    source:
+      source: github
+      repo: anthropics/claude-plugins-official
+    origin: base
+skillSources:
+  - source:
+      source: github
+      repo: vercel-labs/skills
+    commit: 7407f3893ad4dceab546ac002c3ef806e4000c73
+    skills:
+      - find-skills
+skills:
+  - name: find-skills
+    source:
+      source: github
+      repo: vercel-labs/skills
+    sha256: 402765cd5b5d4246a9ff3e8fc19872619b543d758c3399c708f27680927579b0
+    origin: base

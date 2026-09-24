@@ -1,0 +1,4 @@
+.agent-plugins/state.local.json
+.agent-plugins/cache/
+
+.claude/skills

@@ -1,0 +1,15 @@
+kind: Preset
+
+metadata:
+  name: ideaverse-os
+
+spec:
+  extends: base
+
+  marketplaces:
+    - kepano/obsidian-skills
+
+  plugins:
+    obsidian@obsidian-skills: true
+  
+
