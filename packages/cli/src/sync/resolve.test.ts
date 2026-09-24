@@ -602,6 +602,30 @@ spec:
     })
   })
 
+  describe('item entries', () => {
+    const cfg = (key: string, entry: string) => ({
+      'agent-plugins.yaml': `kind: Config\nmetadata: { name: demo }\nspec:\n  ${key}: [${entry}]\n`,
+    })
+
+    it.each(['skills', 'agents', 'rules', 'workflows'])('rejects an unknown key in a %s entry', async (key) => {
+      await expect(resolveIn(cfg(key, '{ source: acme/kit, scopes: user }'))).rejects.toThrow(
+        'agent-plugins.yaml: "acme/kit" has unknown key `scopes`',
+      )
+    })
+
+    it("rejects another kind's selection key", async () => {
+      await expect(resolveIn(cfg('agents', '{ source: acme/kit, skills: [tdd] }'))).rejects.toThrow(
+        'agent-plugins.yaml: "acme/kit" has unknown key `skills`',
+      )
+    })
+
+    it('rejects `as`, which no item kind supports yet', async () => {
+      await expect(resolveIn(cfg('rules', '{ source: acme/kit, as: kit }'))).rejects.toThrow(
+        'agent-plugins.yaml: "acme/kit" has unknown key `as`',
+      )
+    })
+  })
+
   describe('spec.plugins', () => {
     const userMarketplace = `
   marketplaces:

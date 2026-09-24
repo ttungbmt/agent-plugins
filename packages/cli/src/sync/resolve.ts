@@ -557,6 +557,8 @@ async function readItems(kind: ItemKind, raw: unknown, origin: string, dir: stri
       const entry = (typeof item === 'string' ? { source: item } : item) as Record<string, unknown>
       const { source } = entry
       if (typeof source !== 'string') throw new ConfigError(`${origin}: each ${kind} entry needs a \`source\` string`)
+      const unknown = Object.keys(entry).find((k) => !['source', key, 'exclude', 'path'].includes(k))
+      if (unknown) throw new ConfigError(`${origin}: "${source}" has unknown key \`${unknown}\``)
       let select: Selection
       if (!(key in entry) && !('exclude' in entry)) select = { exclude: [] }
       else if (key in entry && 'exclude' in entry) {
