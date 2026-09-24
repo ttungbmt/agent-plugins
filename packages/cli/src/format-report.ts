@@ -1,3 +1,4 @@
+import { countBy } from 'es-toolkit'
 import type { Style } from './format-conflicts.js'
 import type { Scope, SyncAction, SyncReport } from './sync/index.js'
 import { describeItemSource } from './sync/identity.js'
@@ -61,8 +62,7 @@ export function formatReport(
   { scope = 'project', style = plain, elapsedMs }: FormatReportOptions = {},
 ): string {
   const rows = toRows(report.actions, scope)
-  const groups = new Map<SyncAction['target'], Row[]>()
-  for (const row of rows) groups.set(row.action.target, [...(groups.get(row.action.target) ?? []), row])
+  const groups = Map.groupBy(rows, (row) => row.action.target)
 
   const width = Math.max(...rows.map((r) => label(r.action).length))
   const blocks = [...groups].map(([target, group]) => [
@@ -70,9 +70,7 @@ export function formatReport(
     ...group.map((row) => `  ${symbol(row, style)} ${name(row.action, width, style)}  ${detail(row, style)}`),
   ])
 
-  const totals = new Map<string, number>()
-  for (const row of rows) totals.set(outcome(row), (totals.get(outcome(row)) ?? 0) + 1)
-  const counts = [...totals].map(([word, n]) => (word === 'failed' ? style('red', `${n} ${word}`) : `${n} ${word}`)).join(', ')
+  const counts = Object.entries(countBy(rows, outcome)).map(([word, n]) => (word === 'failed' ? style('red', `${n} ${word}`) : `${n} ${word}`)).join(', ')
   const planned = rows.every((r) => r.action.status === 'planned')
   const mark = rows.some(isFailed) ? style('red', '✖') : style('green', '✔')
   const took = elapsedMs === undefined ? '' : ` ${style('dim', `in ${elapsedMs < 1000 ? `${elapsedMs}ms` : `${(elapsedMs / 1000).toFixed(1)}s`}`)}`

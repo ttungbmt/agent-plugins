@@ -169,9 +169,7 @@ export async function collectItems(
   }
 
   // Two sources yield the same name: resolved like duplicate marketplace declarations.
-  const names = uniq(candidates.map((c) => c.name))
-  for (const name of names) {
-    const group = candidates.filter((c) => c.name === name)
+  for (const [name, group] of Map.groupBy(candidates, (c) => c.name)) {
     const winners = group.filter((c) => !group.some((o) => o !== c && outranks(o.declaration, c.declaration)))
     const [winner, ...rest] = winners
     const rival = rest.find((c) => !sameSource(c.source, winner!.source))

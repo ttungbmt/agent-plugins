@@ -10,26 +10,18 @@ const plain: Style = (_, text) => text
  * its title, one row per origin, instead of repeating the same sentence per conflict.
  */
 export function formatConflicts(conflicts: Conflict[], style: Style = plain): string {
-  const blocks = new Map<string, Conflict[]>()
-  for (const c of conflicts) {
-    const key = c.group ? `${c.reason}\0${c.group.title}` : `\0${blocks.size}`
-    blocks.set(key, [...(blocks.get(key) ?? []), c])
-  }
+  const blocks = Map.groupBy(conflicts, (c, i) => (c.group ? `${c.reason}\0${c.group.title}` : `\0${i}`))
 
   const heading = style('red', `✖ ${conflicts.length} ${conflicts.length === 1 ? 'conflict' : 'conflicts'}`)
   const lines = [...blocks.values()].map((block) => {
     const { group, name, detail } = block[0]!
     if (!group) return [`  ${style('bold', name)}`, `    ${detail}`]
 
-    const byOrigin = new Map<string, string[]>()
-    for (const c of block) {
-      const origin = describeOrigin(c.group!.origin)
-      byOrigin.set(origin, [...(byOrigin.get(origin) ?? []), c.group!.item])
-    }
+    const byOrigin = Map.groupBy(block, (c) => describeOrigin(c.group!.origin))
     const width = Math.max(...[...byOrigin.keys()].map((o) => o.length))
     return [
       `  ${group.title}`,
-      ...[...byOrigin].map(([origin, items]) => `    ${style('dim', origin.padEnd(width))}  ${items.map((i) => style('bold', i)).join(', ')}`),
+      ...[...byOrigin].map(([origin, fromOrigin]) => `    ${style('dim', origin.padEnd(width))}  ${fromOrigin.map((c) => style('bold', c.group!.item)).join(', ')}`),
       `  ${style('dim', `fix: ${group.hint}`)}`,
     ]
   })

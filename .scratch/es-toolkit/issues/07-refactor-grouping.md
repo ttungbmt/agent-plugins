@@ -1,6 +1,6 @@
 ---
 title: Group with `Map.groupBy`
-labels: []
+labels: [done]
 blocked_by: [01, 03]
 ---
 

@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from 'node:util'
-import { difference, intersection, isSubset, partition, union, uniq } from 'es-toolkit'
+import { difference, intersection, isSubset, partition, union } from 'es-toolkit'
 import { ConfigError } from './errors.js'
 import { describeItemSource, sameSource, withoutRef } from './identity.js'
 import { sameMcp } from './mcp.js'
@@ -144,8 +144,7 @@ function mergePresets(contributions: Contribution[]) {
  * the Lock/State/settings.
  */
 function mergePlugins(contributions: PluginContribution[]) {
-  const groups = new Map<string, PluginContribution[]>()
-  for (const c of contributions) groups.set(c.id, [...(groups.get(c.id) ?? []), c])
+  const groups = Map.groupBy(contributions, (c) => c.id)
 
   const declarations: PluginDeclaration[] = []
   const allWinners: PluginDeclaration[] = []
@@ -196,18 +195,14 @@ function checkUserScopedPlugins(
  * feed both Scopes, but peers selecting the same item at both Scopes are a preset-clash (ADR 0013).
  */
 function mergeItems(kind: ItemKind, declarations: ItemDeclaration[]) {
-  const groups = new Map<string, ItemDeclaration[]>()
-  for (const d of declarations) {
-    const key = JSON.stringify(withoutRef(d.source))
-    groups.set(key, [...(groups.get(key) ?? []), d])
-  }
+  const groups = Map.groupBy(declarations, (d) => JSON.stringify(withoutRef(d.source)))
 
   const merged: ItemDeclaration[] = []
   const conflicts: Conflict[] = []
   const notices: string[] = []
   for (const group of groups.values()) {
     const winners = group.filter((d) => !group.some((o) => o !== d && outranks(o, d)))
-    const byScope = uniq(winners.map((d) => d.scope)).map((scope) => winners.filter((d) => d.scope === scope))
+    const byScope = [...Map.groupBy(winners, (d) => d.scope).values()]
     const clash = (what: string, a: ItemDeclaration, b: ItemDeclaration) => {
       const name = describeItemSource(withoutRef(a.source))
       conflicts.push({ name, reason: 'preset-clash', detail: `"${name}" is declared with different ${what} by ${a.origin} and ${b.origin}` })
@@ -259,8 +254,7 @@ function mergeItems(kind: ItemKind, declarations: ItemDeclaration[]) {
  * a preset-clash.
  */
 function mergeMcpServers(contributions: McpContribution[]) {
-  const groups = new Map<string, McpContribution[]>()
-  for (const c of contributions) groups.set(c.name, [...(groups.get(c.name) ?? []), c])
+  const groups = Map.groupBy(contributions, (c) => c.name)
 
   const declarations: McpDeclaration[] = []
   const conflicts: Conflict[] = []
