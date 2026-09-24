@@ -49,7 +49,7 @@ async function fakeSources(initial: Record<string, Record<string, string>>) {
   return { fetch, publish, calls }
 }
 
-async function setup(files: Record<string, string>, repos: Record<string, Record<string, string>> = { [REPO]: FLOWS }) {
+async function setup(files: Record<string, string>, repos: Record<string, Record<string, string>> = { [REPO]: FLOWS }, env: Record<string, string> = {}) {
   const cwd = await makeTree(files)
   const homedir = await makeTree({})
   const sources = await fakeSources(repos)
@@ -60,6 +60,7 @@ async function setup(files: Record<string, string>, repos: Record<string, Record
       throw new Error('offline')
     },
     homedir,
+    env,
     defaultPresetsDir: join(cwd, 'default-presets'),
     fetchSkillSource: (source: ItemSource, commit: string | null) =>
       source.source === 'directory'
@@ -385,3 +386,34 @@ describe('sync workflows from presets', () => {
     expect((await t.run()).conflicts).toEqual([expect.objectContaining({ reason: 'preset-clash' })])
   })
 })
+
+describe('sync workflows when workflows are switched off', () => {
+  const OFF = /workflows are switched off/
+
+  it('still installs but warns when settings disable workflows', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[${REPO}]`), '.claude/settings.json': '{ "disableWorkflows": true }' })
+
+    const report = await t.run()
+
+    expect(report.notices).toEqual(expect.arrayContaining([expect.stringMatching(OFF)]))
+    expect(await t.files()).toEqual(['audit.js', 'code-review.js'])
+  })
+
+  it('lets local settings turn workflows back on over project settings', async () => {
+    const t = await setup({
+      'agent-plugins.yaml': config(`[${REPO}]`),
+      '.claude/settings.json': '{ "enableWorkflows": false }',
+      '.claude/settings.local.json': '{ "enableWorkflows": true }',
+    })
+    expect((await t.run()).notices.filter((n) => OFF.test(n))).toEqual([])
+  })
+
+  it('warns when CLAUDE_CODE_DISABLE_WORKFLOWS is set, and not when no workflow is declared', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[${REPO}]`) }, undefined, { CLAUDE_CODE_DISABLE_WORKFLOWS: '1' })
+    expect((await t.run()).notices).toEqual(expect.arrayContaining([expect.stringMatching(/CLAUDE_CODE_DISABLE_WORKFLOWS/)]))
+
+    await t.setConfig('kind: Config\nmetadata: { name: demo }\nspec: {}\n')
+    expect((await t.run()).notices.filter((n) => OFF.test(n))).toEqual([])
+  })
+})
+

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { copyFile, lstat, mkdir, readdir, readFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import { claudeDir, type Location } from './files.js'
+import { claudeDir, readJson, settingsPath, type Location } from './files.js'
 import type { FoundItem, InstalledItem, ItemHandler } from './items.js'
 import type { ItemSource, Scope } from './types.js'
 import { isPluginBound, workflowName, workflowRefs } from './workflow-meta.js'
@@ -126,6 +126,27 @@ export function missingDependencyNotices(
     }
   }
   return notices
+}
+
+/**
+ * Vì sao Claude Code sẽ không chạy workflow nào, hoặc `undefined`: `CLAUDE_CODE_DISABLE_WORKFLOWS`, hay
+ * `disableWorkflows: true` / `enableWorkflows: false` trong file settings có ưu tiên cao nhất đặt khoá đó (local > project
+ * > user). Không đoán được mặc định theo gói (Pro tắt sẵn), nên thiếu khoá thì coi như đang bật.
+ */
+export async function workflowsSwitchedOff(location: Location, env: NodeJS.ProcessEnv): Promise<string | undefined> {
+  const flag = env.CLAUDE_CODE_DISABLE_WORKFLOWS
+  if (flag && !['0', 'false'].includes(flag.toLowerCase())) return 'CLAUDE_CODE_DISABLE_WORKFLOWS is set'
+  const layers = await Promise.all(
+    (['local', 'project', 'user'] as const).map(async (scope) => ({
+      path: settingsPath(scope, location),
+      settings: await readJson<Record<string, unknown>>(settingsPath(scope, location)).catch(() => ({}) as Record<string, unknown>),
+    })),
+  )
+  for (const key of ['disableWorkflows', 'enableWorkflows'] as const) {
+    const layer = layers.find((l) => typeof l.settings?.[key] === 'boolean')
+    if (layer && layer.settings[key] === (key === 'disableWorkflows')) return `${layer.path} sets ${key}: ${layer.settings[key]}`
+  }
+  return undefined
 }
 
 function isCandidate(file: string): boolean {

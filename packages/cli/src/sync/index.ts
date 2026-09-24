@@ -16,7 +16,7 @@ import { RULES } from './rules.js'
 import { createGitFetcher, SKILLS, type FetchedSource, type FetchSkillSource } from './skills.js'
 import { createStore, NO_OWNED } from './store.js'
 import { byKind, ITEM_KINDS } from './types.js'
-import { missingDependencyNotices, WORKFLOWS } from './workflows.js'
+import { missingDependencyNotices, WORKFLOWS, workflowsSwitchedOff } from './workflows.js'
 import type { ByKind, Claim, Conflict, ItemDeclaration, ItemKind, ItemSource, KnownEntry, ManagedEntry, ManagedItem, ManagedMcp, MarketplaceDeclaration, MarketplaceSource, Scope, SharedItemClaim, SourceCatalog } from './types.js'
 
 export type { Scope } from './types.js'
@@ -160,6 +160,10 @@ export async function sync(
   }
   const itemRuns = ITEM_KINDS.map((kind) => items[kind])
   notices.push(...(await workflowDependencies(items, location)))
+  if (resolved.items.workflow.length) {
+    const off = await workflowsSwitchedOff(location, deps.env ?? process.env)
+    if (off) notices.push(`workflows are switched off (${off}); installed workflows will not run until they are turned on`)
+  }
 
   const actualMcp = await registry.listMcp(scope)
   const env = deps.env ?? process.env
