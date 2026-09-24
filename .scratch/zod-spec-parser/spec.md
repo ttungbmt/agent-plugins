@@ -4,10 +4,9 @@ labels: [done]
 ---
 
 Decision: [ADR 0015](../../docs/adr/0015-zod-mini-for-spec-shape.md). Research:
-[spec-validation-libraries.md](../../docs/research/spec-validation-libraries.md). Prototype (a primary source, not code
-to copy blindly): branch `worktree-agent-a92379e4552989eea`, files `packages/cli/proto/spec.zodmini.ts`,
-`proto/types.zod.ts`, with the measuring scripts under `proto/`. Terms: [CONTEXT.md](../../CONTEXT.md) (Config, Preset,
-Shorthand declaration, MCP catalog, User-scoped …). Related: [ADR 0008](../../docs/adr/0008-distribute-ap-via-github-release-tarball.md),
+[spec-validation-libraries.md](../../docs/research/spec-validation-libraries.md). The prototype that measured `zod/mini`
+against classic zod was discarded once this shipped; its numbers are in ADR 0015. Terms: [CONTEXT.md](../../CONTEXT.md)
+(Config, Preset, Shorthand declaration, MCP catalog, User-scoped …). Related: [ADR 0008](../../docs/adr/0008-distribute-ap-via-github-release-tarball.md),
 `.scratch/spec-schema-contract/spec.md` (the contract test, kept).
 
 ## Problem Statement

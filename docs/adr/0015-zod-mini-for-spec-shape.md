@@ -11,7 +11,7 @@ Lý do để các bước bất đồng bộ ở ngoài schema: Zod xếp lỗi 
 
 JSON schema cho editor (`config.schema.json`, `preset.schema.json`) vẫn viết tay, và contract test `spec-schema.test.ts` vẫn giữ nguyên. `PRESET_SPEC_KEYS`/`CONFIG_SPEC_KEYS` được lấy từ key của schema Zod, nên danh sách key chỉ khai báo ở một chỗ.
 
-Quyết định này đảo lại lựa chọn "không dùng thư viện" trong `.scratch/spec-schema-contract/spec.md`. Research và bản thử: [spec-validation-libraries.md](../research/spec-validation-libraries.md), bản thử trên nhánh `worktree-agent-a92379e4552989eea`. So với các lý do đã bác bỏ trước đây:
+Quyết định này đảo lại lựa chọn "không dùng thư viện" trong `.scratch/spec-schema-contract/spec.md`. Research: [spec-validation-libraries.md](../research/spec-validation-libraries.md). Các số đo trong ADR này lấy từ một bản thử viết lại toàn bộ `spec.ts` bằng `zod/mini` và zod classic; bản thử đã bị xoá sau khi triển khai xong. So với các lý do đã bác bỏ trước đây:
 
 - **Mất message có tiền tố origin:** không còn đúng. Mỗi chỗ trong schema tự khai báo message của nó, và một formatter khoảng 30 dòng ghép `<origin>:` cùng tên entry từ issue path. Mọi message cũ giữ nguyên từng chữ.
 - **Thêm runtime dependency vào Release tarball ([ADR 0008](0008-distribute-ap-via-github-release-tarball.md)):** Zod được bundle như mọi dependency khác, nên nằm ở `devDependencies`. `dist/ap.js` tăng +56 KB (không minify), `ap.tgz` tăng +12 KB.
