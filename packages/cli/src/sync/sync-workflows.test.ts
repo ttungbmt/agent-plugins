@@ -29,23 +29,30 @@ function config(workflows: string) {
   return `kind: Config\nmetadata: { name: demo }\nspec:\n  workflows: ${workflows}\n`
 }
 
-/** Nguồn giả: mỗi repo là một chuỗi commit; tải không có commit thì lấy commit mới nhất. */
+/** Nguồn giả: mỗi repo là một chuỗi commit, `publish` thêm commit mới; tải không có commit thì lấy commit mới nhất. */
 async function fakeSources(initial: Record<string, Record<string, string>>) {
   const history: Record<string, { commit: string; dir: string }[]> = {}
-  for (const [repo, files] of Object.entries(initial)) history[repo] = [{ commit: `${repo.replace('/', '-')}-1`, dir: await makeTree(files) }]
-  return async (source: ItemSource, commit: string | null) => {
+  const calls: string[] = []
+  async function publish(repo: string, files: Record<string, string>) {
+    const versions = (history[repo] ??= [])
+    versions.push({ commit: `${repo.replace('/', '-')}-${versions.length + 1}`, dir: await makeTree(files) })
+  }
+  for (const [repo, files] of Object.entries(initial)) await publish(repo, files)
+  const fetch = async (source: ItemSource, commit: string | null) => {
+    calls.push(source.repo as string)
     const versions = history[source.repo as string]
     if (!versions) throw new Error(`repository ${source.repo} not found`)
     const version = commit ? versions.find((v) => v.commit === commit) : versions.at(-1)
     if (!version) throw new Error(`commit ${commit} not found`)
     return { dir: version.dir, commit: version.commit, cleanup: async () => {} }
   }
+  return { fetch, publish, calls }
 }
 
 async function setup(files: Record<string, string>, repos: Record<string, Record<string, string>> = { [REPO]: FLOWS }) {
   const cwd = await makeTree(files)
   const homedir = await makeTree({})
-  const fetchSource = await fakeSources(repos)
+  const sources = await fakeSources(repos)
   const claude = fakeClaude({ cwd, homedir, marketplaces: {} })
   const deps = {
     exec: claude.exec,
@@ -57,15 +64,15 @@ async function setup(files: Record<string, string>, repos: Record<string, Record
     fetchSkillSource: (source: ItemSource, commit: string | null) =>
       source.source === 'directory'
         ? Promise.resolve({ dir: resolve(cwd, source.path as string), commit: null, cleanup: async () => {} })
-        : fetchSource(source, commit),
+        : sources.fetch(source, commit),
   }
-  const run = (mode: SyncMode = 'apply', extra: { scope?: Scope; force?: boolean } = {}) =>
-    sync({ cwd, scope: extra.scope ?? 'project', mode, force: extra.force }, deps)
+  const run = (mode: SyncMode = 'apply', extra: { scope?: Scope; force?: boolean; update?: boolean; cwd?: string } = {}) =>
+    sync({ cwd: extra.cwd ?? cwd, scope: extra.scope ?? 'project', mode, force: extra.force, update: extra.update }, deps)
   const read = async (path: string) => readFile(join(cwd, path), 'utf8').catch(() => undefined)
   const lock = async () => parse((await read('agent-plugins.lock')) ?? '') ?? {}
   const files_ = async (dir = join(cwd, '.claude/workflows')) => (await readdir(dir).catch(() => [])).sort()
   const setConfig = (text: string) => writeFile(join(cwd, 'agent-plugins.yaml'), text)
-  return { cwd, homedir, run, read, lock, files: files_, setConfig }
+  return { cwd, homedir, sources, run, read, lock, files: files_, setConfig }
 }
 
 const act = (kind: string, name: string | null, status = 'done') => expect.objectContaining({ target: 'workflow', kind, name, status })
@@ -301,5 +308,80 @@ describe('sync workflows dependencies', () => {
     await mkdir(join(t.cwd, '.claude/agents'), { recursive: true })
     await writeFile(join(t.cwd, '.claude/agents/code-reviewer.md'), '---\nname: code-reviewer\n---\n')
     expect((await t.run()).notices.filter((n) => n.startsWith('workflow "ship"'))).toEqual([])
+  })
+})
+
+describe('sync workflows pinning and sharing', () => {
+  it('keeps the pinned commit until --update', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[${REPO}]`) })
+    await t.run()
+    const v2 = script('audit', `await agent('audit v2')`)
+    await t.sources.publish(REPO, { ...FLOWS, 'workflows/audit.js': v2 })
+
+    expect((await t.run()).actions).toEqual([])
+    expect(await t.read('.claude/workflows/audit.js')).toBe(FLOWS['workflows/audit.js'])
+
+    expect((await t.run('apply', { update: true })).actions).toEqual([act('update', 'audit')])
+    expect(await t.read('.claude/workflows/audit.js')).toBe(v2)
+    expect((await t.lock()).workflowSources[0].commit).toBe('acme-flows-2')
+  })
+
+  it('fetches a repo once for agents and workflows, and not again when nothing changed', async () => {
+    const repo = { ...FLOWS, 'agents/helper.md': '---\nname: helper\n---\nHelp\n' }
+    const both = `kind: Config\nmetadata: { name: demo }\nspec:\n  agents: [${REPO}]\n  workflows: [${REPO}]\n`
+    const t = await setup({ 'agent-plugins.yaml': both }, { [REPO]: repo })
+
+    await t.run()
+    expect(t.sources.calls).toEqual([REPO])
+
+    await t.run()
+    expect(await t.run('check')).toMatchObject({ inSync: true })
+    expect(t.sources.calls).toEqual([REPO])
+  })
+
+  it('keeps a user-scope workflow another Config still claims', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[${REPO}]`) })
+    const other = await makeTree({ 'agent-plugins.yaml': config(`[{ source: ${REPO}, workflows: [audit] }]`) })
+    const userFiles = () => t.files(join(t.homedir, '.claude/workflows'))
+
+    await t.run('apply', { scope: 'user' })
+    await t.run('apply', { scope: 'user', cwd: other })
+
+    await t.setConfig('kind: Config\nmetadata: { name: demo }\nspec: {}\n')
+    await t.run('apply', { scope: 'user' })
+    expect(await userFiles()).toEqual(['audit.js'])
+
+    await writeFile(join(other, 'agent-plugins.yaml'), 'kind: Config\nmetadata: { name: other }\nspec: {}\n')
+    await t.run('apply', { scope: 'user', cwd: other })
+    expect(await userFiles()).toEqual([])
+  })
+})
+
+
+describe('sync workflows from presets', () => {
+  const withPresets = (workflows: string, presets: string) =>
+    `kind: Config\nmetadata: { name: demo }\nspec:\n  presets: [${presets}]\n  workflows: ${workflows}\n`
+  const preset = (name: string, workflows: string) => `kind: Preset\nmetadata: { name: ${name} }\nspec:\n  workflows: ${workflows}\n`
+
+  it('lets the Config narrow the workflows a preset declares', async () => {
+    const t = await setup({ 'agent-plugins.yaml': withPresets(`[{ source: ${REPO}, workflows: [audit] }]`, './team.yaml'), 'team.yaml': preset('team', `[${REPO}]`) })
+
+    const report = await t.run()
+
+    expect(report.actions).toEqual([act('install', 'audit')])
+    expect(report.notices).toEqual(expect.arrayContaining([expect.stringContaining(`agent-plugins.yaml overrides workflows from "${REPO}"`)]))
+  })
+
+  it('merges sibling presets on one source and reports a clash between two refs', async () => {
+    const t = await setup({
+      'agent-plugins.yaml': withPresets('[]', './a.yaml, ./b.yaml'),
+      'a.yaml': preset('a', `[{ source: ${REPO}, workflows: [audit] }]`),
+      'b.yaml': preset('b', `[{ source: ${REPO}, workflows: [code-review] }]`),
+    })
+    expect((await t.run()).actions).toEqual([act('install', 'audit'), act('install', 'code-review')])
+
+    await t.setConfig(withPresets('[]', './a.yaml, ./c.yaml'))
+    await writeFile(join(t.cwd, 'c.yaml'), preset('c', `[{ source: ${REPO}@v2, workflows: [code-review] }]`))
+    expect((await t.run()).conflicts).toEqual([expect.objectContaining({ reason: 'preset-clash' })])
   })
 })
