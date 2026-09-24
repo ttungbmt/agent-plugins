@@ -1,6 +1,6 @@
 {
   "name": "agent-plugins",
-  "version": "0.1.0-rc.1",
+  "version": "0.1.0-rc.2",
   "description": "CLI `ap`: khai báo marketplace, plugin, skill, agent và MCP server cho Claude Code bằng YAML rồi đồng bộ vào settings",
   "type": "module",
   "bin": {

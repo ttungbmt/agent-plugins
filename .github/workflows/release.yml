@@ -48,6 +48,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node }}
+          # Job này không cài pnpm; tắt cache tự bật theo `packageManager` của setup-node v5.
+          package-manager-cache: false
       - uses: actions/download-artifact@v5
         with:
           name: release
