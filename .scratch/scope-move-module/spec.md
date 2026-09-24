@@ -93,7 +93,7 @@ function scopeMove<D extends { scope?: 'user' }, M, A>(
   plugin adoption notice at run time.
 - **Marketplace stays outside `scopeMove` for now.** It uses `ledger` only, because its Scope move differs: a moving
   entry is `forget`ed rather than removed, and its removals are gated on plugins (`inUse`, Manual plugin entries).
-  Ticket 05 decides whether it can join.
+  Ticket 05 decided it stays out; see Out of scope.
 - **Hook** has no Scope move and uses `ledger` only.
 
 ### Behaviour that has to be preserved exactly
@@ -115,6 +115,12 @@ Tickets 03 and 04 must write a characterization test first if an existing suite 
 - A shared interface for all four entry kinds (`EntryHandler`). It was rejected: hooks are one settings write with no
   Scope move, and marketplaces are coupled to plugins. An interface covering all four would be as big as the code
   behind it.
+- Routing marketplaces through `scopeMove` (ticket 05, decided no). Of its four rules, marketplaces share only the
+  order. They have no cross-side hold: a name declared on the other side is `moving` and is `forget`-ed so its plugins
+  stay. They have no failure pinning of their own (`failedMarketplaces` gates plugins) and no moving-back claims
+  (`claimsOf` looks names up by source). A Shorthand declaration has no key until `add`. Fitting all of this would
+  grow `MovableKind` to the size that got `EntryHandler` rejected. The two copies of the removal gate are merged into
+  `gatedRemovals` in `sync()` instead.
 - Splitting `resolve.ts` and generating the JSON schemas from the parser. These are separate candidates.
 - Any change to the Lock/State format, so no new ADR is needed.
 

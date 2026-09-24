@@ -19,7 +19,7 @@ import { scopeMove, type MovableKind } from './scope-move.js'
 import { createStore, NO_OWNED } from './store.js'
 import { byKind, ITEM_KINDS } from './types.js'
 import { missingDependencyNotices, WORKFLOWS, workflowsSwitchedOff } from './workflows.js'
-import type { ByKind, Claim, Conflict, ItemDeclaration, ItemKind, ItemSource, KnownEntry, ManagedEntry, ManagedHook, ManagedItem, ManagedMcp, ManagedPlugin, MarketplaceDeclaration, McpDeclaration, MarketplaceSource, PluginDeclaration, Scope, SharedItemClaim, SourceCatalog } from './types.js'
+import type { ByKind, Claim, Conflict, ItemDeclaration, ItemKind, ItemSource, KnownEntry, ManagedEntry, ManagedHook, ManagedItem, ManagedMcp, ManagedPlugin, MarketplaceDeclaration, McpDeclaration, MarketplaceSource, PluginDeclaration, PluginEntry, Scope, SharedItemClaim, SourceCatalog } from './types.js'
 
 export type { Scope } from './types.js'
 export type SyncMode = 'apply' | 'dry-run' | 'check'
@@ -237,26 +237,23 @@ export async function sync(
   // A name still declared on the other side of this Sync is moving between the targeted Scope and `user` (ADR 0011):
   // only its entry goes, so its plugins stay.
   const moving = new Set(names.filter((n): n is string => n !== null))
-  const removals = plan.actions.filter((a) => {
-    if (a.kind === 'remove' && inUse.has(a.name) && !moving.has(a.name)) return false
-    if (a.kind !== 'remove' || force || moving.has(a.name)) return a.kind === 'remove'
-    const manual = manualPluginsOf(a.name, actualPlugins, ownedPlugins)
-    if (manual.length) conflicts.push(pluginsInUseConflict(a.name, manual))
-    return manual.length === 0
-  })
+  /** The removals of `actions` that may run: not a marketplace still in use, nor one with Manual plugin entries. */
+  const gatedRemovals = (actions: PlannedAction[], entries: PluginEntry[], owned: Set<string>) =>
+    actions.filter((a) => {
+      if (a.kind === 'remove' && inUse.has(a.name) && !moving.has(a.name)) return false
+      if (a.kind !== 'remove' || force || moving.has(a.name)) return a.kind === 'remove'
+      const manual = manualPluginsOf(a.name, entries, owned)
+      if (manual.length) conflicts.push(pluginsInUseConflict(a.name, manual))
+      return manual.length === 0
+    })
+  const removals = gatedRemovals(plan.actions, actualPlugins, ownedPlugins)
   // Hook steps don't run one by one: they are folded into a single settings write (`writeHooks`).
   // Removing a marketplace also drops the `user` Scope's plugins from it; only this Config's User-scoped plugins may go.
   const ownedUserPlugins = new Set([
     ...(user?.managedPlugins ?? []).map((m) => m.id).filter((id) => !plugins.plans.user?.forgotten.includes(id)),
     ...(plugins.plans.user?.actions ?? []).filter((a) => 'adopt' in a && a.adopt).map((a) => a.id),
   ])
-  const userRemovals = (user?.plan.actions ?? []).filter((a) => {
-    if (a.kind === 'remove' && inUse.has(a.name) && !moving.has(a.name)) return false
-    if (a.kind !== 'remove' || force || moving.has(a.name)) return a.kind === 'remove'
-    const manual = manualPluginsOf(a.name, user!.plugins, ownedUserPlugins)
-    if (manual.length) conflicts.push(pluginsInUseConflict(a.name, manual))
-    return manual.length === 0
-  })
+  const userRemovals = user ? gatedRemovals(user.plan.actions, user.plugins, ownedUserPlugins) : []
   const userSteps = (removing: boolean) =>
     (removing ? userRemovals : (user?.plan.actions ?? []).filter((a) => a.kind !== 'remove'))
       .map((action) => ({ target: 'marketplace' as const, action, scope: 'user' as const }))

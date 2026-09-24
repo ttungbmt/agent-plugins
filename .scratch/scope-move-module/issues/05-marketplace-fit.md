@@ -1,6 +1,6 @@
 ---
 title: Decide whether marketplaces can go through `scopeMove`
-labels: [needs-decision]
+labels: [done]
 blocked_by: [03, 04]
 ---
 
@@ -17,3 +17,8 @@ plugin gating (`inUse`, Manual plugin entries) to the interface?
 
 - If yes: write a follow-up ticket that routes marketplaces through `scopeMove`, with the same acceptance as 03.
 - If no: record why in the spec's Out of scope section and close this ticket.
+
+## Decision
+
+No. Marketplaces share only the step order with `scopeMove`; the reasons are recorded in the spec's Out of scope section.
+The duplicated removal gate for the targeted Scope and `user` became one `gatedRemovals` helper in `sync()`.
