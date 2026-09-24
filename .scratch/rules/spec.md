@@ -3,7 +3,7 @@ title: Hỗ trợ Rule trong `ap sync`
 labels: [ready-for-agent]
 ---
 
-Thuật ngữ: [CONTEXT.md](../../CONTEXT.md) mục Rule. Quyết định: [ADR 0005](../../docs/adr/0005-ap-installs-skills-itself.md), [ADR 0006](../../docs/adr/0006-rule-per-file-in-namespace.md). Nguồn: [docs/research/rules.md](../../docs/research/rules.md).
+Thuật ngữ: [CONTEXT.md](../../CONTEXT.md) mục Rule. Quyết định: [ADR 0005](../../docs/adr/0005-ap-installs-skills-itself.md), [ADR 0009](../../docs/adr/0009-rule-per-file-in-namespace.md). Nguồn: [docs/research/rules.md](../../docs/research/rules.md).
 
 ## Problem Statement
 
