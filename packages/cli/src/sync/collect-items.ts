@@ -60,8 +60,21 @@ export async function collectItems(
     const records = managed.filter((m) => sameSource(m.source, source))
     const catalog = opts.catalogs.find((c) => sameSource(c.source, source))
     const selected = (names: string[]) => (Array.isArray(select) ? select : names.filter((n) => !select.exclude.includes(n)))
-    /** Chọn tên không có trong nguồn là xung đột; loại trừ tên không có chỉ cần báo. */
-    const checkNames = (available: string[]) => {
+    /**
+     * Chọn tên không có trong nguồn là xung đột; loại trừ tên không có chỉ cần báo. Thứ `blocked` (Workflow gắn với
+     * plugin, ADR 0010) không bao giờ được cài: chọn đích danh là xung đột, còn trong "tất cả" thì bỏ qua kèm thông báo.
+     */
+    const checkNames = (available: string[], blocked: Map<string, string | undefined> = new Map()) => {
+      const usable = (name: string) => {
+        if (!blocked.has(name)) return true
+        const why = blocked.get(name)
+        const detail = `${kind} "${name}" from ${describeItemSource(source)} only runs inside its plugin${why ? ` (${why})` : ''}; declare that plugin instead`
+        if (Array.isArray(select)) {
+          hold([onDisk(name)])
+          result.conflicts.push({ name: onDisk(name), reason: `plugin-${kind}` as Conflict['reason'], detail })
+        } else result.notices.push(`skipped ${detail}`)
+        return false
+      }
       const missing = (Array.isArray(select) ? select : select.exclude).filter((n) => !available.includes(n))
       for (const name of missing) {
         if (!Array.isArray(select)) {
@@ -71,7 +84,7 @@ export async function collectItems(
         hold([onDisk(name)])
         result.conflicts.push({ name: onDisk(name), reason: `missing-${kind}`, detail: `${origin} selects ${kind} "${name}" but ${describeItemSource(source)} has no such ${kind}` })
       }
-      return selected(available).filter((n) => available.includes(n))
+      return selected(available).filter((n) => available.includes(n)).filter(usable)
     }
     /** Thứ lấy nội dung từ Lock/State, không cần tải; `null` khi Lock/State không đủ để quyết định. */
     const fromRecords = (names: string[]) =>
@@ -80,9 +93,10 @@ export async function collectItems(
         return { name, source, sha256: record?.sha256 ?? null, from: null, origin, declaration }
       })
 
+    const blockedIn = (c: SourceCatalog) => new Map((c.blocked ?? []).map((n) => [n, undefined]))
     if (!opts.fetch) {
       if (catalog) {
-        candidates.push(...fromRecords(checkNames(catalog.names)))
+        candidates.push(...fromRecords(checkNames(catalog.names, blockedIn(catalog))))
         continue
       }
       if (!Array.isArray(select) && records.length === 0) {
@@ -95,14 +109,14 @@ export async function collectItems(
     }
 
     if (catalog && !opts.update) {
-      const names = selected(catalog.names).filter((n) => catalog.names.includes(n))
+      const names = selected(catalog.names).filter((n) => catalog.names.includes(n) && !catalog.blocked?.includes(n))
       const needsContent = names.map(onDisk).some((name) => {
         const record = records.find((r) => r.name === name)
         const entry = opts.installed.find((e) => e.name === name)
         return !record || !entry || (opts.force && entry.sha256 !== record.sha256)
       })
       if (!needsContent) {
-        candidates.push(...fromRecords(checkNames(catalog.names)))
+        candidates.push(...fromRecords(checkNames(catalog.names, blockedIn(catalog))))
         result.catalogs.push(catalog)
         continue
       }
@@ -117,8 +131,13 @@ export async function collectItems(
       await (opts.onFetch ? opts.onFetch(source, run) : run())
       result.fetched.push(fetched!)
       const found = await handler.find(sourceRoot(fetched!, source), source)
-      if (fetched!.commit) result.catalogs.push({ source, commit: fetched!.commit, names: found.map((f) => f.name) })
-      for (const name of checkNames(found.map((f) => f.name))) {
+      const blocked = found.filter((f) => f.blocked !== undefined)
+      if (fetched!.commit) {
+        const catalog: SourceCatalog = { source, commit: fetched!.commit, names: found.map((f) => f.name) }
+        if (blocked.length) catalog.blocked = blocked.map((f) => f.name)
+        result.catalogs.push(catalog)
+      }
+      for (const name of checkNames(found.map((f) => f.name), new Map(blocked.map((f) => [f.name, f.blocked])))) {
         const item = found.find((f) => f.name === name)!
         candidates.push({ name: onDisk(name), source, sha256: item.sha256, from: item.path, origin, declaration })
       }

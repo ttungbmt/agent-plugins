@@ -1,8 +1,10 @@
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { AGENTS } from './agents.js'
 import { collectItems, type CollectedItems } from './collect-items.js'
 import { identifies, knownName, missingMarketplaceConflict, sameSource } from './identity.js'
 import { checkMarketplaces, manualPluginsOf, planPlugins, pluginsInUseConflict, type PlannedPluginAction } from './plan-plugins.js'
+import type { Location } from './files.js'
 import type { ItemHandler } from './items.js'
 import { normalizeHook, planHooks, readSettingsHooks, writeSettingsHooks, type PlannedHookAction } from './hooks.js'
 import { planMcp, unsetVariables, type PlannedMcpAction } from './mcp.js'
@@ -14,7 +16,7 @@ import { RULES } from './rules.js'
 import { createGitFetcher, SKILLS, type FetchedSource, type FetchSkillSource } from './skills.js'
 import { createStore, NO_OWNED } from './store.js'
 import { byKind, ITEM_KINDS } from './types.js'
-import { WORKFLOWS } from './workflows.js'
+import { missingDependencyNotices, WORKFLOWS } from './workflows.js'
 import type { ByKind, Claim, Conflict, ItemDeclaration, ItemKind, ItemSource, KnownEntry, ManagedEntry, ManagedItem, ManagedMcp, MarketplaceDeclaration, MarketplaceSource, Scope, SharedItemClaim, SourceCatalog } from './types.js'
 
 export type { Scope } from './types.js'
@@ -157,6 +159,7 @@ export async function sync(
     items[kind] = await syncItems(HANDLERS[kind], resolved.items[kind], loaded.managedItems[kind], loaded.itemCatalogs[kind], loaded.sharedItems[kind])
   }
   const itemRuns = ITEM_KINDS.map((kind) => items[kind])
+  notices.push(...(await workflowDependencies(items, location)))
 
   const actualMcp = await registry.listMcp(scope)
   const env = deps.env ?? process.env
@@ -494,3 +497,28 @@ function describe(step: Step): Omit<SyncAction, 'status' | 'error'> {
 function record(name: string, declaration: MarketplaceDeclaration): ManagedEntry {
   return { name, source: declaration.source, origin: declaration.origin }
 }
+
+/**
+ * Cảnh báo phụ thuộc thiếu của các Workflow sẽ có ở Scope. Agent và Workflow ở scope `user` cũng chạy được trong
+ * project, nên thứ đã cài ở cả hai thư mục đều được tính.
+ */
+async function workflowDependencies(items: ByKind<ItemSync>, location: Location): Promise<string[]> {
+  const { workflow, agent } = items
+  if (!workflow.dir || !workflow.collected?.desired.length) return []
+  const installedIn = async (handler: ItemHandler) => {
+    const dirs = (['project', 'user'] as const).map((s) => handler.dir(s, location)).filter((d): d is string => d !== null)
+    return (await Promise.all(dirs.map((d) => handler.list(d, [])))).flat()
+  }
+  const installedWorkflows = await installedIn(WORKFLOWS)
+  const scripts: { name: string; text: string }[] = []
+  for (const { name, from } of workflow.collected.desired) {
+    const file = from ?? join(workflow.dir, installedWorkflows.find((w) => w.name === name)?.files?.[0] ?? `${name}.js`)
+    const text = await readFile(file, 'utf8').catch(() => undefined)
+    if (text !== undefined) scripts.push({ name, text })
+  }
+  return missingDependencyNotices(scripts, {
+    agents: [...(agent.collected?.desired ?? []).map((a) => a.name), ...(await installedIn(AGENTS)).map((a) => a.name)],
+    workflows: installedWorkflows.map((w) => w.name),
+  })
+}
+

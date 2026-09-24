@@ -46,7 +46,7 @@ type ClaimsKey = `${ItemKind}Claims`
 const keysOf = (kind: ItemKind) =>
   ({ items: `${kind}s`, sources: `${kind}Sources`, claims: `${kind}Claims` }) as { items: ItemsKey; sources: SourcesKey; claims: ClaimsKey }
 /** Danh mục nguồn như ghi trong Lock/State: tên nằm dưới khoá của loại item (`skills`, `agents`, …). */
-type SourceRecord = { source: ItemSource; commit: string } & { [K in ItemsKey]?: string[] }
+type SourceRecord = { source: ItemSource; commit: string; blocked?: string[] } & { [K in ItemsKey]?: string[] }
 type Stored = {
   marketplaces?: ManagedEntry[]
   plugins?: ManagedPlugin[]
@@ -178,7 +178,7 @@ export function createStore({ cwd, homedir }: Location) {
       managedPlugins: state?.plugins ?? [],
       managedItems: byKind((kind) => state?.[keysOf(kind).items] ?? []),
       itemCatalogs: byKind((kind) =>
-        (state?.[keysOf(kind).sources] ?? []).map(({ source, commit, [keysOf(kind).items]: names }): SourceCatalog => ({ source, commit, names: names! })),
+        (state?.[keysOf(kind).sources] ?? []).map(({ source, commit, [keysOf(kind).items]: names, blocked }): SourceCatalog => ({ source, commit, names: names!, ...(blocked ? { blocked } : {}) })),
       ),
       managedMcp: state?.mcpServers ?? [],
       managedHooks: state?.hooks ?? [],

@@ -261,3 +261,45 @@ describe('sync workflows ownership', () => {
   })
 })
 
+
+describe('sync workflows dependencies', () => {
+  const BOUND = { 'workflows/orch.js': script('orch-review', `await agent('x', { agentType: 'ecc:code-reviewer' })`), 'workflows/plain.js': script('plain') }
+
+  it('skips a plugin-bound workflow when installing all, and refuses it when selected by name', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config('[acme/ecc]') }, { 'acme/ecc': BOUND })
+
+    const report = await t.run()
+
+    expect(report.actions).toEqual([act('install', 'plain')])
+    expect(report.notices).toEqual(expect.arrayContaining([expect.stringMatching(/orch-review.*ecc:code-reviewer/)]))
+    expect((await t.lock()).workflowSources).toEqual([
+      { source: { source: 'github', repo: 'acme/ecc' }, commit: 'acme-ecc-1', workflows: ['orch-review', 'plain'], blocked: ['orch-review'] },
+    ])
+    expect(await t.run('check')).toMatchObject({ actions: [], inSync: true })
+
+    await t.setConfig(config('[{ source: acme/ecc, workflows: [orch-review] }]'))
+    const selected = await t.run()
+    expect(selected.conflicts).toEqual([expect.objectContaining({ name: 'orch-review', reason: 'plugin-workflow' })])
+    expect(await t.files()).toEqual([])
+  })
+
+  it('warns about agent types and workflows a workflow calls that are not there', async () => {
+    const calls = script(
+      'ship',
+      `await agent('a', { agentType: 'code-reviewer' })\nawait agent('b', { agentType: 'general-purpose' })\nawait workflow('content-guard')\nawait workflow('plain')`,
+    )
+    const repo = { 'workflows/ship.js': calls, 'workflows/plain.js': script('plain') }
+    const t = await setup({ 'agent-plugins.yaml': config('[acme/ship]') }, { 'acme/ship': repo })
+
+    const report = await t.run()
+
+    const deps = report.notices.filter((n) => n.startsWith('workflow "ship"'))
+    expect(deps).toEqual([expect.stringContaining('agent "code-reviewer"'), expect.stringContaining('workflow "content-guard"')])
+
+    await writeFile(join(t.cwd, '.claude/workflows/guard.js'), script('content-guard'))
+    const { mkdir } = await import('node:fs/promises')
+    await mkdir(join(t.cwd, '.claude/agents'), { recursive: true })
+    await writeFile(join(t.cwd, '.claude/agents/code-reviewer.md'), '---\nname: code-reviewer\n---\n')
+    expect((await t.run()).notices.filter((n) => n.startsWith('workflow "ship"'))).toEqual([])
+  })
+})

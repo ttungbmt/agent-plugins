@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { claudeDir, type Location } from './files.js'
 import type { FoundItem, InstalledItem, ItemHandler } from './items.js'
 import type { ItemSource, Scope } from './types.js'
-import { workflowName } from './workflow-meta.js'
+import { isPluginBound, workflowName, workflowRefs } from './workflow-meta.js'
 
 export const WORKFLOWS: ItemHandler = {
   kind: 'workflow',
@@ -41,7 +41,10 @@ export async function findWorkflows(root: string, source: ItemSource): Promise<F
     if (name === undefined) continue
     const twin = workflows.find((w) => w.name === name)
     if (twin) throw new Error(`workflows at ${twin.path} and ${path} share the name "${name}"`)
-    workflows.push({ name, path, sha256: hash(text) })
+    const refs = workflowRefs(text.toString('utf8'))
+    const found: FoundItem = { name, path, sha256: hash(text) }
+    if (isPluginBound(refs)) found.blocked = `it calls ${refs.agentTypes.filter((t) => t.includes(':')).join(', ')}`
+    workflows.push(found)
   }
   return workflows.sort((a, b) => a.name.localeCompare(b.name))
 }
@@ -94,6 +97,35 @@ export async function removeWorkflow(dir: string, name: string): Promise<void> {
 
 async function installedFile(dir: string, name: string): Promise<string | undefined> {
   return (await listInstalledWorkflows(dir)).find((w) => w.name === name)?.files?.[0]
+}
+
+/**
+ * Agent Claude Code có sẵn, không cần cài (theo danh sách `subagent_type` của Agent tool trong Claude Code 2.1.x;
+ * chưa đối chiếu với tài liệu). `agentType` trỏ tới chúng không bao giờ bị coi là thiếu.
+ */
+export const BUILTIN_AGENTS = ['claude', 'claude-code-guide', 'Explore', 'general-purpose', 'Plan', 'statusline-setup']
+
+/**
+ * Cảnh báo cho Workflow gọi `agentType` không tiền tố hoặc `workflow('<tên>')` mà Scope sẽ không có (ADR 0010). Chỉ
+ * cảnh báo, không tự cài; tên tạo lúc chạy không được phát hiện. `scripts` là nội dung các Workflow sẽ có ở Scope.
+ */
+export function missingDependencyNotices(
+  scripts: { name: string; text: string }[],
+  known: { agents: Iterable<string>; workflows: Iterable<string> },
+): string[] {
+  const agents = new Set([...BUILTIN_AGENTS, ...known.agents])
+  const workflows = new Set([...known.workflows, ...scripts.map((s) => s.name)])
+  const notices: string[] = []
+  for (const { name, text } of scripts) {
+    const refs = workflowRefs(text)
+    for (const type of refs.agentTypes.filter((t) => !t.includes(':') && !agents.has(t))) {
+      notices.push(`workflow "${name}" uses agent "${type}", which is neither declared nor installed; it may fail when run`)
+    }
+    for (const called of refs.workflows.filter((w) => !workflows.has(w))) {
+      notices.push(`workflow "${name}" calls workflow "${called}", which is neither declared nor installed; it may fail when run`)
+    }
+  }
+  return notices
 }
 
 function isCandidate(file: string): boolean {

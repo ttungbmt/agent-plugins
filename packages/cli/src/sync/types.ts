@@ -67,7 +67,8 @@ export type ItemDeclaration = {
 export type ManagedItem = { name: string; source: ItemSource; sha256: string; origin: string; commit?: string | null }
 
 /** Danh mục nguồn: tên mọi Skill (hoặc Agent) trong một nguồn `github`/`git` ở commit đã ghim, kể cả thứ không được cài. */
-export type SourceCatalog = { source: ItemSource; commit: string; names: string[] }
+/** `blocked`: tên có trong nguồn nhưng không cài được khi đứng riêng (Workflow gắn với plugin, ADR 0010). */
+export type SourceCatalog = { source: ItemSource; commit: string; names: string[]; blocked?: string[] }
 
 /** Skill/Agent một Config khai báo ở scope user, và claim đó của Config khác. */
 export type ItemClaim = { name: string; source: ItemSource; origin: string }
@@ -117,6 +118,7 @@ export type Conflict = {
     | 'modified-rule'
     | 'missing-workflow'
     | 'modified-workflow'
+    | 'plugin-workflow'
   detail: string
 }
 
