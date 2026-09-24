@@ -91,8 +91,7 @@ catalog is modelled against.
 | [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) | Production-grade engineering lifecycle skills for AI coding agents, each with explicit verification gates | Verification gates as part of a skill's contract, and a lifecycle-shaped way to name capabilities |
 
 The overlap between them — three credible TDD skills, several code-review agents —
-is exactly what [capability resolution](docs/02-architecture/resolution-spec.md)
-is designed to arbitrate.
+is exactly what declaring them in one Config is designed to arbitrate.
 
 All of the above remain the work of their authors, under their own licenses.
 `agent-plugins` resolves and installs from upstream sources; it does not vendor,
