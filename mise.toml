@@ -1,3 +1,4 @@
+# Tasks live in .mise/tasks/ (`mise tasks ls`).
 [tools]
-node = "lts"
-pnpm = "latest"
+node = "24"
+pnpm = "12.5.1"

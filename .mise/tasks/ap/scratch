@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Run `ap` with CLAUDE_CONFIG_DIR at .scratch/claude-config (never touches ~/.claude)"
+set -euo pipefail
+export CLAUDE_CONFIG_DIR="$MISE_PROJECT_ROOT/.scratch/claude-config"
+mkdir -p "$CLAUDE_CONFIG_DIR"
+echo "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" >&2
+pnpm ap "$@"

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Rebuild the sandbox image without cache (pulls a fresh `claude`)"
+set -euo pipefail
+docker compose build --no-cache --pull "$@"
