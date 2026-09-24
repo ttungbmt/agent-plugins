@@ -8,16 +8,17 @@ import type { Location } from './files.js'
 import type { ItemHandler } from './items.js'
 import { normalizeHook, planHooks, readSettingsHooks, writeSettingsHooks, type PlannedHookAction } from './hooks.js'
 import { planMcp, unsetVariables, type PlannedMcpAction } from './mcp.js'
-import { planItems, type ItemPlan, type PlannedItemAction } from './plan-items.js'
+import { planItems, type DesiredItem, type ItemPlan, type PlannedItemAction } from './plan-items.js'
 import { planSync, type PlannedAction } from './plan.js'
 import { ConflictError, createRegistry, type Exec } from './registry.js'
 import { resolveConfig, type Fetch } from './resolve.js'
 import { RULES } from './rules.js'
 import { createGitFetcher, SKILLS, type FetchedSource, type FetchSkillSource } from './skills.js'
+import { ledger } from './ledger.js'
 import { createStore, NO_OWNED } from './store.js'
 import { byKind, ITEM_KINDS } from './types.js'
 import { missingDependencyNotices, WORKFLOWS, workflowsSwitchedOff } from './workflows.js'
-import type { ByKind, Claim, Conflict, ItemDeclaration, ItemKind, ItemSource, KnownEntry, ManagedEntry, ManagedItem, ManagedMcp, MarketplaceDeclaration, McpDeclaration, MarketplaceSource, PluginDeclaration, Scope, SharedItemClaim, SourceCatalog } from './types.js'
+import type { ByKind, Claim, Conflict, ItemDeclaration, ItemKind, ItemSource, KnownEntry, ManagedEntry, ManagedHook, ManagedItem, ManagedMcp, ManagedPlugin, MarketplaceDeclaration, McpDeclaration, MarketplaceSource, PluginDeclaration, Scope, SharedItemClaim, SourceCatalog } from './types.js'
 
 export type { Scope } from './types.js'
 export type SyncMode = 'apply' | 'dry-run' | 'check'
@@ -315,64 +316,34 @@ export async function sync(
     return { actions, conflicts, notices, inSync: actions.length === 0 && conflicts.length === 0 }
   }
 
-  const records = new Map(managed.map((m) => [m.name, m]))
-  const released = managed.filter((m) => plan.forgotten.includes(m.name))
-  for (const name of plan.forgotten) records.delete(name)
-  const userRecords = new Map((user?.managed ?? []).map((m) => [m.name, m]))
-  const userReleased = (user?.managed ?? []).filter((m) => user!.plan.forgotten.includes(m.name))
-  for (const name of user?.plan.forgotten ?? []) userRecords.delete(name)
-  const pluginRecords = new Map(managedPlugins.map((m) => [m.id, m]))
-  const releasedPlugins = managedPlugins.filter((m) => pluginPlan.forgotten.includes(m.id))
-  for (const id of pluginPlan.forgotten) pluginRecords.delete(id)
-  const userPluginRecords = new Map((user?.managedPlugins ?? []).map((m) => [m.id, m]))
-  const userReleasedPlugins = (user?.managedPlugins ?? []).filter((m) => userPluginPlan?.forgotten.includes(m.id))
-  for (const id of userPluginPlan?.forgotten ?? []) userPluginRecords.delete(id)
-  const mcpRecords = new Map(loaded.managedMcp.map((m) => [m.name, m]))
-  const releasedMcp = loaded.managedMcp.filter((m) => mcpPlan.forgotten.includes(m.name))
-  for (const name of mcpPlan.forgotten) mcpRecords.delete(name)
-  const userMcpRecords = new Map((user?.managedMcp ?? []).map((m) => [m.name, m]))
-  const userReleasedMcp = (user?.managedMcp ?? []).filter((m) => userMcpPlan?.forgotten.includes(m.name))
-  for (const name of userMcpPlan?.forgotten ?? []) userMcpRecords.delete(name)
-  const hookRecords = new Map(loaded.managedHooks.map((m) => [m.name, m]))
-  for (const name of hookPlan.forgotten) hookRecords.delete(name)
+  const byName = (m: { name: string }) => m.name
+  const byId = (m: { id: string }) => m.id
+  const noPlan = { adopted: [], forgotten: [] }
+  const toPlugin = ({ id, enabled, origin }: PluginDeclaration): ManagedPlugin => ({ id, enabled, origin })
+  const toMcp = ({ name, server, origin }: McpDeclaration): ManagedMcp => ({ name, server, origin })
+  const records = ledger(managed, byName, plan, (a) => record(a.name, a.declaration))
+  const userRecords = ledger(user?.managed ?? [], byName, user?.plan ?? noPlan, (a) => record(a.name, a.declaration))
+  const pluginRecords = ledger(managedPlugins, byId, pluginPlan, toPlugin)
+  const userPluginRecords = ledger(user?.managedPlugins ?? [], byId, userPluginPlan ?? noPlan, toPlugin)
+  const mcpRecords = ledger(loaded.managedMcp, byName, mcpPlan, toMcp)
+  const userMcpRecords = ledger(user?.managedMcp ?? [], byName, userMcpPlan ?? noPlan, toMcp)
+  const hookRecords = ledger(loaded.managedHooks, byName, { ...hookPlan, adopted: [] }, (m: ManagedHook) => m)
+  const toItem = ({ name, source, sha256, origin }: DesiredItem): ManagedItem => ({ name, source, sha256: sha256!, origin })
+  const itemRecords = byKind((kind) => ledger(items[kind].managed, byName, items[kind].plan, toItem))
   /** Marketplaces whose step failed, with the Scope they were meant for. */
   const failedMarketplaces = new Map<string | null, Scope>()
   /** Plugins whose install/enable/disable failed, with their Scope; one moving there keeps its old Scope (ADR 0012). */
   const failedPlugins = new Map<string, Scope>()
   /** MCP servers whose add/update failed, with their Scope; one moving there keeps its old Scope (ADR 0014). */
   const failedMcp = new Map<string, Scope>()
-  const itemRecords = byKind((kind) => {
-    const { managed, plan } = items[kind]
-    const records = new Map(managed.map((m) => [m.name, m]))
-    for (const name of plan.forgotten) records.delete(name)
-    return records
-  })
   // A Manual entry that matches the declaration exactly: adopt it, reported only once.
   const adoptedNotice = (what: string) => notices.push(`ap now manages ${what}, which was set up by hand`)
-  for (const [adopted, into] of [[plan.adopted, records], [user?.plan.adopted ?? [], userRecords]] as const) {
-    for (const { name, declaration } of adopted) {
-      into.set(name, record(name, declaration))
-      adoptedNotice(`"${name}"`)
-    }
+  for (const name of [...records.adopted, ...userRecords.adopted, ...pluginRecords.adopted, ...userPluginRecords.adopted]) {
+    adoptedNotice(`"${name}"`)
   }
-  const adoptedPlugins = [[pluginPlan.adopted, pluginRecords], [userPluginPlan?.adopted ?? [], userPluginRecords]] as const
-  for (const [adopted, into] of adoptedPlugins) {
-    for (const { id, enabled, origin } of adopted) {
-      into.set(id, { id, enabled, origin })
-      adoptedNotice(`"${id}"`)
-    }
-  }
-  for (const [adopted, into] of [[mcpPlan.adopted, mcpRecords], [userMcpPlan?.adopted ?? [], userMcpRecords]] as const) {
-    for (const { name, server, origin } of adopted) {
-      into.set(name, { name, server, origin })
-      adoptedNotice(`MCP server "${name}"`)
-    }
-  }
+  for (const name of [...mcpRecords.adopted, ...userMcpRecords.adopted]) adoptedNotice(`MCP server "${name}"`)
   for (const kind of ITEM_KINDS) {
-    for (const { name, source, sha256, origin } of items[kind].plan.adopted) {
-      itemRecords[kind].set(name, { name, source, sha256: sha256!, origin })
-      adoptedNotice(`${kind} "${name}"`)
-    }
+    for (const name of itemRecords[kind].adopted) adoptedNotice(`${kind} "${name}"`)
   }
 
   const actions: SyncReport['actions'] = itemRuns.flatMap(({ handler, collected }) =>
@@ -413,7 +384,7 @@ export async function sync(
   for (const kind of ITEM_KINDS) {
     for (const { name, source, sha256, origin } of items[kind].collected?.desired ?? []) {
       const record = itemRecords[kind].get(name)
-      if (record?.sha256 === sha256) itemRecords[kind].set(name, { name, source, sha256, origin })
+      if (record?.sha256 === sha256) itemRecords[kind].set({ name, source, sha256, origin })
     }
   }
 
@@ -428,12 +399,12 @@ export async function sync(
     if (action.kind === 'patch') {
       const name = action.name as string
       await registry.patch(action.declaration, name, target)
-      owned.set(name, record(name, action.declaration))
+      owned.set(record(name, action.declaration))
       return name
     }
     const mayReplace = (name: string) => force || owned.has(name)
     const { name } = await registry.put(action.declaration, target, { mayReplace, known: action.name })
-    owned.set(name, record(name, action.declaration))
+    owned.set(record(name, action.declaration))
     return name
   }
 
@@ -462,7 +433,7 @@ export async function sync(
     await run(id, target)
     if (action.adopt) {
       if (!owned.has(id) && entries.some((e) => e.id === id && e.enabled !== undefined)) adoptedNotice(`"${id}"`)
-      owned.set(id, { id, enabled, origin })
+      owned.set({ id, enabled, origin })
     }
     return id
   }
@@ -480,7 +451,7 @@ export async function sync(
     }
     const { server, origin } = action.declaration
     await registry.addMcp(name, server, target)
-    owned.set(name, { name, server, origin })
+    owned.set({ name, server, origin })
     return name
   }
 
@@ -497,7 +468,7 @@ export async function sync(
         if (action.kind === 'remove') hookRecords.delete(action.name)
         else {
           const { name, group, origin } = action.declaration
-          hookRecords.set(name, { name, group: normalizeHook(group), origin })
+          hookRecords.set({ name, group: normalizeHook(group), origin })
         }
         actions.push({ ...describe(step), status: 'done' })
       }
@@ -516,11 +487,11 @@ export async function sync(
     }
     const { source, sha256, from, origin } = action.desired
     await handler.install(from!, dir!, name)
-    records.set(name, { name, source, sha256: sha256!, origin })
+    records.set({ name, source, sha256: sha256!, origin })
     return name
   }
 
-  const claims = claimsOf(declarations, [...records.values()], actual, conflicts)
+  const claims = claimsOf(declarations, records.values(), actual, conflicts)
   const claimsOfPlugins = (plugins: PluginDeclaration[]) =>
     plugins
       .filter((p) => !held.has(p.marketplace) && !conflicts.some((c) => c.name === p.id))
@@ -531,10 +502,6 @@ export async function sync(
       .filter((s) => !conflicts.some((c) => c.name === s.name))
       .map(({ name, source, origin }) => ({ name, source, origin })),
   )
-  const releasedItems = byKind((kind) => {
-    const { managed, plan } = items[kind]
-    return managed.filter((m) => plan.forgotten.includes(m.name))
-  })
   const claimsOfMcp = (servers: McpDeclaration[]): ManagedMcp[] =>
     servers.filter((d) => mcpSettled(d.name)).map(({ name, server, origin }) => ({ name, server, origin }))
   const mcpClaims = claimsOfMcp(targetMcp)
@@ -542,12 +509,12 @@ export async function sync(
   await store.save(
     scope,
     {
-      marketplaces: [...records.values()],
-      plugins: [...pluginRecords.values()],
-      items: byKind((kind) => [...itemRecords[kind].values()]),
+      marketplaces: records.values(),
+      plugins: pluginRecords.values(),
+      items: byKind((kind) => itemRecords[kind].values()),
       itemSources: byKind((kind) => items[kind].collected?.catalogs ?? items[kind].catalogs),
-      mcpServers: [...mcpRecords.values()],
-      hooks: [...hookRecords.values()],
+      mcpServers: mcpRecords.values(),
+      hooks: hookRecords.values(),
     },
     resolved.pins,
     {
@@ -557,10 +524,10 @@ export async function sync(
       mcpClaims,
       released: {
         ...NO_OWNED,
-        marketplaces: released,
-        plugins: releasedPlugins,
-        items: releasedItems,
-        mcpServers: releasedMcp,
+        marketplaces: records.released,
+        plugins: pluginRecords.released,
+        items: byKind((kind) => itemRecords[kind].released),
+        mcpServers: mcpRecords.released,
       },
     },
   )
@@ -580,17 +547,17 @@ export async function sync(
       'user',
       {
         ...NO_OWNED,
-        marketplaces: [...userRecords.values()],
-        plugins: [...userPluginRecords.values()],
-        mcpServers: [...userMcpRecords.values()],
+        marketplaces: userRecords.values(),
+        plugins: userPluginRecords.values(),
+        mcpServers: userMcpRecords.values(),
       },
       resolved.pins,
       {
-        claims: claimsOf(lifted, [...userRecords.values()], user.actual, conflicts),
+        claims: claimsOf(lifted, userRecords.values(), user.actual, conflicts),
         pluginClaims: [...claimsOfPlugins(liftedPlugins), ...movingBack],
         itemClaims: byKind(() => []),
         mcpClaims: [...claimsOfMcp(liftedMcp), ...movingBackMcp],
-        released: { ...NO_OWNED, marketplaces: userReleased, plugins: userReleasedPlugins, mcpServers: userReleasedMcp },
+        released: { ...NO_OWNED, marketplaces: userRecords.released, plugins: userPluginRecords.released, mcpServers: userMcpRecords.released },
       },
       { target: scope },
     )
