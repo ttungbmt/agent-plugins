@@ -79,12 +79,21 @@ export function createStore({ cwd, homedir }: Location) {
   const lockPath = join(cwd, 'agent-plugins.lock')
   const localStatePath = join(cwd, '.agent-plugins/state.local.json')
   const userStatePath = join(homedir, '.agent-plugins/state.json')
-  const configKey = join(cwd, 'agent-plugins.yaml')
+  const configPath = join(cwd, 'agent-plugins.yaml')
+  /**
+   * The user-scope State key of this Config's record for a Sync targeting `target`: the Config path for a `user` Sync,
+   * so State written before ADR 0011 still loads, and `<Config path>#<scope>` for a Sync that reaches `user` only through
+   * User-scoped marketplaces.
+   */
+  const recordKey = (target: Scope) => (target === 'user' ? configPath : `${configPath}#${target}`)
 
   /** How each Scope stores its Managed entries. */
   const owners: Record<
     Scope,
-    { read(lock: Lock): Promise<State | undefined>; write(owned: Owned, sharing: Sharing): Promise<void> }
+    {
+      read(lock: Lock, target: Scope): Promise<State | undefined>
+      write(owned: Owned, sharing: Sharing, target: Scope): Promise<void>
+    }
   > = {
     project: {
       read: async (lock) => lock,
@@ -95,9 +104,10 @@ export function createStore({ cwd, homedir }: Location) {
       write: (owned) => writeJson(localStatePath, compact(ownedFields(owned))),
     },
     user: {
-      read: async () => (await readJson<Record<string, State>>(userStatePath))[configKey],
-      write: async (owned, { claims, pluginClaims, itemClaims, mcpClaims, released }) => {
+      read: async (_, target) => (await readJson<Record<string, State>>(userStatePath))[recordKey(target)],
+      write: async (owned, { claims, pluginClaims, itemClaims, mcpClaims, released }, target) => {
         const states = await readJson<Record<string, State>>(userStatePath)
+        const configKey = recordKey(target)
         // Hand entries just released to the other Configs claiming the same declaration, so the last repo declaring it removes it.
         for (const [key, state] of Object.entries(states)) {
           if (key === configKey) continue
@@ -153,12 +163,16 @@ export function createStore({ cwd, homedir }: Location) {
     await writeFile(lockPath, empty ? '' : stringify(lock, { aliasDuplicateObjects: false }))
   }
 
-  /** Claims of the other Configs at the user scope; Configs deleted from disk are skipped. */
-  async function sharedClaims() {
+  /**
+   * Claims of the other records at the user scope, including this Config's record for another targeted Scope; Configs
+   * deleted from disk are skipped.
+   */
+  async function sharedClaims(target: Scope) {
     const states = await readJson<Record<string, State>>(userStatePath)
     const shared = noShared()
-    for (const [config, state] of Object.entries(states)) {
-      if (config === configKey || !(await access(config).then(() => true, () => false))) continue
+    for (const [key, state] of Object.entries(states)) {
+      const config = configPathOf(key)
+      if (key === recordKey(target) || !(await access(config).then(() => true, () => false))) continue
       for (const claim of state.claims ?? []) shared.marketplaces.push({ ...claim, config })
       for (const claim of state.pluginClaims ?? []) shared.plugins.push({ ...claim, config })
       for (const kind of ITEM_KINDS) {
@@ -169,10 +183,11 @@ export function createStore({ cwd, homedir }: Location) {
     return shared
   }
 
-  async function load(scope: Scope) {
+  /** `target` is the Scope the Sync targets; it differs from `scope` only for User-scoped marketplaces (ADR 0011). */
+  async function load(scope: Scope, { target = scope }: { target?: Scope } = {}) {
     const lock = await readLock()
-    const state = await owners[scope].read(lock)
-    const shared = scope === 'user' ? await sharedClaims() : noShared()
+    const state = await owners[scope].read(lock, target)
+    const shared = scope === 'user' ? await sharedClaims(target) : noShared()
     return {
       managed: state?.marketplaces ?? [],
       managedPlugins: state?.plugins ?? [],
@@ -190,14 +205,28 @@ export function createStore({ cwd, homedir }: Location) {
     }
   }
 
-  async function save(scope: Scope, owned: Owned, pins: PresetPins, sharing: Sharing = NO_SHARING) {
-    const lock = await readLock()
-    const project = scope === 'project' ? ownedFields(owned) : lock
-    await writeLock({ ...project, presets: pins })
-    await owners[scope].write(owned, sharing)
+  async function save(
+    scope: Scope,
+    owned: Owned,
+    pins: PresetPins,
+    sharing: Sharing = NO_SHARING,
+    { target = scope }: { target?: Scope } = {},
+  ) {
+    // The Sync's own save writes the Lock; the user-scope record of a User-scoped marketplace leaves it alone.
+    if (scope === target) {
+      const lock = await readLock()
+      const project = scope === 'project' ? ownedFields(owned) : lock
+      await writeLock({ ...project, presets: pins })
+    }
+    await owners[scope].write(owned, sharing, target)
   }
 
   return { load, save }
+}
+
+/** The Config path of a user-scope State key, dropping the `#<scope>` of a record for another targeted Scope. */
+function configPathOf(key: string): string {
+  return key.replace(/#(project|local)$/, '')
 }
 
 function noShared() {

@@ -10,6 +10,7 @@ spec:
     claude-plugins-official:
       source: { source: github, repo: anthropics/claude-plugins-official }
       autoUpdate: true
+      scope: user
 
   plugins:
     claude-code-setup@claude-plugins-official: true

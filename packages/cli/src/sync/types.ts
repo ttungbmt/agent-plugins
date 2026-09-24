@@ -8,6 +8,8 @@ export type MarketplaceDeclaration = {
   name: string | null
   source: MarketplaceSource
   extras: Record<string, unknown>
+  /** `user` for a User-scoped marketplace (ADR 0011); absent means the Scope the Sync targets. */
+  scope?: 'user'
   origin: string
 }
 

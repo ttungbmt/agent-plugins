@@ -59,7 +59,12 @@ export default class Sync extends Command {
   }
 }
 
+/** What an action is about, with its Scope when it lies outside the targeted one (a User-scoped marketplace). */
 function target(a: SyncProgress['action']): string {
+  return a.scope ? `${subject(a)} (${a.scope})` : subject(a)
+}
+
+function subject(a: SyncProgress['action']): string {
   if (ITEM_KINDS.includes(a.target as ItemKind) && !a.name && a.source) return `${a.target}s from ${describeItemSource(a.source)}`
   if (a.target === 'mcp') return `MCP server ${a.name}`
   if (a.target === 'hook') return `hook ${a.name}`

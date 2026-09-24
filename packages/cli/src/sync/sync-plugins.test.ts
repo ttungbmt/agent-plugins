@@ -302,6 +302,33 @@ describe('sync plugins', () => {
     expect(report.actions.filter((a) => a.target === 'plugin')).toEqual([])
   })
 
+  it('keeps a marketplace and its plugins while plugins still declare it', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`{ ${C7}: true }`) })
+    await t.run()
+    await t.setConfig(config(`{ ${C7}: true }`, ''))
+
+    const report = await t.run()
+
+    expect(report.conflicts).toEqual([expect.objectContaining({ name: C7, reason: 'missing-marketplace' })])
+    expect(report.actions).toEqual([])
+    expect(await t.enabled()).toEqual({ [C7]: true })
+    expect((await t.settings()).extraKnownMarketplaces).toHaveProperty(OFFICIAL.name)
+  })
+
+  it('removes a marketplace and its plugins once neither is declared', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`{ ${C7}: true }`) })
+    await t.run()
+    await t.setConfig(config('{}', ''))
+
+    const report = await t.run()
+
+    expect(report.conflicts).toEqual([])
+    expect(report.actions.map((a) => [a.kind, a.name])).toEqual([
+      ['uninstall', C7],
+      ['remove', OFFICIAL.name],
+    ])
+  })
+
   it('reports a plugin that needs confirmation as failed, with the command to run by hand', async () => {
     const t = await setup({ 'agent-plugins.yaml': config(`[${C7}]`) }, { confirm: [C7] })
 

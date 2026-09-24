@@ -97,6 +97,14 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
     await runMarketplaceCommand('remove', name, '--scope', scope)
   }
 
+  /**
+   * Drop only the Known marketplace entry, for an entry moving to another Scope (ADR 0011): `claude plugin marketplace
+   * remove` would also drop the Scope's `*@name` plugin entries, which stay declared.
+   */
+  async function forget(name: string, scope: Scope): Promise<void> {
+    await writeEntry(scope, name, undefined)
+  }
+
   function sourceArgument(source: MarketplaceSource): string {
     switch (source.source) {
       case 'github':
@@ -258,6 +266,7 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
     put,
     patch,
     remove,
+    forget,
     listPlugins,
     installPlugin,
     enablePlugin,

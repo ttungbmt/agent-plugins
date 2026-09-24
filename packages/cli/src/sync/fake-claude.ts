@@ -11,6 +11,8 @@ type InstallRecord = { scope: Scope; projectPath?: string }
  *   writing only `source`, with `directory` made absolute. The install is shared machine-wide by name
  *   (`known_marketplaces.json`): `add` replaces it, and `remove` deletes it only when no scope still declares that name.
  * - `marketplace remove X --scope S` also deletes every `*@X` key in S's `enabledPlugins` and their Installed plugins.
+ * - `install` checks only the machine-wide install, so a marketplace declared only in user settings serves a project-scope
+ *   `install` (checked against 2.1.281; ADR 0011).
  * - `install` installs per scope and writes `true`; `enable` only writes `true`, reporting `already_in_goal_state` if
  *   already `true`;
  *   `uninstall` deletes the key and that scope's Installed plugin, reporting `not_installed_at_scope` if the scope has none.

@@ -410,6 +410,10 @@
         "autoUpdate": {
           "type": "boolean",
           "description": "Refresh the marketplace and update its installed plugins in the background after startup. When omitted, official Anthropic marketplaces default to `true` and third-party marketplaces to `false`."
+        },
+        "scope": {
+          "enum": ["user"],
+          "description": "Sync this marketplace to the `user` Scope (`~/.claude`) whatever Scope `ap sync` targets. Plugins that use it stay at the targeted Scope. Omitted: the targeted Scope. `ap` keeps this field out of Claude Code's settings."
         }
       },
       "examples": [

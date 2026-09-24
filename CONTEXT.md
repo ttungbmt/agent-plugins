@@ -47,6 +47,12 @@ A Marketplace declaration written as a single source string (GitHub `owner/repo`
 or local path). Its name is unknown until `claude` reads the `marketplace.json`.
 _Avoid_: source string
 
+**User-scoped marketplace**:
+A Marketplace declaration in map form with `scope: user`. It is synced to the `user` Scope whatever Scope the Sync
+targets, while Plugin declarations that use it stay at the targeted Scope. See
+[ADR 0011](docs/adr/0011-user-scoped-marketplace.md).
+_Avoid_: global marketplace, pinned marketplace
+
 **Known marketplace entry**:
 An entry in `extraKnownMarketplaces` of Claude Code's settings — actual state.
 

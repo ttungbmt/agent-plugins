@@ -72,7 +72,7 @@ export async function resolveConfig(configPath: string, ctx: ResolveContext): Pr
   const kept = merged.declarations.filter((d) => {
     const override = own.find((o) => (o.name !== null && o.name === d.name) || sameSource(o.source, d.source))
     if (!override) return true
-    if (!sameSource(override.source, d.source) || !isDeepStrictEqual(override.extras, d.extras)) {
+    if (!sameDeclaration(override, d)) {
       notices.push(overrideNotice(override, d))
     }
     return false
@@ -125,8 +125,8 @@ type McpContribution = { name: string; server: McpConfig | null; origin: string 
 /**
  * Merge declarations across Presets (ADR 0004):
  * - a Preset wins over every Preset in its `extends` tree, replacing the whole entry;
- * - the rest are peers: the same source merges extra fields (the later declaration wins), a different source is a
- *   preset-clash.
+ * - the rest are peers: the same source merges extra fields (the later declaration wins), a different source or
+ *   scope is a preset-clash.
  */
 function mergePresets({ ancestors, contributions }: PresetGraph) {
   const groups: Contribution[][] = []
@@ -145,7 +145,7 @@ function mergePresets({ ancestors, contributions }: PresetGraph) {
     const winners = group.filter((m) => !group.some((o) => extendsPreset(o, m)))
     const [first, ...rest] = winners.map((w) => w.declaration)
     if (!first) continue
-    const rival = rest.find((d) => !sameSource(d.source, first.source))
+    const rival = rest.find((d) => !sameSource(d.source, first.source) || d.scope !== first.scope)
     if (rival) {
       const name = (first.name ?? rival.name) as string
       conflicts.push({ name, reason: 'preset-clash', detail: `"${name}" is declared differently by ${first.origin} and ${rival.origin}` })
@@ -160,7 +160,7 @@ function mergePresets({ ancestors, contributions }: PresetGraph) {
     for (const loser of group.filter((m) => !winners.includes(m))) {
       const overrider = group.find((o) => winners.includes(o) && extendsPreset(o, loser)) ?? winners[0]!
       const d = loser.declaration
-      if (!sameSource(d.source, overrider.declaration.source) || !isDeepStrictEqual(d.extras, overrider.declaration.extras)) {
+      if (!sameDeclaration(d, overrider.declaration)) {
         notices.push(overrideNotice(overrider.declaration, d))
       }
     }
@@ -295,6 +295,11 @@ function sameMarketplace(a: MarketplaceDeclaration, b: MarketplaceDeclaration): 
   return sameSource(a.source, b.source)
 }
 
+/** The same source, settings fields and scope, so overriding one with the other changes nothing. */
+function sameDeclaration(a: MarketplaceDeclaration, b: MarketplaceDeclaration): boolean {
+  return sameSource(a.source, b.source) && isDeepStrictEqual(a.extras, b.extras) && a.scope === b.scope
+}
+
 function overrideNotice(winner: MarketplaceDeclaration, loser: MarketplaceDeclaration): string {
   return `${winner.origin} overrides "${loser.name ?? winner.name ?? describeSource(loser.source)}" declared by ${loser.origin}`
 }
@@ -425,6 +430,9 @@ function list(refs: unknown): string[] {
   return Array.isArray(refs) ? refs : [refs as string]
 }
 
+/** The fields a map-form Marketplace declaration may carry besides `source`, as in `extraKnownMarketplaces`. */
+const MARKETPLACE_EXTRAS = new Set(['autoUpdate'])
+
 /** `dir` is the declaring file's directory; local paths in Shorthand declarations are resolved against it. */
 async function readMarketplaces(raw: unknown, origin: string, dir: string): Promise<MarketplaceDeclaration[]> {
   if (!raw) return []
@@ -438,12 +446,15 @@ async function readMarketplaces(raw: unknown, origin: string, dir: string): Prom
       raw.map(async (text: string) => ({ name: null, source: await parseShorthand(text, dir, origin), extras: {}, origin })),
     )
   }
-  return Object.entries(raw as Record<string, { source: MarketplaceSource }>).map(([name, { source, ...extras }]) => ({
-    name,
-    source,
-    extras,
-    origin,
-  }))
+  return Object.entries(raw as Record<string, { source: MarketplaceSource; scope?: unknown }>).map(([name, entry]) => {
+    const { source, scope, ...extras } = entry
+    if (scope !== undefined && scope !== 'user') {
+      throw new ConfigError(`${origin}: marketplace "${name}" has scope "${scope}"; the only scope is "user"`)
+    }
+    const unknown = Object.keys(extras).find((key) => !MARKETPLACE_EXTRAS.has(key))
+    if (unknown) throw new ConfigError(`${origin}: marketplace "${name}" has unknown field "${unknown}"`)
+    return { name, source, extras, ...(scope && { scope }), origin }
+  })
 }
 
 /** `plugins` is a map of `name@marketplace: bool`, or a list of `name@marketplace` as shorthand for all `true`. */

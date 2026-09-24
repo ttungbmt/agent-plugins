@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { defaultPresetsDir } from '../presets-dir.js'
 import { resolveConfig } from './resolve.js'
 import { makeTree } from './test-helpers.js'
 
@@ -33,6 +34,63 @@ spec:
 `,
       }),
     ).rejects.toThrow(/agent-plugins\.yaml: `marketplaces` list items must be source strings.*name: \{ source \}/)
+  })
+
+  it('rejects a map-form marketplace field that settings do not know', async () => {
+    await expect(
+      resolveIn({
+        'agent-plugins.yaml': `
+kind: Config
+metadata: { name: demo }
+spec:
+  marketplaces:
+    claude-plugins-official:
+      source: { source: github, repo: anthropics/claude-plugins-official }
+      autoupdate: true
+`,
+      }),
+    ).rejects.toThrow(/agent-plugins\.yaml: marketplace "claude-plugins-official" has unknown field "autoupdate"/)
+  })
+
+  it('rejects a marketplace scope other than user', async () => {
+    await expect(
+      resolveIn({
+        'agent-plugins.yaml': `
+kind: Config
+metadata: { name: demo }
+spec:
+  marketplaces:
+    claude-plugins-official:
+      source: { source: github, repo: anthropics/claude-plugins-official }
+      scope: global
+`,
+      }),
+    ).rejects.toThrow(/agent-plugins\.yaml: marketplace "claude-plugins-official" has scope "global"; the only scope is "user"/)
+  })
+
+  it('reads a User-scoped marketplace, keeping scope out of the settings fields', async () => {
+    const result = await resolveIn({
+      'agent-plugins.yaml': `
+kind: Config
+metadata: { name: demo }
+spec:
+  marketplaces:
+    claude-plugins-official:
+      source: { source: github, repo: anthropics/claude-plugins-official }
+      autoUpdate: true
+      scope: user
+`,
+    })
+
+    expect(result.declarations).toEqual([
+      {
+        name: 'claude-plugins-official',
+        source: { source: 'github', repo: 'anthropics/claude-plugins-official' },
+        extras: { autoUpdate: true },
+        scope: 'user',
+        origin: 'agent-plugins.yaml',
+      },
+    ])
   })
 
   it('reads marketplaces declared as a map in the Config', async () => {
@@ -94,6 +152,15 @@ spec:
     ).rejects.toThrow(/metadata\.name "agent-plugins".*"base"/)
   })
 
+  it.each(['base', 'agent-plugins'])('resolves the bundled %s preset', async (name) => {
+    const result = await resolveIn(
+      { 'agent-plugins.yaml': `kind: Config\nmetadata: { name: demo }\nspec:\n  presets: [${name}]\n` },
+      { defaultPresetsDir: defaultPresetsDir() },
+    )
+
+    expect(result.declarations.length).toBeGreaterThan(0)
+  })
+
   it('rejects an unknown built-in preset', async () => {
     await expect(
       resolveIn({ 'agent-plugins.yaml': 'kind: Config\nmetadata: { name: demo }\nspec:\n  presets: [nope]\n' }),
@@ -153,6 +220,17 @@ spec:
       expect(result.conflicts).toEqual([{ name: 'shared', reason: 'preset-clash', detail: expect.stringMatching(/a\.yaml.*b\.yaml/) }])
     })
 
+    it('reports a preset clash when two presets disagree on the scope', async () => {
+      const result = await resolveIn({
+        'agent-plugins.yaml': 'kind: Config\nmetadata: { name: demo }\nspec:\n  presets: [./a.yaml, ./b.yaml]\n',
+        'a.yaml': preset('a', 'https://x/shared.git'),
+        'b.yaml': preset('b', 'https://x/shared.git').replace('} }', '}, scope: user }'),
+      })
+
+      expect(result.declarations).toEqual([])
+      expect(result.conflicts).toEqual([{ name: 'shared', reason: 'preset-clash', detail: expect.stringMatching(/a\.yaml.*b\.yaml/) }])
+    })
+
     it('lets the Config override a preset', async () => {
       const result = await resolveIn({
         'agent-plugins.yaml': `
@@ -170,6 +248,23 @@ spec:
       expect(result.declarations).toEqual([
         expect.objectContaining({ name: 'shared', source: { source: 'git', url: 'https://x/mine.git' }, origin: 'agent-plugins.yaml' }),
       ])
+    })
+
+    it('lets the Config keep a User-scoped marketplace from a preset at the targeted Scope', async () => {
+      const result = await resolveIn({
+        'agent-plugins.yaml': `
+kind: Config
+metadata: { name: demo }
+spec:
+  presets: [./a.yaml]
+  marketplaces:
+    shared: { source: { source: git, url: "https://x/shared.git" } }
+`,
+        'a.yaml': preset('a', 'https://x/shared.git').replace('} }', '}, scope: user }'),
+      })
+
+      expect(result.declarations).toEqual([expect.not.objectContaining({ scope: 'user' })])
+      expect(result.notices).toContain('agent-plugins.yaml overrides "shared" declared by a.yaml')
     })
   })
   describe('remote presets', () => {

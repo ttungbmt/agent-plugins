@@ -31,6 +31,8 @@ export type SyncAction = {
   source: MarketplaceSource | null
   status: 'planned' | 'done' | 'failed'
   error?: string
+  /** Set only for an action outside the targeted Scope: a User-scoped marketplace (ADR 0011). */
+  scope?: 'user'
 }
 
 export type SyncReport = {
@@ -46,7 +48,8 @@ export type SyncProgress =
   | { phase: 'end'; action: SyncAction; ms: number }
 
 type Step =
-  | { target: 'marketplace'; action: PlannedAction }
+  /** `scope` is set only for a User-scoped marketplace synced outside the targeted Scope (ADR 0011). */
+  | { target: 'marketplace'; action: PlannedAction; scope?: 'user' }
   | { target: 'plugin'; action: PlannedPluginAction }
   | { target: ItemKind; action: PlannedItemAction }
   | { target: 'mcp'; action: PlannedMcpAction }
@@ -106,16 +109,32 @@ export async function sync(
   const blocked = resolved.conflicts.map((c) => c.name)
   const elsewhere = { cwd, entries: await registry.listElsewhere(scope) }
   const installed = await registry.listInstalled()
-  const plan = planSync(resolved.declarations, actual, managed, { force, blocked, shared, elsewhere, installed })
-  const held = new Set([...resolved.conflicts, ...plan.conflicts].map((c) => c.name))
-  const names = resolved.declarations.map((d) => knownName(d, managed, actual))
+  // User-scoped marketplaces (ADR 0011) are planned against the `user` Scope, with this Config's record for the
+  // targeted Scope; a `user` Sync plans them like any other declaration.
+  const lifted = scope === 'user' ? [] : resolved.declarations.filter((d) => d.scope === 'user')
+  const declarations = resolved.declarations.filter((d) => !lifted.includes(d))
+  const user = scope === 'user' ? null : await planUserScoped()
+  const plan = planSync(declarations, actual, managed, { force, blocked, shared, elsewhere, installed })
+  const held = new Set([...resolved.conflicts, ...plan.conflicts, ...(user?.plan.conflicts ?? [])].map((c) => c.name))
+  const names = [
+    ...declarations.map((d) => knownName(d, managed, actual)),
+    ...lifted.map((d) => knownName(d, user!.managed, user!.actual)),
+  ]
   const checked = checkMarketplaces(
     resolved.plugins,
     new Set([...names.filter((n): n is string => n !== null), ...held]),
     names.includes(null),
   )
-  const pluginPlan = planPlugins(checked.plugins, actualPlugins, managedPlugins, { force, held, shared: sharedPlugins })
-  const conflicts = [...resolved.conflicts, ...plan.conflicts, ...checked.conflicts, ...pluginPlan.conflicts]
+  // A plugin whose marketplace is no longer declared is held like any conflict: its Managed entry stays, and so does the
+  // marketplace it still uses (see `inUse`), until both are dropped from the declarations.
+  const unmatched = resolved.plugins.filter((p) => !checked.plugins.includes(p))
+  const pluginPlan = planPlugins([...checked.plugins, ...unmatched], actualPlugins, managedPlugins, {
+    force,
+    held: new Set([...held, ...unmatched.map((p) => p.marketplace)]),
+    shared: sharedPlugins,
+  })
+  const inUse = new Set(resolved.plugins.map((p) => p.marketplace))
+  const conflicts = [...resolved.conflicts, ...plan.conflicts, ...(user?.plan.conflicts ?? []), ...checked.conflicts, ...pluginPlan.conflicts]
   const notices = [...resolved.notices, ...checked.notices, ...pluginPlan.notices]
 
   const fetchSource = mode === 'apply' ? sharedFetcher(deps.fetchSkillSource ?? createGitFetcher(deps.exec, cwd)) : null
@@ -186,17 +205,35 @@ export async function sync(
     ...managedPlugins.map((m) => m.id),
     ...pluginPlan.actions.filter((a) => 'adopt' in a && a.adopt).map((a) => a.id),
   ])
+  // A name still declared on the other side of this Sync is moving between the targeted Scope and `user` (ADR 0011):
+  // only its entry goes, so its plugins stay.
+  const moving = new Set(names.filter((n): n is string => n !== null))
   const removals = plan.actions.filter((a) => {
-    if (a.kind !== 'remove' || force) return a.kind === 'remove'
+    if (a.kind === 'remove' && inUse.has(a.name) && !moving.has(a.name)) return false
+    if (a.kind !== 'remove' || force || moving.has(a.name)) return a.kind === 'remove'
     const manual = manualPluginsOf(a.name, actualPlugins, ownedPlugins)
     if (manual.length) conflicts.push(pluginsInUseConflict(a.name, manual))
     return manual.length === 0
   })
   // Hook steps don't run one by one: they are folded into a single settings write (`writeHooks`).
+  // Removing a marketplace also drops the `user` Scope's plugins from it, and no user-scope plugin is this Sync's to drop.
+  const userRemovals = (user?.plan.actions ?? []).filter((a) => {
+    if (a.kind === 'remove' && inUse.has(a.name) && !moving.has(a.name)) return false
+    if (a.kind !== 'remove' || force || moving.has(a.name)) return a.kind === 'remove'
+    const manual = manualPluginsOf(a.name, user!.plugins, new Set())
+    if (manual.length) conflicts.push(pluginsInUseConflict(a.name, manual))
+    return manual.length === 0
+  })
+  const userSteps = (removing: boolean) =>
+    (removing ? userRemovals : (user?.plan.actions ?? []).filter((a) => a.kind !== 'remove'))
+      .map((action) => ({ target: 'marketplace' as const, action, scope: 'user' as const }))
   const steps: Exclude<Step, { target: 'hook' }>[] = [
+    // User-scope entries first, so the plugins of the targeted Scope find their marketplace (ADR 0011).
+    ...userSteps(false),
     ...plan.actions.filter((a) => a.kind !== 'remove').map((action) => ({ target: 'marketplace' as const, action })),
     ...pluginPlan.actions.map((action) => ({ target: 'plugin' as const, action })),
     ...removals.map((action) => ({ target: 'marketplace' as const, action })),
+    ...userSteps(true),
     ...itemRuns.flatMap(({ handler, plan }) => plan.actions.map((action) => ({ target: handler.kind, action }))),
     ...mcpPlan.actions.map((action) => ({ target: 'mcp' as const, action })),
   ]
@@ -231,6 +268,9 @@ export async function sync(
   const records = new Map(managed.map((m) => [m.name, m]))
   const released = managed.filter((m) => plan.forgotten.includes(m.name))
   for (const name of plan.forgotten) records.delete(name)
+  const userRecords = new Map((user?.managed ?? []).map((m) => [m.name, m]))
+  const userReleased = (user?.managed ?? []).filter((m) => user!.plan.forgotten.includes(m.name))
+  for (const name of user?.plan.forgotten ?? []) userRecords.delete(name)
   const pluginRecords = new Map(managedPlugins.map((m) => [m.id, m]))
   const releasedPlugins = managedPlugins.filter((m) => pluginPlan.forgotten.includes(m.id))
   for (const id of pluginPlan.forgotten) pluginRecords.delete(id)
@@ -239,7 +279,8 @@ export async function sync(
   for (const name of mcpPlan.forgotten) mcpRecords.delete(name)
   const hookRecords = new Map(loaded.managedHooks.map((m) => [m.name, m]))
   for (const name of hookPlan.forgotten) hookRecords.delete(name)
-  const failedMarketplaces = new Set<string | null>()
+  /** Marketplaces whose step failed, with the Scope they were meant for. */
+  const failedMarketplaces = new Map<string | null, Scope>()
   const itemRecords = byKind((kind) => {
     const { managed, plan } = items[kind]
     const records = new Map(managed.map((m) => [m.name, m]))
@@ -248,9 +289,11 @@ export async function sync(
   })
   // A Manual entry that matches the declaration exactly: adopt it, reported only once.
   const adoptedNotice = (what: string) => notices.push(`ap now manages ${what}, which was set up by hand`)
-  for (const { name, declaration } of plan.adopted) {
-    records.set(name, record(name, declaration))
-    adoptedNotice(`"${name}"`)
+  for (const [adopted, into] of [[plan.adopted, records], [user?.plan.adopted ?? [], userRecords]] as const) {
+    for (const { name, declaration } of adopted) {
+      into.set(name, record(name, declaration))
+      adoptedNotice(`"${name}"`)
+    }
   }
   for (const { id, enabled, origin } of pluginPlan.adopted) {
     pluginRecords.set(id, { id, enabled, origin })
@@ -283,7 +326,7 @@ export async function sync(
     try {
       const name =
         step.target === 'marketplace'
-          ? await applyMarketplace(step.action)
+          ? await applyMarketplace(step.action, step.scope)
           : step.target === 'plugin'
             ? await applyPlugin(step.action)
             : step.target === 'mcp'
@@ -292,7 +335,7 @@ export async function sync(
       actions.push({ ...describe(step), name, status: 'done' })
     } catch (error) {
       if (error instanceof ConflictError) conflicts.push(error.conflict)
-      if (step.target === 'marketplace') failedMarketplaces.add(step.action.name)
+      if (step.target === 'marketplace') failedMarketplaces.set(step.action.name, step.scope ?? scope)
       actions.push({ ...describe(step), status: 'failed', error: (error as Error).message })
     }
     deps.onProgress?.({ phase: 'end', action: actions.at(-1)!, ms: Date.now() - started })
@@ -307,21 +350,23 @@ export async function sync(
     }
   }
 
-  async function applyMarketplace(action: PlannedAction): Promise<string | null> {
+  /** `at` is set for a User-scoped marketplace, which lives in the `user` Scope and its own records. */
+  async function applyMarketplace(action: PlannedAction, at?: 'user'): Promise<string | null> {
+    const [target, owned] = at ? [at, userRecords] : [scope, records]
     if (action.kind === 'remove') {
-      await registry.remove(action.name, scope)
-      records.delete(action.name)
+      await (moving.has(action.name) ? registry.forget(action.name, target) : registry.remove(action.name, target))
+      owned.delete(action.name)
       return action.name
     }
     if (action.kind === 'patch') {
       const name = action.name as string
-      await registry.patch(action.declaration, name, scope)
-      records.set(name, record(name, action.declaration))
+      await registry.patch(action.declaration, name, target)
+      owned.set(name, record(name, action.declaration))
       return name
     }
-    const mayReplace = (name: string) => force || records.has(name)
-    const { name } = await registry.put(action.declaration, scope, { mayReplace, known: action.name })
-    records.set(name, record(name, action.declaration))
+    const mayReplace = (name: string) => force || owned.has(name)
+    const { name } = await registry.put(action.declaration, target, { mayReplace, known: action.name })
+    owned.set(name, record(name, action.declaration))
     return name
   }
 
@@ -333,10 +378,12 @@ export async function sync(
       return id
     }
     const { marketplace, enabled, origin } = action.declaration
-    if (failedMarketplaces.has(marketplace)) throw new Error(`marketplace "${marketplace}" is not ready in ${scope} settings`)
+    const failedAt = failedMarketplaces.get(marketplace)
+    if (failedAt) throw new Error(`marketplace "${marketplace}" is not ready in ${failedAt} settings`)
     // `@marketplace` suffixes that matched no name before Shorthand declarations were `add`ed: check again now that
     // the names are known.
-    if (checked.pending.has(id) && !records.has(marketplace) && !actual.some((e) => e.name === marketplace)) {
+    const known = records.has(marketplace) || userRecords.has(marketplace) || actual.some((e) => e.name === marketplace)
+    if (checked.pending.has(id) && !known) {
       if (failedMarketplaces.size) throw new Error(`marketplace "${marketplace}" is not ready in ${scope} settings`)
       throw new ConflictError(missingMarketplaceConflict(action.declaration))
     }
@@ -398,7 +445,7 @@ export async function sync(
     return name
   }
 
-  const claims = claimsOf(resolved.declarations, [...records.values()], actual, conflicts)
+  const claims = claimsOf(declarations, [...records.values()], actual, conflicts)
   const pluginClaims = resolved.plugins
     .filter((p) => !held.has(p.marketplace) && !conflicts.some((c) => c.name === p.id))
     .map(({ id, enabled, origin }) => ({ id, enabled, origin }))
@@ -440,12 +487,36 @@ export async function sync(
       },
     },
   )
+  if (user && (lifted.length || user.managed.length)) {
+    await store.save(
+      'user',
+      { ...NO_OWNED, marketplaces: [...userRecords.values()] },
+      resolved.pins,
+      {
+        claims: claimsOf(lifted, [...userRecords.values()], user.actual, conflicts),
+        pluginClaims: [],
+        itemClaims: byKind(() => []),
+        mcpClaims: [],
+        released: { ...NO_OWNED, marketplaces: userReleased },
+      },
+      { target: scope },
+    )
+  }
   conflicts.push(...mcpConflicts)
   return {
     actions,
     conflicts,
     notices,
     inSync: conflicts.length === 0 && actions.every((a) => a.status === 'done'),
+  }
+
+  /** Plans the User-scoped marketplaces against the `user` Scope's settings, this Config's record there and the claims of the rest. */
+  async function planUserScoped() {
+    const { managed, shared } = await store.load('user', { target: scope })
+    const actual = await registry.list('user')
+    const elsewhere = { cwd, entries: await registry.listElsewhere('user') }
+    const plan = planSync(lifted, actual, managed, { force, blocked, shared, elsewhere, installed })
+    return { managed, actual, plan, plugins: await registry.listPlugins('user') }
   }
 }
 
@@ -492,9 +563,10 @@ function describe(step: Step): Omit<SyncAction, 'status' | 'error'> {
   if (step.target === 'mcp' || step.target === 'hook') return { target: step.target, kind: step.action.kind, name: step.action.name, source: null }
   if (step.target === 'marketplace') {
     const { target, action } = step
+    const at = step.scope ? { scope: step.scope } : {}
     return action.kind === 'remove'
-      ? { target, kind: action.kind, name: action.name, source: null }
-      : { target, kind: action.kind, name: action.name, source: action.declaration.source }
+      ? { target, kind: action.kind, name: action.name, source: null, ...at }
+      : { target, kind: action.kind, name: action.name, source: action.declaration.source, ...at }
   }
   const { target, action } = step
   return { target, kind: action.kind, name: action.name, source: action.kind === 'remove' ? null : action.desired.source }
