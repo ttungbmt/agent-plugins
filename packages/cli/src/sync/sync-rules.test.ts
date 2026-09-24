@@ -172,6 +172,65 @@ describe('sync rules', () => {
   })
 })
 
+describe('sync rules selection', () => {
+  const FULL = { ...ECC, 'rules/python/coding-style.md': '# Python\n', 'rules/security.md': '# Security\n' }
+  const names = async (t: Awaited<ReturnType<typeof setup>>) => (await t.lock()).rules.map((r: { name: string }) => r.name)
+
+  it('selects every rule under a folder, and single rules by path', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[{ source: ${REPO}, rules: [common, web/coding-style, security] }]`) }, { [REPO]: FULL })
+
+    expect((await t.run()).conflicts).toEqual([])
+
+    expect(await t.tree()).toEqual(['ecc/common/coding-style.md', 'ecc/common/testing.md', 'ecc/security.md', 'ecc/web/coding-style.md'])
+    expect(await names(t)).toEqual(['ecc/common/coding-style', 'ecc/common/testing', 'ecc/web/coding-style', 'ecc/security'])
+    expect((await t.lock()).ruleSources[0].rules).toEqual([
+      'common/coding-style',
+      'common/testing',
+      'python/coding-style',
+      'security',
+      'web/coding-style',
+    ])
+  })
+
+  it('excludes folders and single rules', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[{ source: ${REPO}, exclude: [python, common/testing] }]`) }, { [REPO]: FULL })
+
+    await t.run()
+
+    expect(await t.tree()).toEqual(['ecc/common/coding-style.md', 'ecc/security.md', 'ecc/web/coding-style.md'])
+  })
+
+  it('reports a selected path the source does not have, and only notes an excluded one', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[{ source: ${REPO}, rules: [common, rust] }]`) })
+
+    const report = await t.run()
+
+    expect(report.conflicts).toEqual([expect.objectContaining({ name: 'ecc/rust', reason: 'missing-rule' })])
+    expect(await t.tree()).toEqual(['ecc/common/coding-style.md', 'ecc/common/testing.md'])
+
+    await t.setConfig(config(`[{ source: ${REPO}, exclude: [rust] }]`))
+    const excluded = await t.run()
+    expect(excluded.conflicts).toEqual([])
+    expect(excluded.notices).toContain(`agent-plugins.yaml excludes rule "rust" but ${REPO} has no such rule`)
+  })
+
+  it('removes rules that fall out of a narrowed selection, and plans it without fetching', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[${REPO}]`) }, { [REPO]: FULL })
+    await t.run()
+
+    await t.setConfig(config(`[{ source: ${REPO}, rules: [web] }]`))
+    expect((await t.run('check')).actions).toEqual([
+      act('remove', 'ecc/common/coding-style', 'planned'),
+      act('remove', 'ecc/common/testing', 'planned'),
+      act('remove', 'ecc/python/coding-style', 'planned'),
+      act('remove', 'ecc/security', 'planned'),
+    ])
+    await t.run()
+
+    expect(await t.tree()).toEqual(['ecc/web/coding-style.md'])
+  })
+})
+
 describe('sync rules ownership', () => {
   const put = async (root: string, path: string, content: string) => {
     await mkdir(join(root, path, '..'), { recursive: true })

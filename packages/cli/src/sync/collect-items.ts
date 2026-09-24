@@ -59,7 +59,13 @@ export async function collectItems(
     const inSource = (name: string) => (namespace ? name.slice(namespace.length + 1) : name)
     const records = managed.filter((m) => sameSource(m.source, source))
     const catalog = opts.catalogs.find((c) => sameSource(c.source, source))
-    const selected = (names: string[]) => (Array.isArray(select) ? select : names.filter((n) => !select.exclude.includes(n)))
+    /** Mục chọn/loại trừ là đúng tên đó, hoặc thư mục chứa nó (Rule: `web` là mọi Rule dưới `web/`, ADR 0009). */
+    const covers = (entry: string, name: string) => name === entry || name.startsWith(`${entry}/`)
+    /** Tên được chọn trong `names`; mục chọn không khớp tên nào được giữ nguyên để báo thiếu hoặc chờ biết nội dung. */
+    const selected = (names: string[]) =>
+      Array.isArray(select)
+        ? [...new Set(select.flatMap((entry) => (names.some((n) => covers(entry, n)) ? names.filter((n) => covers(entry, n)) : [entry])))]
+        : names.filter((n) => !select.exclude.some((entry) => covers(entry, n)))
     /**
      * Chọn tên không có trong nguồn là xung đột; loại trừ tên không có chỉ cần báo. Thứ `blocked` (Workflow gắn với
      * plugin, ADR 0010) không bao giờ được cài: chọn đích danh là xung đột, còn trong "tất cả" thì bỏ qua kèm thông báo.
@@ -75,7 +81,7 @@ export async function collectItems(
         } else result.notices.push(`skipped ${detail}`)
         return false
       }
-      const missing = (Array.isArray(select) ? select : select.exclude).filter((n) => !available.includes(n))
+      const missing = (Array.isArray(select) ? select : select.exclude).filter((entry) => !available.some((n) => covers(entry, n)))
       for (const name of missing) {
         if (!Array.isArray(select)) {
           result.notices.push(`${origin} excludes ${kind} "${name}" but ${describeItemSource(source)} has no such ${kind}`)

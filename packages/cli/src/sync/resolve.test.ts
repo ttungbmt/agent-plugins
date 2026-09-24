@@ -465,4 +465,30 @@ spec:
       await expect(resolveIn(cfg(hooks))).rejects.toThrow(`agent-plugins.yaml: ${message}`)
     })
   })
+
+  describe('spec.rules', () => {
+    const cfg = (rules: string) => ({ 'agent-plugins.yaml': `kind: Config\nmetadata: { name: demo }\nspec:\n  rules: ${rules}\n` })
+
+    it('reads a bare source, a selection of paths and an exclusion', async () => {
+      const result = await resolveIn(
+        cfg('[acme/ECC, { source: acme/toolkit, path: claude/rules, rules: [security, web] }, { source: acme/other, exclude: [python] }]'),
+      )
+
+      expect(result.items.rule.map(({ source, select }) => ({ source, select }))).toEqual([
+        { source: { source: 'github', repo: 'acme/ECC' }, select: { exclude: [] } },
+        { source: { source: 'github', repo: 'acme/toolkit', path: 'claude/rules' }, select: ['security', 'web'] },
+        { source: { source: 'github', repo: 'acme/other' }, select: { exclude: ['python'] } },
+      ])
+    })
+
+    it.each([
+      ['acme/ECC', '`rules` must be a list of rule sources'],
+      ['[{ source: acme/ECC, rules: [common], exclude: [web] }]', '"acme/ECC" cannot have both `rules` and `exclude`'],
+      ['[{ source: acme/ECC, rules: [] }]', '`rules` of "acme/ECC" must be a non-empty list of rule names'],
+      ['[{ source: acme/ECC, exclude: [] }]', '`exclude` of "acme/ECC" must be a non-empty list of rule names'],
+      ['[{ source: acme/ECC, path: ../rules }]', '`path` of "acme/ECC" must be a relative path inside the source'],
+    ])('rejects %s', async (rules, message) => {
+      await expect(resolveIn(cfg(rules))).rejects.toThrow(`agent-plugins.yaml: ${message}`)
+    })
+  })
 })
