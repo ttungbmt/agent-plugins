@@ -78,3 +78,12 @@ Claude Code's live config — `--scope user` means your own `~/.claude`. Run app
 Cross-project conventions (language, glossary, docs and ADRs, feature workflow, git, TS style) live in
 `.claude/rules/`, written to be copied as-is into other projects — keep anything specific to `ap` in this file
 instead. Commit scopes used here: `sync`, `cli`, `presets`, `schemas`, `release`.
+
+Collection helpers (ADR 0016): reach for es-toolkit over hand-written array/object/predicate helpers, for readability
+only — it is not faster here.
+
+- Arrays → es-toolkit (`difference`, `uniq`, `partition`, `omit`, `pickBy`, …); an existing `Set` → its own methods;
+  grouping → `Map.groupBy`; deep equality → `isDeepStrictEqual` from `node:util`.
+- Never import `isEqual`, `compact`, `groupBy`, `sortBy`/`orderBy`, `kebabCase`, `memoize`, the `*Async` array helpers,
+  `es-toolkit/server` or `es-toolkit/compat`; ADR 0016 says why for each.
+- Skip a replacement that needs a new cast or lets `any` through. Use the repo's `isRecord`, never `isPlainObject`.
