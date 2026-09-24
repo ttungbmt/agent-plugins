@@ -2,7 +2,6 @@ import { posix } from 'node:path'
 import { isEmptyObject, trimEnd, uniq, without } from 'es-toolkit'
 import * as z from 'zod/mini'
 import { ConfigError } from './errors.js'
-import { isRecord } from './guards.js'
 import { checkMcp, normalizeMcp } from './mcp.js'
 import { parseShorthand } from './shorthand.js'
 import { byKind, ITEM_KINDS } from './types.js'
@@ -90,7 +89,8 @@ function itemEntry(kind: ItemKind) {
   const key = `${kind}s`
   const names = (field: string) => {
     const error = `\`${field}\` of {} must be a non-empty list of ${kind} names`
-    return z.optional(z.pipe(z.array(z.string({ error }), { error }).check(z.minLength(1, { error })), z.transform((n) => uniq(n))))
+    const list = z.array(z.string({ error }), { error }).check(z.minLength(1, { error }))
+    return z.optional(z.pipe(list, z.transform(uniq)))
   }
   const Entry = z.strictObject(
     {
@@ -298,7 +298,8 @@ function fill(message: string, path: PropertyKey[], spec: unknown): string {
   let subject: unknown = at
   if (Array.isArray(container)) {
     const entry = container[at as number]
-    subject = isRecord(entry) ? entry.source : entry
+    // An array entry yields `undefined` here: ADR 0016 keeps this check as it was, arrays included.
+    subject = entry && typeof entry === 'object' ? (entry as { source?: unknown }).source : entry
   }
   const n = path.findLast((p) => typeof p === 'number')
   return message.replaceAll('{}', `"${String(subject)}"`).replaceAll('{n}', String(Number(n) + 1))

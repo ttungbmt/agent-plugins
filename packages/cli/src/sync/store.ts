@@ -102,7 +102,7 @@ export function createStore({ cwd, homedir }: Location) {
     },
     local: {
       read: async () => readJson<State>(localStatePath),
-      write: (owned) => writeJson(localStatePath, pickBy(ownedFields(owned), (v) => !!v?.length)),
+      write: (owned) => writeJson(localStatePath, pickBy(ownedFields(owned), nonEmpty)),
     },
     user: {
       read: async (_, target) => (await readJson<Record<string, State>>(userStatePath))[recordKey(target)],
@@ -144,7 +144,7 @@ export function createStore({ cwd, homedir }: Location) {
             ...Object.fromEntries(ITEM_KINDS.map((kind) => [keysOf(kind).claims, itemClaims[kind]])),
             mcpClaims,
           },
-          (v) => !!v?.length,
+          nonEmpty,
         )
         if (Object.keys(state).length) states[configKey] = state
         else delete states[configKey]
@@ -159,7 +159,8 @@ export function createStore({ cwd, homedir }: Location) {
 
   async function writeLock({ presets, ...stored }: Lock) {
     const strip = (list?: ManagedItem[]) => list?.map((item) => omit(item, ['commit']))
-    const lock: Lock = pickBy({ ...stored, ...Object.fromEntries(ITEM_KINDS.map((kind) => [keysOf(kind).items, strip(stored[keysOf(kind).items])])) }, (v) => !!v?.length)
+    const items = Object.fromEntries(ITEM_KINDS.map((kind) => [keysOf(kind).items, strip(stored[keysOf(kind).items])]))
+    const lock: Lock = pickBy({ ...stored, ...items }, nonEmpty)
     if (presets && Object.keys(presets).length) lock.presets = presets
     const empty = Object.keys(lock).length === 0
     // Don't create an empty Lock for a repo that has none; empty an existing Lock so git sees the change.
@@ -261,4 +262,9 @@ function ownedFields(owned: Owned): Stored {
     mcpServers: owned.mcpServers,
     hooks: owned.hooks,
   }
+}
+
+/** For `pickBy`: drop empty fields so the Lock/State has no stray keys. */
+function nonEmpty(value: unknown[] | undefined): boolean {
+  return !!value?.length
 }

@@ -114,7 +114,8 @@ export async function sync(
   const installed = await registry.listInstalled()
   // User-scoped marketplaces (ADR 0011) are planned against the `user` Scope, with this Config's record for the
   // targeted Scope; a `user` Sync plans them like any other declaration.
-  const [lifted, declarations] = scope === 'user' ? [[], resolved.declarations] : partition(resolved.declarations, (d) => d.scope === 'user')
+  const [lifted, declarations] =
+    scope === 'user' ? [[], resolved.declarations] : partition(resolved.declarations, (d) => d.scope === 'user')
   const user = scope === 'user' ? null : await planUserScoped()
   const plan = planSync(declarations, actual, managed, { force, blocked, shared, elsewhere, installed })
   const held = new Set([...resolved.conflicts, ...plan.conflicts, ...(user?.plan.conflicts ?? [])].map((c) => c.name))

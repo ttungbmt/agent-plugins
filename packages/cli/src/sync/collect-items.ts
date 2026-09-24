@@ -66,7 +66,9 @@ export async function collectItems(
     /** Names selected from `names`; selection entries that match no name are kept to report as missing or until the contents are known. */
     const selected = (names: string[]) =>
       Array.isArray(select)
-        ? uniq(select.flatMap((entry) => (names.some((n) => covers(entry, n)) ? names.filter((n) => covers(entry, n)) : [entry])))
+        ? uniq(
+            select.flatMap((entry) => (names.some((n) => covers(entry, n)) ? names.filter((n) => covers(entry, n)) : [entry])),
+          )
         : differenceWith(names, select.exclude, (n, entry) => covers(entry, n))
     /**
      * Selecting a name not in the source is a conflict; excluding a missing name only needs a notice. `blocked` things

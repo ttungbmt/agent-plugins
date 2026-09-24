@@ -70,7 +70,10 @@ export function formatReport(
     ...group.map((row) => `  ${symbol(row, style)} ${name(row.action, width, style)}  ${detail(row, style)}`),
   ])
 
-  const counts = Object.entries(countBy(rows, outcome)).map(([word, n]) => (word === 'failed' ? style('red', `${n} ${word}`) : `${n} ${word}`)).join(', ')
+  // `outcome` yields fixed verbs, never numeric keys, so the object keeps first-seen order.
+  const counts = Object.entries(countBy(rows, outcome))
+    .map(([word, n]) => (word === 'failed' ? style('red', `${n} ${word}`) : `${n} ${word}`))
+    .join(', ')
   const planned = rows.every((r) => r.action.status === 'planned')
   const mark = rows.some(isFailed) ? style('red', '✖') : style('green', '✔')
   const took = elapsedMs === undefined ? '' : ` ${style('dim', `in ${elapsedMs < 1000 ? `${elapsedMs}ms` : `${(elapsedMs / 1000).toFixed(1)}s`}`)}`

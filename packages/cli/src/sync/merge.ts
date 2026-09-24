@@ -39,7 +39,10 @@ export type Merged = {
  * selecting the same item with and without `scope: user`.
  */
 export function mergeLayers(layers: Layer[]): Merged {
-  const [presetLayers, configLayers] = partition(layers, (l): l is Layer & { presets: [string] } => l.presets[0] !== null)
+  const [presetLayers, configLayers] = partition(
+    layers,
+    (l): l is Layer & { presets: [string] } => l.presets[0] !== null,
+  )
   const tag = <D>(l: Layer, ds: D[]) => ds.map((d) => ({ ...d, presets: l.presets, shadows: l.shadows }))
 
   const own = configLayers.flatMap((l) => l.declarations.marketplaces)
@@ -298,6 +301,7 @@ function selectionsOverlap(a: Selection, b: Selection): boolean {
 /** `a` wins over `b` when every Preset declaring `b` is in `a`'s `extends` tree, or `a` is the Config. */
 export function outranks(a: Pick<ItemDeclaration, 'presets' | 'shadows'>, b: Pick<ItemDeclaration, 'presets'>): boolean {
   if (b.presets.includes(null)) return false
+  // es-toolkit's `isSubset(superset, subset)`: every Preset declaring `b` is among `a.shadows`.
   return a.shadows.includes('*') || isSubset(a.shadows, b.presets)
 }
 

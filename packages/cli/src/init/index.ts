@@ -31,7 +31,9 @@ export async function init(opts: { cwd: string; name?: string; force?: boolean }
 /** Kebab-case the directory name with diacritics stripped (`Dự Án` → `du-an`); throws when nothing valid is left. */
 function deriveName(cwd: string): string {
   const name = kebabCase(deburr(basename(cwd)))
-  if (!NAME_PATTERN.test(name)) throw new ConfigError(`cannot derive a Config name from "${basename(cwd)}"; pass --name`)
+  if (!NAME_PATTERN.test(name)) {
+    throw new ConfigError(`cannot derive a Config name from "${basename(cwd)}"; pass --name`)
+  }
   return name
 }
 

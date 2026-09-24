@@ -21,7 +21,10 @@ export function formatConflicts(conflicts: Conflict[], style: Style = plain): st
     const width = Math.max(...[...byOrigin.keys()].map((o) => o.length))
     return [
       `  ${group.title}`,
-      ...[...byOrigin].map(([origin, fromOrigin]) => `    ${style('dim', origin.padEnd(width))}  ${fromOrigin.map((c) => style('bold', c.group!.item)).join(', ')}`),
+      ...[...byOrigin].map(([origin, conflicts]) => {
+        const items = conflicts.map((c) => style('bold', c.group!.item)).join(', ')
+        return `    ${style('dim', origin.padEnd(width))}  ${items}`
+      }),
       `  ${style('dim', `fix: ${group.hint}`)}`,
     ]
   })

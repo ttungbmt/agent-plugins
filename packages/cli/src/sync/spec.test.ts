@@ -9,6 +9,10 @@ const noCatalog: McpCatalog = async () => {
 const read = (spec: PresetDocument['spec'], catalog = noCatalog) => readDeclarations({ spec }, at, catalog)
 
 describe('readDeclarations', () => {
+  it('names a list entry that is itself a list as "undefined" (ADR 0016 keeps arrays counting as objects here)', async () => {
+    await expect(read({ plugins: [['a']] } as never)).rejects.toThrow('demo.yaml: plugin "undefined" must be written as')
+  })
+
   it('returns nothing for an empty spec', async () => {
     expect(await read(undefined)).toEqual({
       marketplaces: [],
