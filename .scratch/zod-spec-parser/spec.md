@@ -1,6 +1,6 @@
 ---
 title: Check the shape of `spec.*` with `zod/mini` and report every error in a file
-labels: [ready-for-agent]
+labels: [done]
 ---
 
 Decision: [ADR 0015](../../docs/adr/0015-zod-mini-for-spec-shape.md). Research:
