@@ -1,6 +1,6 @@
 ---
 title: Tracer bullet — cài Nguồn workflow dạng chuỗi trần thành `<meta.name>.js`
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [01, rules/01]
 ---
 

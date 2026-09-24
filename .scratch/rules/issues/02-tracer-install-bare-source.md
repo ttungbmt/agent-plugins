@@ -1,6 +1,6 @@
 ---
 title: Tracer bullet — cài Nguồn rule dạng chuỗi trần vào Namespace mặc định
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [01]
 ---
 

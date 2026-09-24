@@ -130,9 +130,12 @@ export type Conflict = {
     | 'modified-workflow'
     | 'plugin-workflow'
   detail: string
-  /** The cause shared by conflicts of the same reason, without the name; `ap sync` lists such conflicts once under it. */
-  cause?: string
+  /** Set when conflicts share one cause and one fix; `ap sync` lists a group once, one row per origin. */
+  group?: ConflictGroup
 }
+
+/** What conflicts of one group share (`title`, `hint`) and what sets each apart (`origin`, `item`). */
+export type ConflictGroup = { title: string; hint: string; origin: string; item: string }
 
 /** An MCP server config in Claude Code's exact `.mcp.json` format (`command`/`args`/`env` or `type` + `url`/`headers`). */
 export type McpConfig = Record<string, unknown>

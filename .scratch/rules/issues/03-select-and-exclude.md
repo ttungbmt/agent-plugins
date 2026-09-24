@@ -1,6 +1,6 @@
 ---
 title: Chọn và loại trừ Rule theo đường dẫn (`rules` / `exclude` / `path`)
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [02]
 ---
 

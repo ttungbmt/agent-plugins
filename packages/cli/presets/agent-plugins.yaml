@@ -8,35 +8,37 @@ metadata:
 spec:
   extends: base
 
-  marketplaces:
-    - mvanhorn/last30days-skill
-    - affaan-m/everything-claude-code
-    - wshobson/agents
-     
   plugins:
-    context7@claude-plugins-official: true
-    typescript-lsp@claude-plugins-official: true
-    mattpocock-skills@claude-plugins-official: true
+    # --- Anthropic (first-party) ---
+    commit-commands@claude-plugins-official: true     # /commit, /commit-push-pr, /clean_gone
+    security-guidance@claude-plugins-official: true   # security warnings on edits
+    code-simplifier@claude-plugins-official: true     # agent that simplifies recent code
+    hookify@claude-plugins-official: true             # build hooks from unwanted behaviour
+    typescript-lsp@claude-plugins-official: true      # TypeScript/JS language server
 
-  skills:
-    - source: vercel-labs/agent-skills
-      skills: [vercel-composition-patterns, vercel-react-best-practices]
+    # --- Upstash ---
+    context7@claude-plugins-official: true            # MCP: up-to-date library docs
 
-    - source: hmcuongit/cuonghm-ai-workflow-lab
-      path: claude/skills
-      skills: [jira-worklog-sync]
-
-    - source: github/awesome-copilot
-      skills: [documentation-writer]
+    # --- Matt Pocock ---
+    mattpocock-skills@claude-plugins-official: true   # grilling, spec/ticket flows, TDD, ...
 
 
-  agents:
-    - source: affaan-m/ECC
-      agents: [typescript-reviewer]
 
-    - source: hmcuongit/cuonghm-ai-workflow-lab
-      path: claude/agents
-      agents: [docs-technical-writer]
+    # - source: hmcuongit/cuonghm-ai-workflow-lab
+    #   path: claude/skills
+    #   skills: [jira-worklog-sync]
+
+    # - source: github/awesome-copilot
+    #   skills: [documentation-writer]
+
+
+  # agents:
+  #   - source: affaan-m/ECC
+  #     agents: [typescript-reviewer]
+
+  #   - source: hmcuongit/cuonghm-ai-workflow-lab
+  #     path: claude/agents
+  #     agents: [docs-technical-writer]
 
   rules:
 
@@ -44,7 +46,5 @@ spec:
 
   mcpServers:
     firecrawl: true
-    cloudflare-docs: true
-   
 
   # lspServers:

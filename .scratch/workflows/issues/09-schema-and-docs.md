@@ -1,6 +1,6 @@
 ---
 title: Schema và tài liệu cho Workflow
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [03, 05, 07]
 ---
 

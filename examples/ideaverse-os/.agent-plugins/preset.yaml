@@ -7,9 +7,13 @@ spec:
   extends: base
 
   marketplaces:
+    - mvanhorn/last30days-skill
     - kepano/obsidian-skills
 
   plugins:
     obsidian@obsidian-skills: true
+    last30days@last30days-skill: true
+
+
   
 

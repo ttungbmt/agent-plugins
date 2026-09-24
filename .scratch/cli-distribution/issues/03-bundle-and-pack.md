@@ -1,6 +1,6 @@
 ---
 title: Bundle esbuild, lắp package phát hành và script smoke
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [01, 02]
 ---
 

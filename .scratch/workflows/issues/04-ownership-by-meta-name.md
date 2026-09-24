@@ -1,6 +1,6 @@
 ---
 title: Luật sở hữu theo `meta.name` — adopt (kể cả khác tên file), `manual-entry`, `modified-workflow`, trùng tên, symlink
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [02]
 ---
 

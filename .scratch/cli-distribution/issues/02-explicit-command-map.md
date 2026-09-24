@@ -1,6 +1,6 @@
 ---
 title: Chuyển oclif sang explicit command map
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: []
 ---
 

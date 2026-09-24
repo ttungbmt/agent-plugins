@@ -1,6 +1,6 @@
 ---
 title: Workflow gắn với plugin (`plugin-workflow`) và cảnh báo phụ thuộc thiếu
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [03]
 ---
 

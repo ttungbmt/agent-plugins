@@ -1,6 +1,6 @@
 ---
 title: README hướng dẫn cài bằng Release tarball
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [04]
 ---
 

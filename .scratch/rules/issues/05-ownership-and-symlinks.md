@@ -1,6 +1,6 @@
 ---
 title: Luật sở hữu cho Rule — adopt, `manual-entry`, `modified-rule`, symlink
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [02]
 ---
 

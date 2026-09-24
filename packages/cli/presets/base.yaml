@@ -14,13 +14,12 @@ spec:
 
   plugins:
     claude-code-setup@claude-plugins-official: { enabled: true, scope: user }
-    claude-md-management@claude-plugins-official: { enabled: true, scope: user }
-    commit-commands@claude-plugins-official: { enabled: true, scope: user }
+    claude-md-management@claude-plugins-official: { enabled: true, scope: user }    
     skill-creator@claude-plugins-official: { enabled: true, scope: user }
-    security-guidance@claude-plugins-official: true
-    code-simplifier@claude-plugins-official: true
-    hookify@claude-plugins-official: true
-    typescript-lsp@claude-plugins-official: true
+    
 
   skills:
-    - vercel-labs/skills
+    # - vercel-labs/skills
+
+  mcpServers:
+    

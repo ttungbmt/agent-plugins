@@ -39,7 +39,12 @@ export function missingMarketplaceConflict(plugin: PluginDeclaration): Conflict 
     name: plugin.id,
     reason: 'missing-marketplace',
     detail: `${plugin.origin} enables "${plugin.id}" but no preset or Config declares a marketplace named "${plugin.marketplace}"`,
-    cause: `${plugin.origin} enables plugins from marketplace "${plugin.marketplace}", but no preset or Config declares it`,
+    group: {
+      title: `marketplace "${plugin.marketplace}" is not declared, but these plugins use it`,
+      hint: 'declare it under spec.marketplaces in a preset or the Config',
+      origin: plugin.origin,
+      item: plugin.id.slice(0, plugin.id.lastIndexOf('@')),
+    },
   }
 }
 

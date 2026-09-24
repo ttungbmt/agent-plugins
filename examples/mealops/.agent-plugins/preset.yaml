@@ -6,3 +6,7 @@ metadata:
 spec:
   extends: base
 
+  skills:
+    - source: vercel-labs/agent-skills
+      skills: [vercel-composition-patterns, vercel-react-best-practices]
+

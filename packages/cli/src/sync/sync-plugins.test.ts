@@ -314,7 +314,7 @@ describe('sync plugins', () => {
         name: 'context7@typo',
         reason: 'missing-marketplace',
         detail: expect.stringContaining('"typo"'),
-        cause: expect.stringContaining('marketplace "typo"'),
+        group: expect.objectContaining({ title: expect.stringContaining('marketplace "typo"'), item: 'context7' }),
       },
     ])
     expect(report.actions.filter((a) => a.target === 'plugin')).toEqual([])

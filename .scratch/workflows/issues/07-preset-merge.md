@@ -1,6 +1,6 @@
 ---
 title: `spec.workflows` trong Preset — kế thừa, gộp ngang hàng, `preset-clash`
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [03]
 ---
 

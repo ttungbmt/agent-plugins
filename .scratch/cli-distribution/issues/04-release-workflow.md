@@ -1,6 +1,6 @@
 ---
 title: Workflow GitHub Actions phát hành trên tag `v*`
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [03]
 ---
 

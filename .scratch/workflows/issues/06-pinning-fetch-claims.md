@@ -1,6 +1,6 @@
 ---
 title: Ghim commit, tải lại khi cần, `--dry-run`/`--check`, claims ở scope `user`
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [02]
 ---
 

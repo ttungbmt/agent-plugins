@@ -5,7 +5,7 @@ kind: Config
 metadata:
   name: ideaverse-os
 
-spec:
+spec: 
   presets:
     - ./.agent-plugins/preset.yaml
 

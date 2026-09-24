@@ -1,6 +1,6 @@
 ---
 title: Đổi tên package và đưa Preset mặc định vào package `agent-plugins`
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: []
 ---
 

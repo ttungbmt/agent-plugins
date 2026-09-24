@@ -1,6 +1,6 @@
 ---
 title: Chọn và loại trừ Workflow theo `meta.name` (`workflows` / `exclude` / `path`)
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [02]
 ---
 

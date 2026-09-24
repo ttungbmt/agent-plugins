@@ -1,6 +1,6 @@
 ---
 title: Refactor nối dây Skill/Agent theo vị trí thành map theo `ItemKind`
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: []
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Module đọc `meta` và phụ thuộc của một script workflow (acorn)
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: []
 ---
 

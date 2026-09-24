@@ -1,6 +1,6 @@
 ---
 title: "Tracer: Khai báo hook inline trong Config được sync vào settings"
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: []
 ---
 

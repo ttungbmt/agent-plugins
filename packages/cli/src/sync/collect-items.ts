@@ -94,7 +94,12 @@ export async function collectItems(
           name: onDisk(name),
           reason: `missing-${kind}`,
           detail: `${origin} selects ${kind} "${name}" but ${describeItemSource(source)} has no such ${kind}`,
-          cause: `${origin} selects ${kind}s that ${describeItemSource(source)} does not have`,
+          group: {
+            title: `${describeItemSource(source)} has no such ${kind}s`,
+            hint: `fix the ${kind} names, or drop them from the selection`,
+            origin,
+            item: name,
+          },
         })
       }
       return selected(available).filter((n) => available.includes(n)).filter(usable)
