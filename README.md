@@ -19,7 +19,9 @@ downloaded from the npm registry.
 - **Update:** run the install command again.
 - **Pin a version:** use the versioned asset, e.g.
   `https://github.com/ttungbmt/agent-plugins/releases/download/v0.1.0/ap-0.1.0.tgz`.
-- **Uninstall:** `npm uninstall -g agent-plugins`.
+- **Uninstall:** `npm uninstall -g @ttungbmt/agent-plugins`.
+  Versions up to 0.2.0 were published as `agent-plugins`; uninstall that one first
+  (`npm uninstall -g agent-plugins`), otherwise npm refuses to install over its `ap` binary.
 - **Verify** that a tarball was built by this repository's release workflow:
   `gh attestation verify ap.tgz -R ttungbmt/agent-plugins`.
 - **Run without installing:** `npx --package <versioned url> ap sync`. Use a versioned URL here: `npx` caches by

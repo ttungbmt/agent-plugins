@@ -74,7 +74,7 @@ Workflow gồm 3 job:
 ```bash
 gh release view v0.2.0                     # có ap.tgz và ap-0.2.0.tgz
 npm i -g https://github.com/ttungbmt/agent-plugins/releases/latest/download/ap.tgz
-ap --version                               # agent-plugins/0.2.0
+ap --version                               # @ttungbmt/agent-plugins/0.2.0
 gh release download v0.2.0 -p ap.tgz -D /tmp/ap-check
 gh attestation verify /tmp/ap-check/ap.tgz -R ttungbmt/agent-plugins
 ```

@@ -21,7 +21,7 @@
   "packageManager": "pnpm@12.5.1",
   "type": "module",
   "devDependencies": {
-    "agent-plugins": "workspace:*",
+    "@ttungbmt/agent-plugins": "workspace:*",
     "yaml": "^2.9.1"
   }
 }

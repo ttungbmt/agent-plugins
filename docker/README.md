@@ -35,4 +35,4 @@ cp /examples/mealops/agent-plugins.yaml .   # the repo's examples, mounted read-
 
 - `/home/node` lives on a volume, so the installed `ap` and `~/.claude` survive between `run`s.
   To get a clean machine back: `docker compose down -v`.
-- `npm i -g` installs into `~/.npm-global` (no sudo needed). Uninstall: `npm uninstall -g agent-plugins`.
+- `npm i -g` installs into `~/.npm-global` (no sudo needed). Uninstall: `npm uninstall -g @ttungbmt/agent-plugins`.

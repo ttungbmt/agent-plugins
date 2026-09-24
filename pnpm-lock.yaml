@@ -166,7 +166,7 @@ importers:
 
   .:
     devDependencies:
-      agent-plugins:
+      '@ttungbmt/agent-plugins':
         specifier: workspace:*
         version: link:packages/cli
       yaml:
