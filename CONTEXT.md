@@ -72,6 +72,12 @@ the first `add`.
 A key in `enabledPlugins` of Claude Code's settings — the actual enabled/disabled state at one Scope.
 _Avoid_: enabled plugin (when the key's value is `false`)
 
+**User-scoped plugin**:
+A Plugin declaration in map form with `enabled: true` and `scope: user`. It is synced to the `user` Scope whatever
+Scope the Sync targets, and its marketplace must be a User-scoped marketplace. See
+[ADR 0012](docs/adr/0012-user-scoped-plugin.md).
+_Avoid_: global plugin
+
 **Installed plugin**:
 A plugin downloaded to the machine, recorded per Scope but sharing one cache directory across the machine. A `true`
 Plugin entry with no Installed plugin at that Scope is out of sync.

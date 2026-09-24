@@ -19,7 +19,7 @@ export type PluginPlan = {
 /**
  * Compute the steps that bring one scope's Plugin entries and Installed plugins in line with the declarations, under the
  * same ownership rules as marketplaces (ADR 0003).
- * `held` holds the marketplaces in conflict: their plugins are left untouched.
+ * `held` holds the marketplaces and plugins in conflict: those plugins are left untouched.
  * `shared` holds other Configs' claims at the user scope.
  */
 export function planPlugins(
@@ -37,7 +37,7 @@ export function planPlugins(
   for (const declaration of desired) {
     const { id, enabled } = declaration
     claimed.add(id)
-    if (opts.held?.has(declaration.marketplace)) continue
+    if (opts.held?.has(declaration.marketplace) || opts.held?.has(id)) continue
 
     const clash = opts.shared?.find((c) => c.id === id && c.enabled !== enabled)
     if (clash) {

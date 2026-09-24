@@ -209,6 +209,24 @@ describe('sync plugins', () => {
     expect((await t.lock()).plugins).toHaveLength(1)
   })
 
+  it('holds a plugin whose Presets clash on its scope', async () => {
+    const preset = (name: string, value: string) => `kind: Preset\nmetadata: { name: ${name} }\nspec:\n  plugins: { ${C7}: ${value} }\n`
+    const t = await setup({ 'agent-plugins.yaml': config(`[${C7}]`) })
+    await t.run()
+    await writeFile(join(t.cwd, 'a.yaml'), preset('a', '{ enabled: true, scope: user }'))
+    await writeFile(join(t.cwd, 'b.yaml'), preset('b', 'false'))
+    await t.setConfig(
+      `kind: Config\nmetadata: { name: demo }\nspec:\n  presets: [./a.yaml, ./b.yaml]\n  marketplaces:\n    claude-plugins-official:\n      source: { source: github, repo: anthropics/claude-plugins-official }\n      scope: user\n`,
+    )
+
+    const report = await t.run()
+
+    expect(report.conflicts).toEqual([expect.objectContaining({ name: C7, reason: 'preset-clash' })])
+    expect(report.actions.filter((a) => a.target === 'plugin')).toEqual([])
+    expect(await t.enabled()).toEqual({ [C7]: true })
+    expect((await t.lock()).plugins).toHaveLength(1)
+  })
+
   it('does not remove a marketplace that manual plugin entries still use, unless forced', async () => {
     const t = await setup({ 'agent-plugins.yaml': config('{}') })
     await t.run()

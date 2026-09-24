@@ -78,7 +78,12 @@ export async function resolveConfig(configPath: string, ctx: ResolveContext): Pr
     return false
   })
   const ownNames = new Set(own.map((o) => o.name))
-  const plugins = mergePlugins([...graph.plugins, ...readPlugins(config.spec?.plugins, configLabel)])
+  const marketplaceConflicts = merged.conflicts.filter((c) => !ownNames.has(c.name))
+  const ownPlugins = readPlugins(config.spec?.plugins, configLabel).map(
+    (d): PluginContribution => ({ ...d, presets: [null], shadows: ['*'] }),
+  )
+  const plugins = mergePlugins([...graph.plugins, ...ownPlugins])
+  checkUserScopedPlugins(plugins.winners, [...kept, ...own], marketplaceConflicts)
   const own_ = (kind: ItemKind, raw: unknown) =>
     readItems(kind, raw, configLabel, resolution.root).then((ds) =>
       ds.map((d): ItemDeclaration => ({ ...d, origin: configLabel, presets: [null], shadows: ['*'] })),
@@ -90,17 +95,17 @@ export async function resolveConfig(configPath: string, ctx: ResolveContext): Pr
     (d): McpContribution => ({ ...d, presets: [null], shadows: ['*'] }),
   )
   const mcpServers = mergeMcpServers([...graph.mcpServers, ...ownMcp])
-  notices.push(...mergedItems.flatMap((m) => m.notices), ...mcpServers.notices)
+  notices.push(...plugins.notices, ...mergedItems.flatMap((m) => m.notices), ...mcpServers.notices)
 
   return {
     declarations: [...kept, ...own],
-    plugins,
+    plugins: plugins.declarations,
     items: byKind((kind) => items[kind].declarations),
     mcpServers: mcpServers.declarations,
     mcpConflicts: mcpServers.conflicts,
     hooks: readHookDeclarations(config.spec?.hooks, configLabel),
     pins: resolution.usedPins,
-    conflicts: [...merged.conflicts.filter((c) => !ownNames.has(c.name)), ...mergedItems.flatMap((m) => m.conflicts)],
+    conflicts: [...marketplaceConflicts, ...plugins.conflicts, ...mergedItems.flatMap((m) => m.conflicts)],
     notices,
   }
 }
@@ -112,12 +117,15 @@ type PresetGraph = {
   ancestors: Map<string, Set<string>>
   contributions: Contribution[]
   /** Plugin declarations in load order: parent Preset first, child after. */
-  plugins: PluginDeclaration[]
+  plugins: PluginContribution[]
   /** Declarations of each item kind in load order, each entry from one Preset. */
   items: ByKind<ItemDeclaration[]>
   /** MCP server declarations in load order. */
   mcpServers: McpContribution[]
 }
+
+/** A Plugin declaration from a Preset or Config, together with its Presets for comparing precedence. */
+type PluginContribution = PluginDeclaration & Pick<ItemDeclaration, 'presets' | 'shadows'>
 
 /** An MCP server declaration from a Preset or Config; a null `server` is `false` (drops an inherited server). */
 type McpContribution = { name: string; server: McpConfig | null; origin: string } & Pick<ItemDeclaration, 'presets' | 'shadows'>
@@ -170,14 +178,57 @@ function mergePresets({ ancestors, contributions }: PresetGraph) {
 }
 
 /**
- * Merge Plugin declarations in order (parent Preset, child Preset, Config): on a duplicate key the later declaration wins.
+ * Merge Plugin declarations by id (ADR 0004, ADR 0012): a declaration wins over every declaration it `shadows` (a child
+ * Preset beats its parent, the Config beats every Preset); among peers the later one wins. Only `scope` must agree: a
+ * different `scope` between peers is a preset-clash and overriding one gets a notice, while `enabled` is overridden
+ * silently as before. A clashing plugin keeps a declaration so its Managed entry is held rather than removed.
+ * `winners` holds every declaration that is not overridden, clashing ones included, for `checkUserScopedPlugins`.
  * The `@marketplace` suffix is checked during Sync, since the name of a marketplace from a Shorthand declaration lives in
  * the Lock/State/settings.
  */
-function mergePlugins(declarations: PluginDeclaration[]): PluginDeclaration[] {
-  const merged = new Map<string, PluginDeclaration>()
-  for (const d of declarations) merged.set(d.id, d)
-  return [...merged.values()]
+function mergePlugins(contributions: PluginContribution[]) {
+  const groups = new Map<string, PluginContribution[]>()
+  for (const c of contributions) groups.set(c.id, [...(groups.get(c.id) ?? []), c])
+
+  const declarations: PluginDeclaration[] = []
+  const allWinners: PluginDeclaration[] = []
+  const conflicts: Conflict[] = []
+  const notices: string[] = []
+  for (const [id, group] of groups) {
+    const winners = group.filter((d) => !group.some((o) => o !== d && outranks(o, d)))
+    allWinners.push(...winners)
+    const first = winners[0]!
+    const { presets: _, shadows: __, ...winner } = winners.at(-1)!
+    declarations.push(winner)
+    const rival = winners.find((d) => d.scope !== first.scope)
+    if (rival) {
+      const detail = `"${id}" is declared differently by ${first.origin} and ${rival.origin}`
+      conflicts.push({ name: id, reason: 'preset-clash', detail })
+      continue
+    }
+    for (const loser of group.filter((d) => !winners.includes(d) && d.scope !== winner.scope)) {
+      notices.push(`${winner.origin} overrides plugin "${id}" declared by ${loser.origin}`)
+    }
+  }
+  return { declarations, winners: allWinners, conflicts, notices }
+}
+
+/**
+ * A User-scoped plugin must use a User-scoped marketplace (ADR 0012), so the `user` settings stand on their own. A
+ * marketplace held by a preset-clash is left to that conflict.
+ */
+function checkUserScopedPlugins(
+  plugins: PluginDeclaration[],
+  marketplaces: MarketplaceDeclaration[],
+  conflicts: Conflict[],
+) {
+  const userScoped = new Set(marketplaces.filter((d) => d.scope === 'user').map((d) => d.name))
+  for (const p of plugins) {
+    if (p.scope !== 'user' || userScoped.has(p.marketplace) || conflicts.some((c) => c.name === p.marketplace)) continue
+    throw new ConfigError(
+      `${p.origin}: plugin "${p.id}" has scope "user" but marketplace "${p.marketplace}" is not a User-scoped marketplace`,
+    )
+  }
 }
 
 /**
@@ -329,7 +380,9 @@ async function collect(ref: string, from: string, stack: LoadedPreset[], graph: 
   for (const d of await readMarketplaces(preset.doc.spec?.marketplaces, preset.label, preset.dir)) {
     graph.contributions.push({ declaration: { ...d, source: rebasePath(d.source, preset, resolution.root) }, presetId: preset.id })
   }
-  graph.plugins.push(...readPlugins(preset.doc.spec?.plugins, preset.label))
+  for (const d of readPlugins(preset.doc.spec?.plugins, preset.label)) {
+    graph.plugins.push({ ...d, presets: [preset.id], shadows: [...ancestors] })
+  }
   for (const kind of ITEM_KINDS) {
     for (const d of await readItems(kind, preset.doc.spec?.[`${kind}s`], preset.label, preset.dir)) {
       const source = rebasePath(d.source, preset, resolution.root)
@@ -457,16 +510,35 @@ async function readMarketplaces(raw: unknown, origin: string, dir: string): Prom
   })
 }
 
-/** `plugins` is a map of `name@marketplace: bool`, or a list of `name@marketplace` as shorthand for all `true`. */
+/**
+ * `plugins` is a map of `name@marketplace: bool` or `name@marketplace: { enabled, scope? }`, or a list of
+ * `name@marketplace` as shorthand for all `true`.
+ */
 function readPlugins(raw: unknown, origin: string): PluginDeclaration[] {
   if (!raw) return []
   const entries: [string, unknown][] = Array.isArray(raw) ? raw.map((id) => [id, true]) : Object.entries(raw)
-  return entries.map(([id, enabled]) => {
+  return entries.map(([id, value]) => {
     const marketplace = /^[^@\s]+@([^@\s]+)$/.exec(id)?.[1]
     if (!marketplace) throw new ConfigError(`${origin}: plugin "${id}" must be written as name@marketplace`)
-    if (typeof enabled !== 'boolean') throw new ConfigError(`${origin}: plugin "${id}" must be true or false`)
-    return { id, marketplace, enabled, origin }
+    return { id, marketplace, ...readPluginValue(id, value, origin), origin }
   })
+}
+
+/** A plugin value: `true`/`false`, or the map form `{ enabled, scope? }` whose `scope` can only be `user` (ADR 0012). */
+function readPluginValue(id: string, value: unknown, origin: string): Pick<PluginDeclaration, 'enabled' | 'scope'> {
+  if (typeof value === 'boolean') return { enabled: value }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new ConfigError(`${origin}: plugin "${id}" must be true, false or { enabled, scope }`)
+  }
+  const { enabled, scope, ...rest } = value as Record<string, unknown>
+  const fail = (message: string) => new ConfigError(`${origin}: plugin "${id}" ${message}`)
+  const unknown = Object.keys(rest)[0]
+  if (unknown !== undefined) throw fail(`has unknown field "${unknown}"`)
+  if (typeof enabled !== 'boolean') throw fail('must set `enabled` to true or false')
+  if (scope === undefined) return { enabled }
+  if (scope !== 'user') throw fail(`has scope "${scope}"; the only scope is "user"`)
+  if (!enabled) throw fail('cannot be `enabled: false` with `scope: user`')
+  return { enabled, scope }
 }
 
 /**

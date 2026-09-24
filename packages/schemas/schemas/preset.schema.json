@@ -79,7 +79,7 @@
           ]
         },
         "plugins": {
-          "description": "Plugins to enable, as in Claude Code's `enabledPlugins` setting. The `@marketplace` suffix must name a declared marketplace. Accepts a `name@marketplace: enabled` map (canonical), or a list of `name@marketplace` strings as shorthand for all `true`.",
+          "description": "Plugins to enable, as in Claude Code's `enabledPlugins` setting. The `@marketplace` suffix must name a declared marketplace. Accepts a `name@marketplace: enabled` or `name@marketplace: { enabled, scope }` map (canonical), or a list of `name@marketplace` strings as shorthand for all `true`.",
           "oneOf": [
             {
               "title": "Plugin map",
@@ -87,13 +87,30 @@
               "type": "object",
               "propertyNames": { "$ref": "#/$defs/pluginRef" },
               "additionalProperties": {
-                "type": "boolean",
-                "description": "Whether the plugin is enabled."
+                "oneOf": [
+                  { "type": "boolean", "description": "Whether the plugin is enabled." },
+                  {
+                    "title": "Plugin settings",
+                    "type": "object",
+                    "required": ["enabled"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "enabled": { "type": "boolean", "description": "Whether the plugin is enabled." },
+                      "scope": {
+                        "enum": ["user"],
+                        "description": "Install and enable this plugin at the `user` Scope (`~/.claude`) whatever Scope `ap sync` targets. Its `@marketplace` must be a marketplace with `scope: user`, and `enabled` must be `true`. Omitted: the targeted Scope."
+                      }
+                    },
+                    "if": { "required": ["scope"] },
+                    "then": { "properties": { "enabled": { "const": true } } }
+                  }
+                ]
               },
               "examples": [
                 {
                   "context7@claude-plugins-official": true,
-                  "typescript-lsp@claude-plugins-official": false
+                  "typescript-lsp@claude-plugins-official": false,
+                  "commit-commands@claude-plugins-official": { "enabled": true, "scope": "user" }
                 }
               ]
             },
@@ -413,7 +430,7 @@
         },
         "scope": {
           "enum": ["user"],
-          "description": "Sync this marketplace to the `user` Scope (`~/.claude`) whatever Scope `ap sync` targets. Plugins that use it stay at the targeted Scope. Omitted: the targeted Scope. `ap` keeps this field out of Claude Code's settings."
+          "description": "Sync this marketplace to the `user` Scope (`~/.claude`) whatever Scope `ap sync` targets. Plugins that use it stay at the targeted Scope unless they set `scope: user` themselves. Omitted: the targeted Scope. `ap` keeps this field out of Claude Code's settings."
         }
       },
       "examples": [

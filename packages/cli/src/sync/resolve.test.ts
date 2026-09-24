@@ -601,4 +601,143 @@ spec:
       await expect(resolveIn(cfg(rules))).rejects.toThrow(`agent-plugins.yaml: ${message}`)
     })
   })
+
+  describe('spec.plugins', () => {
+    const userMarketplace = `
+  marketplaces:
+    official:
+      source: { source: github, repo: anthropics/claude-plugins-official }
+      scope: user
+    team:
+      source: { source: github, repo: acme/team-plugins }`
+    const cfg = (plugins: string, spec = userMarketplace) => ({
+      'agent-plugins.yaml': `kind: Config\nmetadata: { name: demo }\nspec:${spec}\n  plugins: ${plugins}\n`,
+    })
+    const preset = (name: string, plugins: string, extra = '') => `kind: Preset\nmetadata: { name: ${name} }\nspec:\n${extra}  plugins: ${plugins}\n`
+
+    it('reads the boolean and list forms as before', async () => {
+      const map = await resolveIn(cfg('{ a@official: true, b@team: false }'))
+      const list = await resolveIn(cfg('[a@official]'))
+
+      expect(map.plugins).toEqual([
+        { id: 'a@official', marketplace: 'official', enabled: true, origin: 'agent-plugins.yaml' },
+        { id: 'b@team', marketplace: 'team', enabled: false, origin: 'agent-plugins.yaml' },
+      ])
+      expect(list.plugins).toEqual([{ id: 'a@official', marketplace: 'official', enabled: true, origin: 'agent-plugins.yaml' }])
+    })
+
+    it('reads the map form with only `enabled` as the boolean form', async () => {
+      const result = await resolveIn(cfg('{ a@team: { enabled: false }, b@team: { enabled: true } }'))
+
+      expect(result.plugins).toEqual([
+        { id: 'a@team', marketplace: 'team', enabled: false, origin: 'agent-plugins.yaml' },
+        { id: 'b@team', marketplace: 'team', enabled: true, origin: 'agent-plugins.yaml' },
+      ])
+    })
+
+    it('carries `scope: user` on a plugin of a User-scoped marketplace', async () => {
+      const result = await resolveIn(cfg('{ a@official: { enabled: true, scope: user } }'))
+
+      expect(result.plugins).toEqual([
+        { id: 'a@official', marketplace: 'official', enabled: true, scope: 'user', origin: 'agent-plugins.yaml' },
+      ])
+    })
+
+    it.each([
+      ['{ a@official: { enable: true } }', 'plugin "a@official" has unknown field "enable"'],
+      ['{ a@official: { scope: user } }', 'plugin "a@official" must set `enabled` to true or false'],
+      ['{ a@official: { enabled: yes please } }', 'plugin "a@official" must set `enabled` to true or false'],
+      ['{ a@official: { enabled: true, scope: global } }', 'plugin "a@official" has scope "global"; the only scope is "user"'],
+      ['{ a@official: { enabled: false, scope: user } }', 'plugin "a@official" cannot be `enabled: false` with `scope: user`'],
+      ['{ a@official: 1 }', 'plugin "a@official" must be true, false or { enabled, scope }'],
+      ['{ a@official: [true] }', 'plugin "a@official" must be true, false or { enabled, scope }'],
+      [
+        '{ a@team: { enabled: true, scope: user } }',
+        'plugin "a@team" has scope "user" but marketplace "team" is not a User-scoped marketplace',
+      ],
+      [
+        '{ a@missing: { enabled: true, scope: user } }',
+        'plugin "a@missing" has scope "user" but marketplace "missing" is not a User-scoped marketplace',
+      ],
+    ])('rejects %s', async (plugins, message) => {
+      await expect(resolveIn(cfg(plugins))).rejects.toThrow(`agent-plugins.yaml: ${message}`)
+    })
+
+    it('rejects `scope: user` on a plugin of a Shorthand declaration', async () => {
+      await expect(
+        resolveIn(cfg('{ a@claude-plugins-official: { enabled: true, scope: user } }', '\n  marketplaces: [anthropics/claude-plugins-official]')),
+      ).rejects.toThrow(
+        'agent-plugins.yaml: plugin "a@claude-plugins-official" has scope "user" but marketplace "claude-plugins-official" is not a User-scoped marketplace',
+      )
+    })
+
+    it('rejects `scope: user` declared by a Preset whose marketplace the Config makes project-only', async () => {
+      await expect(
+        resolveIn({
+          'agent-plugins.yaml': `kind: Config\nmetadata: { name: demo }\nspec:\n  presets: [./a.yaml]\n  marketplaces:\n    official: { source: { source: github, repo: anthropics/claude-plugins-official } }\n`,
+          'a.yaml': preset('a', '{ x@official: { enabled: true, scope: user } }', userMarketplace.replace(/^\n/, '') + '\n'),
+        }),
+      ).rejects.toThrow('a.yaml: plugin "x@official" has scope "user" but marketplace "official" is not a User-scoped marketplace')
+    })
+
+    describe('duplicate declarations', () => {
+      const withPresets = (config: string, a: string, b: string) => ({
+        'agent-plugins.yaml': `kind: Config\nmetadata: { name: demo }\nspec:${userMarketplace}\n  presets: [./a.yaml, ./b.yaml]\n${config}`,
+        'a.yaml': preset('a', a),
+        'b.yaml': preset('b', b),
+      })
+
+      it('merges identical declarations from peer Presets', async () => {
+        const result = await resolveIn(withPresets('', '{ x@official: { enabled: true, scope: user } }', '{ x@official: { enabled: true, scope: user } }'))
+
+        expect(result.conflicts).toEqual([])
+        expect(result.notices).toEqual([])
+        expect(result.plugins).toEqual([{ id: 'x@official', marketplace: 'official', enabled: true, scope: 'user', origin: 'b.yaml' }])
+      })
+
+      it('reports a preset clash when peer Presets disagree on `scope`', async () => {
+        const result = await resolveIn(withPresets('', '{ x@official: { enabled: true, scope: user } }', '{ x@official: true }'))
+
+        expect(result.conflicts).toEqual([
+          { name: 'x@official', reason: 'preset-clash', detail: '"x@official" is declared differently by a.yaml and b.yaml' },
+        ])
+      })
+
+      it('rejects `scope: user` on a project-only marketplace even when peer Presets clash', async () => {
+        const files = withPresets('', '{ x@team: { enabled: true, scope: user } }', '{ x@team: true }')
+
+        await expect(resolveIn(files)).rejects.toThrow('a.yaml: plugin "x@team" has scope "user"')
+      })
+
+      it('lets the Config override a Preset’s `scope`, with a notice', async () => {
+        const result = await resolveIn(withPresets('  plugins: { x@official: false }\n', '{ x@official: { enabled: true, scope: user } }', '{}'))
+
+        expect(result.conflicts).toEqual([])
+        expect(result.plugins).toEqual([{ id: 'x@official', marketplace: 'official', enabled: false, origin: 'agent-plugins.yaml' }])
+        expect(result.notices).toEqual(['agent-plugins.yaml overrides plugin "x@official" declared by a.yaml'])
+      })
+
+      it('lets the Config override a Preset clash on `scope`', async () => {
+        const result = await resolveIn(
+          withPresets('  plugins: { x@official: { enabled: true, scope: user } }\n', '{ x@official: { enabled: true, scope: user } }', '{ x@official: true }'),
+        )
+
+        expect(result.conflicts).toEqual([])
+        expect(result.plugins).toEqual([{ id: 'x@official', marketplace: 'official', enabled: true, scope: 'user', origin: 'agent-plugins.yaml' }])
+        expect(result.notices).toEqual(['agent-plugins.yaml overrides plugin "x@official" declared by b.yaml'])
+      })
+
+      it('lets a child Preset override its parent’s `scope`, with a notice', async () => {
+        const result = await resolveIn({
+          'agent-plugins.yaml': `kind: Config\nmetadata: { name: demo }\nspec:${userMarketplace}\n  presets: [./child.yaml]\n`,
+          'parent.yaml': preset('parent', '{ x@official: { enabled: true, scope: user } }'),
+          'child.yaml': `kind: Preset\nmetadata: { name: child }\nspec:\n  extends: [./parent.yaml]\n  plugins: { x@official: true }\n`,
+        })
+
+        expect(result.conflicts).toEqual([])
+        expect(result.plugins).toEqual([{ id: 'x@official', marketplace: 'official', enabled: true, origin: 'child.yaml' }])
+        expect(result.notices).toEqual(['child.yaml overrides plugin "x@official" declared by parent.yaml'])
+      })
+    })
+  })
 })

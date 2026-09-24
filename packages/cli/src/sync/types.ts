@@ -18,6 +18,8 @@ export type PluginDeclaration = {
   id: string
   marketplace: string
   enabled: boolean
+  /** `user` for a User-scoped plugin (ADR 0012), always `enabled`; absent means the Scope the Sync targets. */
+  scope?: 'user'
   origin: string
 }
 

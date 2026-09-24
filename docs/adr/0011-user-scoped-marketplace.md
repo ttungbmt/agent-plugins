@@ -10,7 +10,7 @@ Luật sở hữu giữ nguyên như [ADR 0003](0003-managed-entries-per-scope-s
 - Chỉ thêm, không bao giờ gỡ ở `user`: bị loại vì cùng lý do ADR 0003 đã loại cách này, entry cũ sẽ tích tụ mãi.
 - Khóa riêng trong spec (`spec.userMarketplaces`): bị loại vì thêm một khái niệm song song với `marketplaces` mà chỉ khác Scope đích.
 - Hỗ trợ trong dạng shorthand (`owner/repo@user`): bị loại vì dễ nhầm với ký hiệu `@ref`.
-- Đưa cả plugin của marketplace đó lên `user`: bị loại vì bật plugin nào là quyết định riêng của từng repo, còn marketplace chỉ là nguồn.
+- Đưa cả plugin của marketplace đó lên `user`: bị loại vì bật plugin nào là quyết định riêng của từng repo, còn marketplace chỉ là nguồn. [ADR 0012](0012-user-scoped-plugin.md) sau đó cho phép đưa từng plugin lên `user` khi người khai báo chọn rõ.
 - Ghi entry vào Lock: bị loại vì sẽ trộn trạng thái của Scope `user` vào file được commit.
 
 ## Consequences
