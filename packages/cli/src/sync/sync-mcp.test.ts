@@ -274,3 +274,132 @@ async function makeFile(path: string, value: unknown) {
   await mkdir(dirname(path), { recursive: true })
   await writeFile(path, JSON.stringify(value))
 }
+
+/** User-scoped MCP servers (ADR 0014): synced to the `user` Scope whatever Scope the Sync targets. */
+describe('a User-scoped MCP server', () => {
+  const userMcp = (kind: string, name: string, status = 'done') => expect.objectContaining({ target: 'mcp', kind, name, status, scope: 'user' })
+  const userAdd = (name: string, server: object) => ['claude', 'mcp', 'add-json', name, JSON.stringify(server), '--scope', 'user']
+
+  it('is added to user settings by a project Sync, not to .mcp.json or the Lock', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config('{ firecrawl: { scope: user } }') })
+
+    const report = await t.run()
+
+    expect(report.conflicts).toEqual([])
+    expect(report.actions).toEqual([userMcp('add', 'firecrawl')])
+    expect(t.mcpCalls()).toEqual([userAdd('firecrawl', FIRECRAWL)])
+    expect((await t.claudeJson()).mcpServers).toEqual({ firecrawl: FIRECRAWL })
+    expect(await t.mcpJson()).toBeUndefined()
+    expect(JSON.stringify(await t.lock())).not.toContain('firecrawl')
+    expect(report.notices.filter((n) => n.includes('approve'))).toEqual([])
+    expect((await t.run('check')).inSync).toBe(true)
+  })
+
+  it('strips `scope` from an inline server before writing it', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config('{ docs: { command: docs-mcp, scope: user } }') })
+
+    await t.run()
+
+    expect(t.mcpCalls()).toEqual([userAdd('docs', { command: 'docs-mcp' })])
+  })
+
+  it('is added to user settings by a local Sync', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config('{ docs: { command: docs-mcp, scope: user } }') })
+
+    await t.run('apply', { scope: 'local' })
+
+    const claudeJson = await t.claudeJson()
+    expect(claudeJson.mcpServers).toEqual({ docs: { command: 'docs-mcp' } })
+    expect(claudeJson.projects?.[t.cwd]?.mcpServers).toBeUndefined()
+  })
+
+  it('is an ordinary declaration in a user Sync', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config('{ docs: { command: docs-mcp, scope: user } }') })
+
+    const report = await t.run('apply', { scope: 'user' })
+
+    expect(report.actions).toEqual([mcp('add', 'docs')])
+    expect(report.actions[0]).not.toHaveProperty('scope')
+    expect((await t.claudeJson()).mcpServers).toEqual({ docs: { command: 'docs-mcp' } })
+  })
+
+  it('is planned with its Scope in dry-run and check, without calling claude', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config('{ docs: { command: docs-mcp, scope: user }, here: { command: here-mcp } }') })
+
+    const dry = await t.run('dry-run')
+    const check = await t.run('check')
+
+    expect(dry.actions).toEqual([userMcp('add', 'docs', 'planned'), mcp('add', 'here', 'planned')])
+    expect(dry.actions[1]).not.toHaveProperty('scope')
+    expect(check.inSync).toBe(false)
+    expect(t.claude.calls).toEqual([])
+  })
+
+  it('reports drift in user settings on check', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config('{ docs: { command: docs-mcp, scope: user } }') })
+    await t.run()
+    const path = claudeJsonPath({ cwd: t.cwd, homedir: t.homedir })
+    const json = await t.claudeJson()
+    await writeFile(path, JSON.stringify({ ...json, mcpServers: { docs: { command: 'edited' } } }))
+
+    const check = await t.run('check')
+
+    expect(check.inSync).toBe(false)
+    expect(check.actions).toEqual([userMcp('update', 'docs', 'planned')])
+  })
+
+  it('is removed from user settings once no Config declares it', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config('{ docs: { command: docs-mcp, scope: user } }') })
+    await t.run()
+    await t.setConfig(config('{}'))
+
+    const report = await t.run()
+
+    expect(report.actions).toEqual([userMcp('remove', 'docs')])
+    expect((await t.claudeJson()).mcpServers).toEqual({})
+  })
+
+  it('stays in user settings while another Config declares it, with a hint to turn it off here', async () => {
+    const homedir = await makeTree({})
+    const a = await setup({ 'agent-plugins.yaml': config('{ docs: { command: docs-mcp, scope: user } }') }, { homedir })
+    const b = await setup({ 'agent-plugins.yaml': config('{ docs: { command: docs-mcp, scope: user } }') }, { homedir })
+    await a.run()
+    await b.run()
+    await a.setConfig(config('{ docs: false }'))
+
+    const report = await a.run()
+
+    expect(report.actions).toEqual([])
+    expect((await a.claudeJson()).mcpServers).toEqual({ docs: { command: 'docs-mcp' } })
+    expect(report.notices).toContain('MCP server "docs" stays in user settings because another Config declares it; turn it off for this repo with /mcp in Claude Code')
+    await b.setConfig(config('{}'))
+    expect((await b.run()).actions).toEqual([userMcp('remove', 'docs')])
+  })
+
+  it('clashes with another Config declaring it differently at the user Scope', async () => {
+    const homedir = await makeTree({})
+    const a = await setup({ 'agent-plugins.yaml': config('{ docs: { command: docs-mcp, scope: user } }') }, { homedir })
+    const b = await setup({ 'agent-plugins.yaml': config('{ docs: { command: other, scope: user } }') }, { homedir })
+    await a.run()
+
+    const report = await b.run()
+
+    expect(report.conflicts).toEqual([expect.objectContaining({ name: 'docs', reason: 'shared-clash' })])
+    expect((await b.claudeJson()).mcpServers).toEqual({ docs: { command: 'docs-mcp' } })
+  })
+
+  it('adopts a matching Manual entry in user settings and conflicts with a different one unless forced', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config('{ docs: { command: docs-mcp, scope: user }, other: { command: mine, scope: user } }') })
+    const path = claudeJsonPath({ cwd: t.cwd, homedir: t.homedir })
+    await mkdir(dirname(path), { recursive: true })
+    await writeFile(path, JSON.stringify({ mcpServers: { docs: { command: 'docs-mcp' }, other: { command: 'theirs' } } }))
+
+    const report = await t.run()
+    const forced = await t.run('apply', { force: true })
+
+    expect(report.notices).toContain('ap now manages MCP server "docs", which was set up by hand')
+    expect(report.conflicts).toEqual([expect.objectContaining({ name: 'other', reason: 'manual-entry' })])
+    expect(forced.actions).toEqual([userMcp('update', 'other')])
+    expect((await t.run('check')).inSync).toBe(true)
+  })
+})

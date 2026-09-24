@@ -17,7 +17,7 @@ import { createGitFetcher, SKILLS, type FetchedSource, type FetchSkillSource } f
 import { createStore, NO_OWNED } from './store.js'
 import { byKind, ITEM_KINDS } from './types.js'
 import { missingDependencyNotices, WORKFLOWS, workflowsSwitchedOff } from './workflows.js'
-import type { ByKind, Claim, Conflict, ItemDeclaration, ItemKind, ItemSource, KnownEntry, ManagedEntry, ManagedItem, ManagedMcp, MarketplaceDeclaration, MarketplaceSource, PluginDeclaration, Scope, SharedItemClaim, SourceCatalog } from './types.js'
+import type { ByKind, Claim, Conflict, ItemDeclaration, ItemKind, ItemSource, KnownEntry, ManagedEntry, ManagedItem, ManagedMcp, MarketplaceDeclaration, McpDeclaration, MarketplaceSource, PluginDeclaration, Scope, SharedItemClaim, SourceCatalog } from './types.js'
 
 export type { Scope } from './types.js'
 export type SyncMode = 'apply' | 'dry-run' | 'check'
@@ -31,7 +31,7 @@ export type SyncAction = {
   source: MarketplaceSource | null
   status: 'planned' | 'done' | 'failed'
   error?: string
-  /** Set only for an action outside the targeted Scope: a User-scoped marketplace or plugin (ADR 0011, ADR 0012). */
+  /** Set only for an action outside the targeted Scope: a User-scoped marketplace, plugin or MCP server (ADR 0011, 0012, 0014). */
   scope?: 'user'
 }
 
@@ -48,11 +48,11 @@ export type SyncProgress =
   | { phase: 'end'; action: SyncAction; ms: number }
 
 type Step =
-  /** `scope` is set only for a User-scoped marketplace or plugin synced outside the targeted Scope (ADR 0011, 0012). */
+  /** `scope` is set only for a User-scoped marketplace, plugin or MCP server synced outside the targeted Scope (ADR 0011, 0012, 0014). */
   | { target: 'marketplace'; action: PlannedAction; scope?: 'user' }
   | { target: 'plugin'; action: PlannedPluginAction; scope?: 'user' }
   | { target: ItemKind; action: PlannedItemAction }
-  | { target: 'mcp'; action: PlannedMcpAction }
+  | { target: 'mcp'; action: PlannedMcpAction; scope?: 'user' }
   | { target: 'hook'; action: PlannedHookAction }
 
 /** Syncing Skills or Agents for one Scope: the declarations, the recorded state and the plan for that kind. */
@@ -210,13 +210,18 @@ export async function sync(
   for (const { name, server } of resolved.mcpServers) {
     for (const variable of unsetVariables(server, env)) notices.push(`MCP server "${name}" uses \${${variable}}, which is not set in this environment`)
   }
-  const mcpPlan = planMcp(resolved.mcpServers, actualMcp, loaded.managedMcp, {
-    force,
-    held: new Set(resolved.mcpConflicts.map((c) => c.name)),
-    shared: loaded.sharedMcp,
-  })
+  // User-scoped MCP servers (ADR 0014) are planned against the `user` Scope, like User-scoped plugins.
+  const liftedMcp = scope === 'user' ? [] : resolved.mcpServers.filter((d) => d.scope === 'user')
+  const targetMcp = resolved.mcpServers.filter((d) => !liftedMcp.includes(d))
+  const mcpHeld = new Set(resolved.mcpConflicts.map((c) => c.name))
+  const mcpPlan = planMcp(targetMcp, actualMcp, loaded.managedMcp, { force, held: mcpHeld, shared: loaded.sharedMcp })
+  const userMcpPlan = user && planMcp(liftedMcp, user.mcp, user.managedMcp, { force, held: mcpHeld, shared: user.sharedMcp })
+  for (const name of userMcpPlan?.forgotten ?? []) {
+    if (liftedMcp.some((d) => d.name === name) || !user!.sharedMcp.some((c) => c.name === name)) continue
+    notices.push(`MCP server "${name}" stays in user settings because another Config declares it; turn it off for this repo with /mcp in Claude Code`)
+  }
   // Kept apart from `conflicts` (which shares names across marketplace/plugin/Skill/Agent), merged only into the report.
-  const mcpConflicts = [...resolved.mcpConflicts, ...mcpPlan.conflicts]
+  const mcpConflicts = [...resolved.mcpConflicts, ...mcpPlan.conflicts, ...(userMcpPlan?.conflicts ?? [])]
   const mcpSettled = (name: string) => !mcpConflicts.some((c) => c.name === name)
   const hookPlan = planHooks(resolved.hooks, await readSettingsHooks(scope, location), loaded.managedHooks)
 
@@ -257,6 +262,11 @@ export async function sync(
     (userPluginPlan?.actions ?? [])
       .filter((a) => isRemoval(a) === removing && !(removing && targetConflicts.has(a.id)))
       .map((action) => ({ target: 'plugin' as const, action, scope: 'user' as const }))
+  // A User-scoped MCP server is added before the targeted Scope's servers and removed after them.
+  const userMcpSteps = (removing: boolean) =>
+    (userMcpPlan?.actions ?? [])
+      .filter((a) => (a.kind === 'remove') === removing)
+      .map((action) => ({ target: 'mcp' as const, action, scope: 'user' as const }))
   const steps: Exclude<Step, { target: 'hook' }>[] = [
     // User-scope entries first, so the plugins of the targeted Scope find their marketplace (ADR 0011).
     ...userSteps(false),
@@ -267,7 +277,9 @@ export async function sync(
     ...removals.map((action) => ({ target: 'marketplace' as const, action })),
     ...userSteps(true),
     ...itemRuns.flatMap(({ handler, plan }) => plan.actions.map((action) => ({ target: handler.kind, action }))),
+    ...userMcpSteps(false),
     ...mcpPlan.actions.map((action) => ({ target: 'mcp' as const, action })),
+    ...userMcpSteps(true),
   ]
   const hookSteps: Step[] = hookPlan.actions.map((action) => ({ target: 'hook' as const, action }))
 
@@ -278,8 +290,10 @@ export async function sync(
       if (mine.includes(name)) notices.push(`MCP server "${name}" has the same name as one plugin ${plugin} provides (plugin:${plugin}:${name}); both will run`)
     }
     // Only servers actually in `.mcp.json` (in dry-run: about to be added) await approval; not when `add-json` failed.
+    // User-scoped MCP servers live in `~/.claude.json`, which has no approval step.
+    const inMcpJson = targetMcp.filter((d) => mcpSettled(d.name)).map((d) => d.name)
     const present = mode === 'apply' ? await registry.listMcp(scope) : null
-    const pending = scope === 'project' ? await registry.pendingMcp(mine.filter((n) => !present || n in present)) : []
+    const pending = scope === 'project' ? await registry.pendingMcp(inMcpJson.filter((n) => !present || n in present)) : []
     if (pending.length) {
       notices.push(`approve MCP servers ${pending.map((n) => `"${n}"`).join(', ')} in Claude Code: servers in .mcp.json stay pending until approved, and ap does not approve them`)
     }
@@ -312,6 +326,9 @@ export async function sync(
   const mcpRecords = new Map(loaded.managedMcp.map((m) => [m.name, m]))
   const releasedMcp = loaded.managedMcp.filter((m) => mcpPlan.forgotten.includes(m.name))
   for (const name of mcpPlan.forgotten) mcpRecords.delete(name)
+  const userMcpRecords = new Map((user?.managedMcp ?? []).map((m) => [m.name, m]))
+  const userReleasedMcp = (user?.managedMcp ?? []).filter((m) => userMcpPlan?.forgotten.includes(m.name))
+  for (const name of userMcpPlan?.forgotten ?? []) userMcpRecords.delete(name)
   const hookRecords = new Map(loaded.managedHooks.map((m) => [m.name, m]))
   for (const name of hookPlan.forgotten) hookRecords.delete(name)
   /** Marketplaces whose step failed, with the Scope they were meant for. */
@@ -339,9 +356,11 @@ export async function sync(
       adoptedNotice(`"${id}"`)
     }
   }
-  for (const { name, server, origin } of mcpPlan.adopted) {
-    mcpRecords.set(name, { name, server, origin })
-    adoptedNotice(`MCP server "${name}"`)
+  for (const [adopted, into] of [[mcpPlan.adopted, mcpRecords], [userMcpPlan?.adopted ?? [], userMcpRecords]] as const) {
+    for (const { name, server, origin } of adopted) {
+      into.set(name, { name, server, origin })
+      adoptedNotice(`MCP server "${name}"`)
+    }
   }
   for (const kind of ITEM_KINDS) {
     for (const { name, source, sha256, origin } of items[kind].plan.adopted) {
@@ -370,7 +389,7 @@ export async function sync(
           : step.target === 'plugin'
             ? await applyPlugin(step.action, step.scope)
             : step.target === 'mcp'
-              ? await applyMcp(step.action)
+              ? await applyMcp(step.action, step.scope)
               : await applyItem(step.target, step.action)
       actions.push({ ...describe(step), name, status: 'done' })
     } catch (error) {
@@ -441,16 +460,18 @@ export async function sync(
     return id
   }
 
-  async function applyMcp(action: PlannedMcpAction): Promise<string> {
+  /** `at` is set for a User-scoped MCP server, which lives in the `user` Scope and its own records. */
+  async function applyMcp(action: PlannedMcpAction, at?: 'user'): Promise<string> {
     const { name } = action
-    if (action.kind !== 'add') await registry.removeMcp(name, scope)
+    const [target, owned] = at ? [at, userMcpRecords] : [scope, mcpRecords]
+    if (action.kind !== 'add') await registry.removeMcp(name, target)
     if (action.kind === 'remove') {
-      mcpRecords.delete(name)
+      owned.delete(name)
       return name
     }
     const { server, origin } = action.declaration
-    await registry.addMcp(name, server, scope)
-    mcpRecords.set(name, { name, server, origin })
+    await registry.addMcp(name, server, target)
+    owned.set(name, { name, server, origin })
     return name
   }
 
@@ -505,9 +526,9 @@ export async function sync(
     const { managed, plan } = items[kind]
     return managed.filter((m) => plan.forgotten.includes(m.name))
   })
-  const mcpClaims: ManagedMcp[] = resolved.mcpServers
-    .filter((d) => mcpSettled(d.name))
-    .map(({ name, server, origin }) => ({ name, server, origin }))
+  const claimsOfMcp = (servers: McpDeclaration[]): ManagedMcp[] =>
+    servers.filter((d) => mcpSettled(d.name)).map(({ name, server, origin }) => ({ name, server, origin }))
+  const mcpClaims = claimsOfMcp(targetMcp)
   await mcpNotices()
   await store.save(
     scope,
@@ -540,17 +561,22 @@ export async function sync(
     .filter((m) => !liftedPlugins.some((p) => p.id === m.id))
     .filter((m) => failedPlugins.get(m.id) === scope || targetConflicts.has(m.id))
     .map(({ id, enabled, origin }) => ({ id, enabled, origin }))
-  if (user && (user.recorded || lifted.length || liftedPlugins.length)) {
+  if (user && (user.recorded || lifted.length || liftedPlugins.length || liftedMcp.length)) {
     await store.save(
       'user',
-      { ...NO_OWNED, marketplaces: [...userRecords.values()], plugins: [...userPluginRecords.values()] },
+      {
+        ...NO_OWNED,
+        marketplaces: [...userRecords.values()],
+        plugins: [...userPluginRecords.values()],
+        mcpServers: [...userMcpRecords.values()],
+      },
       resolved.pins,
       {
         claims: claimsOf(lifted, [...userRecords.values()], user.actual, conflicts),
         pluginClaims: [...claimsOfPlugins(liftedPlugins), ...movingBack],
         itemClaims: byKind(() => []),
-        mcpClaims: [],
-        released: { ...NO_OWNED, marketplaces: userReleased, plugins: userReleasedPlugins },
+        mcpClaims: claimsOfMcp(liftedMcp),
+        released: { ...NO_OWNED, marketplaces: userReleased, plugins: userReleasedPlugins, mcpServers: userReleasedMcp },
       },
       { target: scope },
     )
@@ -565,15 +591,16 @@ export async function sync(
 
   /**
    * Plans the User-scoped marketplaces against the `user` Scope's settings, this Config's record there and the claims of
-   * the rest; returns what the User-scoped plugins are planned against too.
+   * the rest; returns what the User-scoped plugins and MCP servers are planned against too.
    */
   async function planUserScoped() {
-    const { recorded, managed, shared, managedPlugins, sharedPlugins } = await store.load('user', { target: scope })
+    const { recorded, managed, shared, managedPlugins, sharedPlugins, managedMcp, sharedMcp } = await store.load('user', { target: scope })
     const actual = await registry.list('user')
     const elsewhere = { cwd, entries: await registry.listElsewhere('user') }
     const plan = planSync(lifted, actual, managed, { force, blocked, shared, elsewhere, installed })
     const plugins = await registry.listPlugins('user')
-    return { recorded, managed, actual, plan, plugins, managedPlugins, sharedPlugins }
+    const mcp = await registry.listMcp('user')
+    return { recorded, managed, actual, plan, plugins, managedPlugins, sharedPlugins, mcp, managedMcp, sharedMcp }
   }
 }
 
@@ -620,7 +647,11 @@ function describe(step: Step): Omit<SyncAction, 'status' | 'error'> {
     const at = step.scope ? { scope: step.scope } : {}
     return { target: step.target, kind: step.action.kind, name: step.action.id, source: null, ...at }
   }
-  if (step.target === 'mcp' || step.target === 'hook') return { target: step.target, kind: step.action.kind, name: step.action.name, source: null }
+  if (step.target === 'mcp') {
+    const at = step.scope ? { scope: step.scope } : {}
+    return { target: step.target, kind: step.action.kind, name: step.action.name, source: null, ...at }
+  }
+  if (step.target === 'hook') return { target: step.target, kind: step.action.kind, name: step.action.name, source: null }
   if (step.target === 'marketplace') {
     const { target, action } = step
     const at = step.scope ? { scope: step.scope } : {}
