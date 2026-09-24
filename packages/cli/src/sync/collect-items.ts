@@ -1,7 +1,7 @@
 import { describeItemSource, sameSource, withoutRef } from './identity.js'
 import type { InstalledItem, ItemHandler } from './items.js'
 import type { DesiredItem } from './plan-items.js'
-import { outranks } from './resolve.js'
+import { outranks } from './merge.js'
 import { sourceRoot, type FetchedSource, type FetchSkillSource } from './skills.js'
 import type { Conflict, ItemDeclaration, ItemSource, ManagedItem, SourceCatalog } from './types.js'
 

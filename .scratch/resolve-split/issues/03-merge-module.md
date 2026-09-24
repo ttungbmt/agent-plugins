@@ -1,6 +1,6 @@
 ---
 title: Add `merge.ts` with `mergeLayers`, and encode precedence only as `shadows`
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [02]
 ---
 
