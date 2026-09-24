@@ -25,7 +25,7 @@ const KNOWN_GAPS = [
   { schema: 'config.schema.json', key: 'hooks', owner: '.scratch/hooks/issues/03-hooks-in-presets.md' },
 ]
 
-// A new `spec.*` key touches the parser in resolve.ts and both schemas; this names whichever one was missed.
+// A new `spec.*` key touches the parser in spec.ts and both schemas; this names whichever one was missed.
 describe.each([
   { schema: 'preset.schema.json', accepted: PRESET_SPEC_KEYS },
   { schema: 'config.schema.json', accepted: CONFIG_SPEC_KEYS },
@@ -35,12 +35,12 @@ describe.each([
 
   it('declares no `spec` key the parser rejects', () => {
     const extra = declared.filter((key) => !accepted.includes(key))
-    expect(extra.map((key) => `spec.${key} is in ${schema} but not in resolve.ts`)).toEqual([])
+    expect(extra.map((key) => `spec.${key} is in ${schema} but not in spec.ts`)).toEqual([])
   })
 
   it('declares every `spec` key the parser reads', () => {
     const missing = accepted.filter((key) => !declared.includes(key) && !gaps.includes(key))
-    expect(missing.map((key) => `spec.${key} is read by resolve.ts but missing from ${schema}`)).toEqual([])
+    expect(missing.map((key) => `spec.${key} is read by spec.ts but missing from ${schema}`)).toEqual([])
   })
 
   it('lists no known gap that is already closed', () => {
