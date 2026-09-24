@@ -131,9 +131,9 @@
             "oneOf": [
               { "$ref": "#/$defs/skillSource" },
               {
-                "title": "All skills of the source at the user Scope",
+                "title": "All skills of the source",
                 "type": "object",
-                "required": ["source", "scope"],
+                "required": ["source"],
                 "additionalProperties": false,
                 "properties": {
                   "source": { "$ref": "#/$defs/skillSource" },
@@ -207,9 +207,9 @@
             "oneOf": [
               { "$ref": "#/$defs/agentSource" },
               {
-                "title": "All agents of the source at the user Scope",
+                "title": "All agents of the source",
                 "type": "object",
-                "required": ["source", "scope"],
+                "required": ["source"],
                 "additionalProperties": false,
                 "properties": {
                   "source": { "$ref": "#/$defs/agentSource" },
@@ -281,9 +281,9 @@
             "oneOf": [
               { "$ref": "#/$defs/workflowSource" },
               {
-                "title": "All workflows of the source at the user Scope",
+                "title": "All workflows of the source",
                 "type": "object",
-                "required": ["source", "scope"],
+                "required": ["source"],
                 "additionalProperties": false,
                 "properties": {
                   "source": { "$ref": "#/$defs/workflowSource" },
