@@ -1,5 +1,77 @@
 # Agent Plugins
 
+`ap` declares the marketplaces, plugins, skills, agents and MCP servers you want in Claude Code in an
+`agent-plugins.yaml` file, then syncs them into Claude Code's settings.
+
+## Install
+
+Requires Node.js 22 or newer, plus `claude` and `git` on your `PATH`. Supported on Linux, WSL and macOS; on Windows,
+use WSL.
+
+```bash
+npm i -g https://github.com/ttungbmt/agent-plugins/releases/latest/download/ap.tgz
+ap --version
+```
+
+`pnpm add -g <same url>` works too. The tarball is a single bundled file with no dependencies, so nothing else is
+downloaded from the npm registry.
+
+- **Update:** run the install command again.
+- **Pin a version:** use the versioned asset, e.g.
+  `https://github.com/ttungbmt/agent-plugins/releases/download/v0.1.0/ap-0.1.0.tgz`.
+- **Uninstall:** `npm uninstall -g agent-plugins`.
+- **Verify** that a tarball was built by this repository's release workflow:
+  `gh attestation verify ap.tgz -R ttungbmt/agent-plugins`.
+- **Run without installing:** `npx --package <versioned url> ap sync`. Use a versioned URL here: `npx` caches by
+  URL, so the `latest` URL keeps running whichever version it fetched first.
+
+## Usage
+
+```bash
+ap init             # create agent-plugins.yaml in the current directory
+ap sync --dry-run   # show what would change
+ap sync             # apply to the project scope (.claude/, .mcp.json)
+```
+
+### Share one setup across all your repos
+
+`ap sync` reads `agent-plugins.yaml` from the current directory. Keep a machine-wide Config in its own directory and
+sync it to the `user` scope (`~/.claude`):
+
+```bash
+mkdir -p ~/.config/agent-plugins && cd ~/.config/agent-plugins
+ap init --name machine   # then list the presets you want under spec.presets
+ap sync --scope user
+```
+
+Repos can still commit their own `agent-plugins.yaml` for project-specific entries. Several Configs can sync to the
+`user` scope without removing each other's entries: an entry is only removed once no Config declares it
+([ADR 0003](docs/adr/0003-managed-entries-per-scope-state.md)).
+
+## Development
+
+```bash
+mise install             # node + pnpm from mise.toml
+pnpm install
+pnpm ap sync --dry-run   # build packages/cli incrementally and run it
+pnpm -C packages/cli test
+```
+
+To try the release build locally: `pnpm -C packages/cli pack:release`, then
+`packages/cli/scripts/smoke-release.sh` installs the tarball into a temporary prefix and runs it.
+
+### Releasing
+
+Set `version` in `packages/cli/package.json`, commit, then push a matching tag:
+
+```bash
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+The [release workflow](.github/workflows/release.yml) tests, bundles, smoke-tests the tarball on Linux and macOS
+with Node 22 and 24, attests it and creates the GitHub Release. A tag with a `-` (e.g. `v0.2.0-beta.1`) becomes a
+pre-release and does not move the `latest` link. See [ADR 0008](docs/adr/0008-distribute-ap-via-github-release-tarball.md).
+
 ## Prior Art & Acknowledgements
 
 `agent-plugins` exists because these ecosystems already solve parts of the problem
