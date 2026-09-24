@@ -107,6 +107,13 @@ knows what "all" covers without fetching the source again.
 **Installed skill**:
 A Skill directory present in a Scope's skills directory — actual state. Exists only at the `project` and `user` Scopes.
 
+**User-scoped item**:
+A Skill, Agent, Rule or Workflow declaration entry with `scope: user` (a User-scoped skill, agent, rule or workflow).
+Everything the entry selects is synced to the `user` Scope whatever Scope the Sync targets, pinned in the `user` Scope's
+State rather than the Lock. Its source must be `github` or `git`, never a local directory. See
+[ADR 0013](docs/adr/0013-user-scoped-item.md).
+_Avoid_: global skill, personal skill
+
 ## Agent
 
 **Agent**:
@@ -243,6 +250,11 @@ Installed rules, Installed workflows and Installed hooks in line with the resolv
 
 **Scope**:
 The Claude Code settings layer a Sync targets: `project`, `local` or `user`.
+
+**Scope move**:
+A marketplace, plugin or User-scoped item a Sync adds or installs at the `user` Scope and removes or uninstalls from the
+targeted Scope in the same run, because its declaration became User-scoped. The Sync report shows the two actions as one move.
+_Avoid_: migration, rescope
 
 **Lock**:
 The committed `agent-plugins.lock` file, recording Managed entries at the `project` Scope, the Source catalogs of the
