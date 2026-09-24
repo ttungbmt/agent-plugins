@@ -53,7 +53,8 @@ configs, which only exist after the lookup.
 
 ### Error order and reporting every error
 
-- **Shape phase:** every issue in the file. Unknown-key issues come first (stable sort), then the rest in Zod's order.
+- **Shape phase:** every issue in the file, grouped by entry (the first two path segments) in parse order; within an
+  entry, unknown-key issues come first.
   This keeps `enable: true` reported as `has unknown field "enable"` rather than `must set enabled`.
 - **Semantic phase:** every error, through `Promise.allSettled`, in entry order within the file.
 - **Across Presets:** unchanged. A Preset's errors still stop resolution before the next Preset is loaded.

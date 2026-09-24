@@ -1,6 +1,6 @@
 ---
 title: Check `spec.*` shape with `zod/mini`, still stopping at the first error
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: []
 ---
 

@@ -1,10 +1,176 @@
 import { posix } from 'node:path'
+import * as z from 'zod/mini'
 import { ConfigError } from './errors.js'
-import { checkHook } from './hooks.js'
 import { checkMcp, normalizeMcp } from './mcp.js'
 import { parseShorthand } from './shorthand.js'
 import { byKind, ITEM_KINDS } from './types.js'
-import type { ByKind, HookDeclaration, HookGroup, ItemDeclaration, ItemKind, MarketplaceDeclaration, MarketplaceSource, McpConfig, PluginDeclaration, Selection } from './types.js'
+import type { ByKind, HookDeclaration, HookGroup, ItemDeclaration, ItemKind, MarketplaceDeclaration, MarketplaceSource, McpConfig, PluginDeclaration } from './types.js'
+
+// The shape of `spec` is checked in one synchronous parse (ADR 0015); the semantic steps (Shorthand sources, the MCP
+// catalog) run after it as plain code. Messages use `{}` for the subject (plugin id, marketplace, MCP server or hook
+// name, item source) and `{n}` for a handler number: a schema cannot know the key it sits under, so `issueLines` fills
+// them in from the issue path.
+
+const scope = (subject: string) =>
+  z.optional(z.literal('user', { error: (iss) => `${subject} has scope "${String(iss.input)}"; the only scope is "user"` }))
+
+const MarketplaceEntry = z.strictObject(
+  {
+    source: z.looseObject({ source: z.string() }, { error: 'marketplace {} needs a `source` map with a `source` type' }),
+    autoUpdate: z.optional(z.boolean({ error: '`autoUpdate` of marketplace {} must be true or false' })),
+    scope: scope('marketplace {}'),
+  },
+  {
+    error: (iss) =>
+      iss.code === 'unrecognized_keys' ? `marketplace {} has unknown field "${iss.keys[0]}"` : 'marketplace {} must be { source, autoUpdate, scope }',
+  },
+)
+/** A list of Shorthand declarations, or a map of names to `{ source, …extras, scope? }`. */
+const Marketplaces = z.union(
+  [
+    z.pipe(
+      z.array(z.string({ error: '`marketplaces` list items must be source strings; use the `name: { source }` map form for extra fields' })),
+      z.transform((texts) => texts.map((text) => ({ name: null, text }) as const)),
+    ),
+    z.pipe(
+      z.record(z.string(), MarketplaceEntry),
+      z.transform((map) =>
+        Object.entries(map).map(([name, { source, scope, ...extras }]) => ({ name, source: source as MarketplaceSource, extras, ...(scope && { scope }) })),
+      ),
+    ),
+  ],
+  { error: '`marketplaces` must be a list of sources or a map of names to { source }' },
+)
+
+const PLUGIN_ID = /^[^@\s]+@([^@\s]+)$/
+const PLUGIN_ID_ERROR = 'plugin {} must be written as name@marketplace'
+const PluginId = z.string({ error: PLUGIN_ID_ERROR }).check(z.regex(PLUGIN_ID, { error: PLUGIN_ID_ERROR }))
+/** The map form `{ enabled, scope? }`, whose `scope` can only be `user` and needs `enabled: true` (ADR 0012). */
+const PluginSettings = z
+  .strictObject(
+    { enabled: z.boolean({ error: 'plugin {} must set `enabled` to true or false' }), scope: scope('plugin {}') },
+    { error: (iss) => (iss.code === 'unrecognized_keys' ? `plugin {} has unknown field "${iss.keys[0]}"` : undefined) },
+  )
+  .check(z.refine((s) => s.enabled || !s.scope, { error: 'plugin {} cannot be `enabled: false` with `scope: user`' }))
+const PluginValue = z.union([z.pipe(z.boolean(), z.transform((enabled) => ({ enabled }))), PluginSettings], {
+  error: 'plugin {} must be true, false or { enabled, scope }',
+})
+const plugin = (id: string, value: { enabled: boolean; scope?: 'user' }) => ({ id, marketplace: PLUGIN_ID.exec(id)![1]!, ...value })
+/** A map of `name@marketplace: bool | { enabled, scope? }`, or a list of `name@marketplace` as shorthand for all `true`. */
+const Plugins = z.union(
+  [
+    z.pipe(z.array(PluginId), z.transform((ids) => ids.map((id) => plugin(id, { enabled: true })))),
+    z.pipe(z.record(PluginId, PluginValue), z.transform((map) => Object.entries(map).map(([id, value]) => plugin(id, value)))),
+  ],
+  { error: '`plugins` must be a list of name@marketplace or a map of them to true, false or { enabled, scope }' },
+)
+
+function isLocal(source: string): boolean {
+  return source.startsWith('./') || source.startsWith('../') || source.startsWith('/')
+}
+
+const PATH_ERROR = '`path` of {} must be a relative path inside the source'
+/** The `path` of an item source, normalized (`./a/b/` → `a/b`); `null` for the source root. */
+const ItemsPath = z.pipe(
+  z
+    .pipe(z.string({ error: PATH_ERROR }), z.transform((raw) => posix.normalize(raw).replace(/\/+$/, '')))
+    .check(z.refine((p) => !!p && !posix.isAbsolute(p) && p !== '..' && !p.startsWith('../'), { error: PATH_ERROR })),
+  z.transform((p) => (p === '.' ? null : p)),
+)
+
+/**
+ * `skills` (or `agents`, …) is a list; each entry is a source (every item in it), `{ source, skills }` selecting some
+ * names, or `{ source, exclude }` taking everything but some. The map form may add `path`, the directory in the source
+ * holding them, and `scope: user`; a directory source cannot be User-scoped (ADR 0013).
+ */
+function itemEntry(kind: ItemKind) {
+  const key = `${kind}s`
+  const names = (field: string) => {
+    const error = `\`${field}\` of {} must be a non-empty list of ${kind} names`
+    return z.optional(z.pipe(z.array(z.string({ error }), { error }).check(z.minLength(1, { error })), z.transform((n) => [...new Set(n)])))
+  }
+  const Entry = z.strictObject(
+    {
+      ...({ [key]: names(key) } as {}),
+      source: z.string({ error: `each ${kind} entry needs a \`source\` string` }),
+      exclude: names('exclude'),
+      path: z.optional(ItemsPath),
+      scope: scope('{}'),
+    },
+    { error: (iss) => (iss.code === 'unrecognized_keys' ? `{} has unknown key \`${iss.keys[0]}\`` : `each ${kind} entry needs a \`source\` string`) },
+  )
+  // The selection key differs per kind, which the inferred type cannot follow, so it is read by name.
+  const selected = (e: z.output<typeof Entry>) => (e as Record<string, unknown>)[key] as string[] | undefined
+  return z.pipe(
+    z.pipe(z.transform((item: unknown) => (typeof item === 'string' ? { source: item } : item)), Entry).check(
+      z.refine((e) => !(selected(e) && e.exclude), { error: `{} cannot have both \`${key}\` and \`exclude\`` }),
+      z.refine((e) => !(e.scope && isLocal(e.source)), { error: '{} has `scope: user` but is a directory; only github and git sources can be User-scoped' }),
+    ),
+    z.transform((e) => ({ source: e.source, subdir: e.path ?? null, select: selected(e) ?? { exclude: e.exclude ?? [] }, ...(e.scope && { scope: e.scope }) })),
+  )
+}
+const itemList = (kind: ItemKind) => z.array(itemEntry(kind), { error: `\`${kind}s\` must be a list of ${kind} sources` })
+const ItemLists = Object.fromEntries(ITEM_KINDS.map((kind) => [`${kind}s`, z.nullish(itemList(kind))])) as {
+  [K in ItemKind as `${K}s`]: z.ZodMiniOptional<z.ZodMiniNullable<ReturnType<typeof itemList>>>
+}
+
+/**
+ * `mcpServers` is a map by name: `true` takes the config from the MCP catalog, a map is an inline config, `false` drops an
+ * inherited MCP server (ADR 0006). A map may carry `scope: user` (ADR 0014), which is stripped from the config; a map
+ * holding only `scope` takes the catalog config.
+ */
+const McpValue = z.union(
+  [
+    z.pipe(z.literal(false), z.transform(() => ({ kind: 'drop' }) as const)),
+    z.pipe(z.literal(true), z.transform(() => ({ kind: 'catalog' }) as const)),
+    z.pipe(
+      z.looseObject({ scope: scope('MCP server {}') }),
+      z.transform(({ scope, ...inline }) =>
+        scope && Object.keys(inline).length === 0
+          ? ({ kind: 'catalog', scope } as const)
+          : ({ kind: 'inline', inline: inline as McpConfig, ...(scope && { scope }) } as const),
+      ),
+    ),
+  ],
+  { error: 'MCP server {} must be true, false or a server configuration' },
+)
+const McpServers = z.record(z.string(), McpValue, { error: '`mcpServers` must be a map of server names to true, false or a server configuration' })
+
+/** Required fields for each handler type (docs/research/hooks.md §1). */
+const HANDLER_FIELDS = { command: ['command'], http: ['url'], mcp_tool: ['server', 'tool'], prompt: ['prompt'], agent: ['prompt'] } as const
+const handler = <T extends keyof typeof HANDLER_FIELDS>(type: T) =>
+  z.looseObject({
+    type: z.literal(type),
+    ...Object.fromEntries(HANDLER_FIELDS[type].map((f) => [f, z.string({ error: `handler {n} of hook {} (${type}) needs \`${f}\`` })])),
+  } as { type: z.ZodMiniLiteral<T> } & Record<(typeof HANDLER_FIELDS)[T][number], z.ZodMiniString>)
+const HookHandler = z.discriminatedUnion('type', [handler('command'), handler('http'), handler('mcp_tool'), handler('prompt'), handler('agent')], {
+  error: 'handler {n} of hook {} needs a `type`: command, http, mcp_tool, prompt or agent',
+})
+const HOOK_LIST_ERROR = 'hook {} needs a non-empty `hooks` list of handlers'
+const EVENT_ERROR = 'hook {} needs an `event` string'
+/** One matcher group in Claude Code's exact format; handlers keep every field besides the required ones (ADR 0007). */
+const HookGroupSchema = z.strictObject(
+  {
+    event: z.string({ error: EVENT_ERROR }).check(z.minLength(1, { error: EVENT_ERROR })),
+    matcher: z.optional(z.string({ error: '`matcher` of hook {} must be a string' })),
+    hooks: z.array(HookHandler, { error: HOOK_LIST_ERROR }).check(z.minLength(1, { error: HOOK_LIST_ERROR })),
+  },
+  { error: (iss) => (iss.code === 'unrecognized_keys' ? `hook {} has unknown key \`${iss.keys[0]}\`; a hook has only event, matcher and hooks` : undefined) },
+)
+/** `hooks` is a map by name: each name is a matcher group, `false` drops an inherited Hook. */
+const Hooks = z.record(
+  z.string(),
+  z.union([z.literal(false), HookGroupSchema], {
+    error: (iss) => (iss.input === true ? 'hook {} cannot be true: ap has no hook catalog yet; declare the hook inline' : 'hook {} must be false or a hook (event, matcher, hooks)'),
+  }),
+  { error: '`hooks` must be a map of hook names to false or a hook (event, matcher, hooks)' },
+)
+
+const SpecShape = z.object(
+  { marketplaces: z.nullish(Marketplaces), plugins: z.nullish(Plugins), ...ItemLists, mcpServers: z.nullish(McpServers), hooks: z.nullish(Hooks) },
+  { error: '`spec` must be a map' },
+)
+const Spec = z.nullish(SpecShape)
 
 /** A Skill, Agent, Rule or Workflow declaration as read from one document, before merging. */
 export type ItemPart = Pick<ItemDeclaration, 'source' | 'select' | 'scope' | 'origin'>
@@ -22,44 +188,105 @@ export type Declarations = {
 }
 
 /**
- * Validate every `spec.*` key of one document, in the order marketplaces, plugins, items (`ITEM_KINDS`), MCP servers,
- * hooks. `dir` is the document's directory, against which local paths are resolved; `mcpCatalog` is only called for a
- * server taken from the MCP catalog.
+ * Validate every `spec.*` key of one document: first the shape of every key in one parse, then the semantic steps
+ * (Shorthand sources, the MCP catalog) in the order marketplaces, items (`ITEM_KINDS`), MCP servers. Throws a
+ * ConfigError for the first problem. `dir` is the document's directory, against which local paths are resolved;
+ * `mcpCatalog` is only called for a server taken from the MCP catalog.
  */
 export async function readDeclarations(
   doc: PresetDocument,
   { origin, dir }: { origin: string; dir: string },
   mcpCatalog: McpCatalog,
 ): Promise<Declarations> {
-  const spec = doc.spec
-  const marketplaces = await readMarketplaces(spec?.marketplaces, origin, dir)
-  const plugins = readPlugins(spec?.plugins, origin)
+  const parsed = Spec.safeParse(doc.spec)
+  if (!parsed.success) throw new ConfigError(issueLines(parsed.error.issues, doc.spec, origin)[0]!)
+  const spec = parsed.data ?? {}
+
+  const marketplaces = await Promise.all(
+    (spec.marketplaces ?? []).map(async (m): Promise<MarketplaceDeclaration> =>
+      m.name === null ? { name: null, source: await parseShorthand(m.text, dir, origin), extras: {}, origin } : { ...m, origin },
+    ),
+  )
+  const plugins = (spec.plugins ?? []).map((p) => ({ ...p, origin }))
   const items = byKind((): ItemPart[] => [])
-  for (const kind of ITEM_KINDS) items[kind] = (await readItems(kind, spec?.[`${kind}s`], origin, dir)).map((d) => ({ ...d, origin }))
-  const mcpServers = await readMcpServers(spec?.mcpServers, origin, mcpCatalog)
-  return { marketplaces, plugins, items, mcpServers, hooks: readHookDeclarations(spec?.hooks, origin) }
+  for (const kind of ITEM_KINDS) {
+    items[kind] = await Promise.all(
+      (spec[`${kind}s`] ?? []).map(async ({ source, subdir, select, scope }): Promise<ItemPart> => {
+        // A `directory` source folds `path` into its own path; other sources keep it as a field.
+        const shorthand = subdir && isLocal(source) ? `${source.replace(/\/+$/, '')}/${subdir}` : source
+        const parsed = await parseShorthand(shorthand, dir, origin, kind)
+        if (parsed.source !== 'github' && parsed.source !== 'git' && parsed.source !== 'directory') {
+          throw new ConfigError(`${origin}: ${kind} source "${source}" must be owner/repo, a git URL or a directory`)
+        }
+        return { source: subdir && parsed.source !== 'directory' ? { ...parsed, path: subdir } : parsed, select, ...(scope && { scope }), origin }
+      }),
+    )
+  }
+  const mcpServers = await Promise.all(
+    Object.entries(spec.mcpServers ?? {}).map(async ([name, value]): Promise<McpPart> => {
+      if (value.kind === 'drop') return { name, server: null, origin }
+      const scope = 'scope' in value ? value.scope : undefined
+      let server = value.kind === 'inline' ? value.inline : (await mcpCatalog())[name]
+      if (!server) throw new ConfigError(`${origin}: MCP server "${name}" is not in the ap catalog; declare its configuration inline`)
+      const error = checkMcp(name, server) ?? (scope ? projectRelativePath(name, server) : null)
+      if (error) throw new ConfigError(`${origin}: ${error}`)
+      server = normalizeMcp(server)
+      return { name, server, ...(scope && { scope }), origin }
+    }),
+  )
+  // A Hook group is written to settings exactly as the user wrote it, so it is taken from the input, not the parse output.
+  const rawHooks = (doc.spec?.hooks ?? {}) as Record<string, HookGroup | false>
+  const hooks = Object.keys(spec.hooks ?? {}).flatMap((name) => (rawHooks[name] === false ? [] : [{ name, group: rawHooks[name]!, origin }]))
+  return { marketplaces, plugins, items, mcpServers, hooks }
+}
+
+/** One `<origin>: <message>` line per issue, entries in parse order, each entry's unknown keys first. */
+function issueLines(issues: z.core.$ZodIssue[], spec: unknown, origin: string): string[] {
+  return unknownKeysFirst(flatten(issues, [])).map((iss) => `${origin}: ${fill(iss.message, iss.path, spec)}`)
+}
+
+/** Within one entry (a marketplace, plugin, item entry, MCP server or hook), a typo like `enable` reads better as an unknown key. */
+function unknownKeysFirst(issues: z.core.$ZodIssue[]): z.core.$ZodIssue[] {
+  const entry = (iss: z.core.$ZodIssue) => JSON.stringify(iss.path.slice(0, 2))
+  const entries = [...new Set(issues.map(entry))]
+  const unknown = (iss: z.core.$ZodIssue) => Number(iss.code !== 'unrecognized_keys')
+  return issues.toSorted((a, b) => entries.indexOf(entry(a)) - entries.indexOf(entry(b)) || unknown(a) - unknown(b))
+}
+
+/** A union's issues from the branch that took the input's type (not a root type mismatch), else the union's own. */
+function flatten(issues: z.core.$ZodIssue[], base: PropertyKey[]): z.core.$ZodIssue[] {
+  return issues.flatMap((iss) => {
+    const path = [...base, ...iss.path]
+    if (iss.code === 'invalid_union') {
+      const rootMismatch = (b: z.core.$ZodIssue[]) => b.some((e) => e.path.length === 0 && (e.code === 'invalid_type' || e.code === 'invalid_value'))
+      const branch = iss.errors.find((b) => !rootMismatch(b))
+      if (branch) return flatten(branch, path)
+    }
+    if (iss.code === 'invalid_key') return flatten(iss.issues as z.core.$ZodIssue[], path)
+    return [{ ...iss, path }]
+  })
+}
+
+/** `{}` → the quoted subject named by `path` (a map key, a list element, or an item entry's `source`); `{n}` → the handler number. */
+function fill(message: string, path: PropertyKey[], spec: unknown): string {
+  const [section, at] = path
+  const container = (spec as Record<string, unknown> | null)?.[section as string]
+  let subject: unknown = at
+  if (Array.isArray(container)) {
+    const entry = container[at as number]
+    subject = entry && typeof entry === 'object' ? (entry as { source?: unknown }).source : entry
+  }
+  const n = path.findLast((p) => typeof p === 'number')
+  return message.replaceAll('{}', `"${String(subject)}"`).replaceAll('{n}', String(Number(n) + 1))
 }
 
 export type PresetDocument = { kind?: string; metadata?: { name?: string }; spec?: { presets?: unknown; extends?: unknown; marketplaces?: unknown; plugins?: unknown; mcpServers?: unknown; hooks?: unknown } & { [K in ItemKind as `${K}s`]?: unknown } }
 
-const SHARED_SPEC_KEYS = ['marketplaces', 'plugins', ...ITEM_KINDS.map((kind) => `${kind}s`), 'mcpServers']
-/** The keys a Preset's `spec` may carry; the parser rejects any other. */
-export const PRESET_SPEC_KEYS: readonly string[] = ['extends', ...SHARED_SPEC_KEYS]
+const SPEC_KEYS = Object.keys(SpecShape.def.shape)
+/** The keys a Preset's `spec` may carry; the parser rejects any other. Hooks in Presets wait for hooks ticket 03. */
+export const PRESET_SPEC_KEYS: readonly string[] = ['extends', ...SPEC_KEYS.filter((key) => key !== 'hooks')]
 /** The keys a Config's `spec` may carry; the parser rejects any other. */
-export const CONFIG_SPEC_KEYS: readonly string[] = ['presets', ...SHARED_SPEC_KEYS, 'hooks']
-
-/** The `path` of a Skill source/Agent source, normalized (`./a/b/` → `a/b`); `null` for the source root. */
-function itemsPath(raw: unknown, source: string, origin: string): string | null {
-  const path = typeof raw === 'string' ? posix.normalize(raw).replace(/\/+$/, '') : ''
-  if (!path || posix.isAbsolute(path) || path === '..' || path.startsWith('../')) {
-    throw new ConfigError(`${origin}: \`path\` of "${source}" must be a relative path inside the source`)
-  }
-  return path === '.' ? null : path
-}
-
-function isLocal(source: string): boolean {
-  return source.startsWith('./') || source.startsWith('../') || source.startsWith('/')
-}
+export const CONFIG_SPEC_KEYS: readonly string[] = ['presets', ...SPEC_KEYS]
 
 /** A Config and a Preset each read a fixed set of `spec` keys; a stray key is a mistake, not something to ignore. */
 function checkSpecKeys(doc: PresetDocument, kind: 'Config' | 'Preset', label: string) {
@@ -75,165 +302,19 @@ function checkSpecKeys(doc: PresetDocument, kind: 'Config' | 'Preset', label: st
   if (unknown) throw new ConfigError(`${label}: unknown key \`spec.${unknown}\`; a ${kind}'s spec takes ${accepted.join(', ')}`)
 }
 
+/** `extends`/`presets` take a single reference or a list. */
+const PresetRefs = z.pipe(z.nullish(z.union([z.pipe(z.string(), z.transform((ref) => [ref])), z.array(z.string())])), z.transform((refs) => refs ?? []))
+
 /**
  * The Presets a document refers to: `spec.presets` for a Config (Preset selection), `spec.extends` for a Preset
  * (Inheritance). Throws when the document uses the other key or any key its kind does not take.
  */
 export function presetRefs(doc: PresetDocument, kind: 'Config' | 'Preset', label: string): string[] {
   checkSpecKeys(doc, kind, label)
-  return list(kind === 'Config' ? doc.spec?.presets : doc.spec?.extends)
-}
-
-/** `extends`/`presets` take a single reference or a list. */
-function list(refs: unknown): string[] {
-  if (refs === undefined || refs === null) return []
-  return Array.isArray(refs) ? refs : [refs as string]
-}
-
-/** The fields a map-form Marketplace declaration may carry besides `source`, as in `extraKnownMarketplaces`. */
-const MARKETPLACE_EXTRAS = new Set(['autoUpdate'])
-
-/** `dir` is the declaring file's directory; local paths in Shorthand declarations are resolved against it. */
-async function readMarketplaces(raw: unknown, origin: string, dir: string): Promise<MarketplaceDeclaration[]> {
-  if (!raw) return []
-  if (Array.isArray(raw)) {
-    if (!raw.every((item) => typeof item === 'string')) {
-      throw new ConfigError(
-        `${origin}: \`marketplaces\` list items must be source strings; use the \`name: { source }\` map form for extra fields`,
-      )
-    }
-    return Promise.all(
-      raw.map(async (text: string) => ({ name: null, source: await parseShorthand(text, dir, origin), extras: {}, origin })),
-    )
-  }
-  return Object.entries(raw as Record<string, { source: MarketplaceSource; scope?: unknown }>).map(([name, entry]) => {
-    const { source, scope, ...extras } = entry
-    if (scope !== undefined && scope !== 'user') {
-      throw new ConfigError(`${origin}: marketplace "${name}" has scope "${scope}"; the only scope is "user"`)
-    }
-    const unknown = Object.keys(extras).find((key) => !MARKETPLACE_EXTRAS.has(key))
-    if (unknown) throw new ConfigError(`${origin}: marketplace "${name}" has unknown field "${unknown}"`)
-    return { name, source, extras, ...(scope && { scope }), origin }
-  })
-}
-
-/**
- * `plugins` is a map of `name@marketplace: bool` or `name@marketplace: { enabled, scope? }`, or a list of
- * `name@marketplace` as shorthand for all `true`.
- */
-function readPlugins(raw: unknown, origin: string): PluginDeclaration[] {
-  if (!raw) return []
-  const entries: [string, unknown][] = Array.isArray(raw) ? raw.map((id) => [id, true]) : Object.entries(raw)
-  return entries.map(([id, value]) => {
-    const marketplace = /^[^@\s]+@([^@\s]+)$/.exec(id)?.[1]
-    if (!marketplace) throw new ConfigError(`${origin}: plugin "${id}" must be written as name@marketplace`)
-    return { id, marketplace, ...readPluginValue(id, value, origin), origin }
-  })
-}
-
-/** A plugin value: `true`/`false`, or the map form `{ enabled, scope? }` whose `scope` can only be `user` (ADR 0012). */
-function readPluginValue(id: string, value: unknown, origin: string): Pick<PluginDeclaration, 'enabled' | 'scope'> {
-  if (typeof value === 'boolean') return { enabled: value }
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new ConfigError(`${origin}: plugin "${id}" must be true, false or { enabled, scope }`)
-  }
-  const { enabled, scope, ...rest } = value as Record<string, unknown>
-  const fail = (message: string) => new ConfigError(`${origin}: plugin "${id}" ${message}`)
-  const unknown = Object.keys(rest)[0]
-  if (unknown !== undefined) throw fail(`has unknown field "${unknown}"`)
-  if (typeof enabled !== 'boolean') throw fail('must set `enabled` to true or false')
-  if (scope === undefined) return { enabled }
-  if (scope !== 'user') throw fail(`has scope "${scope}"; the only scope is "user"`)
-  if (!enabled) throw fail('cannot be `enabled: false` with `scope: user`')
-  return { enabled, scope }
-}
-
-/**
- * `skills` (or `agents`) is a list; each entry is a source (every Skill/Agent in it), `{ source, skills }` (`{ source, agents }`)
- * selecting some names, or `{ source, exclude }` taking everything but some. The map form may add `path`: the directory
- * in the source holding them, which is part of the source (for a `directory` source it is folded into its path), and
- * `scope: user` to sync them to the `user` Scope; a `directory` source cannot be User-scoped (ADR 0013).
- */
-async function readItems(kind: ItemKind, raw: unknown, origin: string, dir: string): Promise<Omit<ItemPart, 'origin'>[]> {
-  const key = `${kind}s`
-  if (!raw) return []
-  if (!Array.isArray(raw)) throw new ConfigError(`${origin}: \`${key}\` must be a list of ${kind} sources`)
-  const isNames = (v: unknown): v is string[] => Array.isArray(v) && v.length > 0 && v.every((s) => typeof s === 'string')
-  return Promise.all(
-    raw.map(async (item: unknown) => {
-      const entry = (typeof item === 'string' ? { source: item } : item) as Record<string, unknown>
-      const { source } = entry
-      if (typeof source !== 'string') throw new ConfigError(`${origin}: each ${kind} entry needs a \`source\` string`)
-      const unknown = Object.keys(entry).find((k) => !['source', key, 'exclude', 'path', 'scope'].includes(k))
-      if (unknown) throw new ConfigError(`${origin}: "${source}" has unknown key \`${unknown}\``)
-      const { scope } = entry
-      if (scope !== undefined && scope !== 'user') {
-        throw new ConfigError(`${origin}: "${source}" has scope "${String(scope)}"; the only scope is "user"`)
-      }
-      if (scope && isLocal(source)) {
-        throw new ConfigError(`${origin}: "${source}" has \`scope: user\` but is a directory; only github and git sources can be User-scoped`)
-      }
-      let select: Selection
-      if (!(key in entry) && !('exclude' in entry)) select = { exclude: [] }
-      else if (key in entry && 'exclude' in entry) {
-        throw new ConfigError(`${origin}: "${source}" cannot have both \`${key}\` and \`exclude\``)
-      } else if ('exclude' in entry) {
-        if (!isNames(entry.exclude)) throw new ConfigError(`${origin}: \`exclude\` of "${source}" must be a non-empty list of ${kind} names`)
-        select = { exclude: [...new Set(entry.exclude)] }
-      } else {
-        if (!isNames(entry[key])) throw new ConfigError(`${origin}: \`${key}\` of "${source}" must be a non-empty list of ${kind} names`)
-        select = [...new Set(entry[key] as string[])]
-      }
-      const subdir = 'path' in entry ? itemsPath(entry.path, source, origin) : null
-      const shorthand = subdir && isLocal(source) ? `${source.replace(/\/+$/, '')}/${subdir}` : source
-      const parsed = await parseShorthand(shorthand, dir, origin, kind)
-      if (parsed.source !== 'github' && parsed.source !== 'git' && parsed.source !== 'directory') {
-        throw new ConfigError(`${origin}: ${kind} source "${source}" must be owner/repo, a git URL or a directory`)
-      }
-      return { source: subdir && parsed.source !== 'directory' ? { ...parsed, path: subdir } : parsed, select, ...(scope && { scope }) }
-    }),
-  )
-}
-
-/**
- * `mcpServers` is a map by name: `true` takes the config verbatim from the MCP catalog (even when a parent Preset defined
- * the same name inline), a map is an inline config, `false` drops an inherited MCP server (ADR 0006). A map may carry
- * `scope: user` (ADR 0014), which is stripped from the config; a map holding only `scope` takes the catalog config.
- */
-async function readMcpServers(raw: unknown, origin: string, mcpCatalog: McpCatalog): Promise<McpPart[]> {
-  if (!raw) return []
-  if (typeof raw !== 'object' || Array.isArray(raw)) {
-    throw new ConfigError(`${origin}: \`mcpServers\` must be a map of server names to true, false or a server configuration`)
-  }
-  const fromCatalog = async (name: string) => {
-    const server = (await mcpCatalog())[name]
-    if (!server) throw new ConfigError(`${origin}: MCP server "${name}" is not in the ap catalog; declare its configuration inline`)
-    return server
-  }
-  return Promise.all(
-    Object.entries(raw).map(async ([name, value]) => {
-      let server: McpConfig | null
-      let scope: 'user' | undefined
-      if (value === false) server = null
-      else if (value === true) server = await fromCatalog(name)
-      else if (value && typeof value === 'object' && !Array.isArray(value)) {
-        const { scope: rawScope, ...inline } = value as McpConfig
-        if (rawScope !== undefined) {
-          if (rawScope !== 'user') throw new ConfigError(`${origin}: MCP server "${name}" has scope "${String(rawScope)}"; the only scope is "user"`)
-          scope = 'user'
-        }
-        server = scope && Object.keys(inline).length === 0 ? await fromCatalog(name) : inline
-      } else {
-        throw new ConfigError(`${origin}: MCP server "${name}" must be true, false or a server configuration`)
-      }
-      if (server) {
-        const error = checkMcp(name, server) ?? (scope ? projectRelativePath(name, server) : null)
-        if (error) throw new ConfigError(`${origin}: ${error}`)
-        server = normalizeMcp(server)
-      }
-      return { name, server, ...(scope && { scope }), origin }
-    }),
-  )
+  const key = kind === 'Config' ? 'presets' : 'extends'
+  const refs = PresetRefs.safeParse(doc.spec?.[key])
+  if (!refs.success) throw new ConfigError(`${label}: \`spec.${key}\` must be a preset reference or a list of them`)
+  return refs.data
 }
 
 /**
@@ -247,22 +328,3 @@ function projectRelativePath(name: string, server: McpConfig): string | null {
   if (arg) return `MCP server "${name}" has \`scope: user\` but its argument "${arg}" is relative to the project`
   return null
 }
-
-/** `hooks` is a map by name: each name is a matcher group in Claude Code's exact format, `false` drops an inherited Hook (ADR 0007). */
-function readHookDeclarations(raw: unknown, origin: string): HookDeclaration[] {
-  if (raw === undefined || raw === null) return []
-  if (typeof raw !== 'object' || Array.isArray(raw)) {
-    throw new ConfigError(`${origin}: \`hooks\` must be a map of hook names to false or a hook (event, matcher, hooks)`)
-  }
-  return Object.entries(raw).flatMap(([name, value]) => {
-    if (value === false) return []
-    if (value === true) throw new ConfigError(`${origin}: hook "${name}" cannot be true: ap has no hook catalog yet; declare the hook inline`)
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      throw new ConfigError(`${origin}: hook "${name}" must be false or a hook (event, matcher, hooks)`)
-    }
-    const error = checkHook(name, value as Record<string, unknown>)
-    if (error) throw new ConfigError(`${origin}: ${error}`)
-    return [{ name, group: value as HookGroup, origin }]
-  })
-}
-

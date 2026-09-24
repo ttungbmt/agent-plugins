@@ -15,36 +15,6 @@ export type HookPlan = {
   forgotten: string[]
 }
 
-/** Required fields for each handler type (docs/research/hooks.md §1). */
-const REQUIRED: Record<string, string[]> = {
-  command: ['command'],
-  http: ['url'],
-  mcp_tool: ['server', 'tool'],
-  prompt: ['prompt'],
-  agent: ['prompt'],
-}
-const GROUP_KEYS = ['event', 'matcher', 'hooks']
-
-/** Validates one matcher group of a Hook declaration. Returns an error message, or null when valid. */
-export function checkHook(name: string, group: Record<string, unknown>): string | null {
-  const unknown = Object.keys(group).find((k) => !GROUP_KEYS.includes(k))
-  if (unknown) return `hook "${name}" has unknown key \`${unknown}\`; a hook has only event, matcher and hooks`
-  if (typeof group.event !== 'string' || !group.event) return `hook "${name}" needs an \`event\` string`
-  if (group.matcher !== undefined && typeof group.matcher !== 'string') return `\`matcher\` of hook "${name}" must be a string`
-  if (!Array.isArray(group.hooks) || group.hooks.length === 0) return `hook "${name}" needs a non-empty \`hooks\` list of handlers`
-  for (const [i, handler] of group.hooks.entries()) {
-    const at = `handler ${i + 1} of hook "${name}"`
-    const type = handler && typeof handler === 'object' && !Array.isArray(handler) ? (handler as Record<string, unknown>).type : undefined
-    const required = typeof type === 'string' && Object.hasOwn(REQUIRED, type) ? REQUIRED[type]! : null
-    if (!required) {
-      return `${at} needs a \`type\`: ${Object.keys(REQUIRED).join(', ').replace(/, (?=[^,]*$)/, ' or ')}`
-    }
-    const missing = required.find((field) => typeof (handler as Record<string, unknown>)[field] !== 'string')
-    if (missing) return `${at} (${type}) needs \`${missing}\``
-  }
-  return null
-}
-
 /** Canonical form for comparing and writing to Lock/State: an empty, `"*"` or absent `matcher` matches everything, so it is dropped. */
 export function normalizeHook({ event, matcher, hooks, ...rest }: HookGroup): HookGroup {
   return { event, ...(matcher === undefined || matcher === '' || matcher === '*' ? {} : { matcher }), hooks, ...rest }

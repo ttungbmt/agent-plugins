@@ -7,7 +7,7 @@ Phần kiểm tra shape trong parser `spec.*` (`packages/cli/src/sync/spec.ts`) 
 
 Lý do để các bước bất đồng bộ ở ngoài schema: Zod xếp lỗi của bước async theo lúc chạy xong, nên thứ tự lỗi sẽ không cố định. Ngoài ra `checkMcp` phải chạy trên config lấy từ MCP catalog, mà config đó chỉ có sau bước tra.
 
-`ap` báo **mọi** lỗi của một file, mỗi lỗi một dòng `<file>: <message>`, theo thứ tự cố định. Ở bước 1, lỗi field lạ đứng trước, sau đó là các lỗi khác theo thứ tự của Zod. Ở bước 2, các lỗi được gom bằng `Promise.allSettled` và in theo thứ tự entry trong file. Lỗi ngữ nghĩa chỉ được báo khi file không còn lỗi shape nào. Giữa các Preset, thứ tự lỗi vẫn như cũ.
+`ap` báo **mọi** lỗi của một file, mỗi lỗi một dòng `<file>: <message>`, theo thứ tự cố định. Ở bước 1, lỗi được xếp theo entry (marketplace, plugin, item entry, MCP server, Hook) theo thứ tự trong file; trong mỗi entry, lỗi field lạ đứng trước, để một lỗi gõ như `enable` được báo đúng là field lạ. Ở bước 2, các lỗi được gom bằng `Promise.allSettled` và in theo thứ tự entry trong file. Lỗi ngữ nghĩa chỉ được báo khi file không còn lỗi shape nào. Giữa các Preset, thứ tự lỗi vẫn như cũ.
 
 JSON schema cho editor (`config.schema.json`, `preset.schema.json`) vẫn viết tay, và contract test `spec-schema.test.ts` vẫn giữ nguyên. `PRESET_SPEC_KEYS`/`CONFIG_SPEC_KEYS` được lấy từ key của schema Zod, nên danh sách key chỉ khai báo ở một chỗ.
 

@@ -87,6 +87,78 @@ describe('readDeclarations', () => {
   })
 })
 
+describe('readDeclarations: inputs the hand-written parser let through or crashed on (ADR 0015)', () => {
+  const github = { source: 'github', repo: 'acme/plugins' }
+
+  it.each([
+    ['a null marketplace entry', { marketplaces: { acme: null } }, 'demo.yaml: marketplace "acme" must be { source, autoUpdate, scope }'],
+    ['a marketplace with no source', { marketplaces: { acme: { autoUpdate: true } } }, 'demo.yaml: marketplace "acme" needs a `source` map with a `source` type'],
+    ['a marketplace whose source is a string', { marketplaces: { acme: { source: 'acme/x' } } }, 'demo.yaml: marketplace "acme" needs a `source` map with a `source` type'],
+    ['a non-boolean autoUpdate', { marketplaces: { acme: { source: github, autoUpdate: 'yes' } } }, 'demo.yaml: `autoUpdate` of marketplace "acme" must be true or false'],
+    ['marketplaces as a string', { marketplaces: 'x' }, 'demo.yaml: `marketplaces` must be a list of sources or a map of names to { source }'],
+    ['a null item entry', { skills: [null] }, 'demo.yaml: each skill entry needs a `source` string'],
+    ['a spec that is not a map', 'oops', 'demo.yaml: `spec` must be a map'],
+    ['plugins: false', { plugins: false }, 'demo.yaml: `plugins` must be a list of name@marketplace or a map of them'],
+    ['plugins as a string', { plugins: 'foo@bar' }, 'demo.yaml: `plugins` must be a list of name@marketplace or a map of them'],
+  ])('rejects %s', async (_, spec, message) => {
+    await expect(read(spec as PresetDocument['spec'])).rejects.toThrow(message)
+  })
+
+  it('reports a mistyped field as unknown before the field it was meant to be', async () => {
+    await expect(read({ plugins: { 'a@acme': { enable: true } } })).rejects.toThrow('demo.yaml: plugin "a@acme" has unknown field "enable"')
+  })
+
+  it('reports shape errors in section order', async () => {
+    await expect(read({ marketplaces: { m: { source: github, colour: 1 } }, plugins: { 'a@acme': { enable: true } } })).rejects.toThrow(
+      'demo.yaml: marketplace "m" has unknown field "colour"',
+    )
+  })
+
+  it('names the handler and field a hook is missing', async () => {
+    await expect(read({ hooks: { h: { event: 'Stop', hooks: [{ type: 'command', command: 'x' }, { type: 'command' }] } } })).rejects.toThrow(
+      'demo.yaml: handler 2 of hook "h" (command) needs `command`',
+    )
+    await expect(read({ hooks: { h: { event: 'Stop', hooks: [null] } } })).rejects.toThrow(
+      'demo.yaml: handler 1 of hook "h" needs a `type`: command, http, mcp_tool, prompt or agent',
+    )
+    await expect(read({ hooks: { h: { event: 'Stop', hooks: [], when: 1 } } })).rejects.toThrow(
+      'demo.yaml: hook "h" has unknown key `when`; a hook has only event, matcher and hooks',
+    )
+  })
+
+  it('keeps a hook group exactly as written, handler field order included', async () => {
+    const group = { hooks: [{ timeout: 5, command: 'echo done', type: 'command' }], event: 'Stop' }
+    const { hooks } = await read({ hooks: { done: group } })
+    expect(JSON.stringify(hooks[0]!.group)).toBe(JSON.stringify(group))
+  })
+
+  // zod/mini loads no locale, so a schema node without a message of its own would surface as "Invalid input".
+  it.each([
+    { marketplaces: { acme: 1 } },
+    { marketplaces: [1] },
+    { plugins: { 'a@acme': 'yes' } },
+    { plugins: ['nope'] },
+    { plugins: { 'a@acme': { enabled: true, scope: 'project' } } },
+    { skills: { a: 1 } },
+    { skills: [1] },
+    { skills: [{ source: 'acme/skills', skills: 'tdd' }] },
+    { skills: [{ source: 'acme/skills', path: 1 }] },
+    { rules: [{ source: 'acme/rules', rules: [] }] },
+    { mcpServers: ['a'] },
+    { mcpServers: { a: 1 } },
+    { mcpServers: { a: { scope: 'project' } } },
+    { hooks: [] },
+    { hooks: { h: 1 } },
+    { hooks: { h: { event: '', hooks: [] } } },
+    { hooks: { h: { event: 'Stop', matcher: 1, hooks: [{ type: 'command', command: 'x' }] } } },
+    { hooks: { h: { event: 'Stop', hooks: [{ type: 'shell' }] } } },
+  ])('never reports "Invalid input" (%j)', async (spec) => {
+    const error = await read(spec as PresetDocument['spec']).then(() => null, (e: Error) => e)
+    expect(error?.message).toMatch(/^demo\.yaml: /)
+    expect(error?.message).not.toContain('Invalid input')
+  })
+})
+
 describe('presetRefs', () => {
   it('takes `spec.presets` from a Config and `spec.extends` from a Preset, as one ref or a list', () => {
     expect(presetRefs({ spec: { presets: 'base' } }, 'Config', 'c.yaml')).toEqual(['base'])
@@ -101,5 +173,10 @@ describe('presetRefs', () => {
 
   it('rejects `spec.hooks` in a Preset', () => {
     expect(() => presetRefs({ spec: { hooks: {} } }, 'Preset', 'p.yaml')).toThrow('p.yaml: unknown key `spec.hooks`')
+  })
+
+  it('rejects a reference that is not a string', () => {
+    expect(() => presetRefs({ spec: { presets: [1] } }, 'Config', 'c.yaml')).toThrow('c.yaml: `spec.presets` must be a preset reference or a list of them')
+    expect(() => presetRefs({ spec: { extends: { a: 1 } } }, 'Preset', 'p.yaml')).toThrow('p.yaml: `spec.extends` must be a preset reference or a list of them')
   })
 })
