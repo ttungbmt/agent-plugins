@@ -68,7 +68,7 @@ Theo [ADR 0011](../adr/0011-user-scoped-marketplace.md). Khai báo dạng map c�
 - Sync `project` hoặc `local`: các khai báo này được lập kế hoạch riêng, so với settings `user`, bản ghi State của Config này và claim của các Config khác ở `user`. Sync `user`: đây là khai báo bình thường.
 - State ở `user` (`~/.agent-plugins/state.json`) lưu mỗi Config theo khoá (đường dẫn Config, Scope đang sync): khoá là đường dẫn Config với lần sync `user`, và `<đường dẫn Config>#project` hoặc `#local` với lần sync khác. Hai bản ghi của cùng Config tính là claim dùng chung của nhau. Lock không ghi entry này.
 - Luật sở hữu giữ nguyên như mục Sở hữu, kể cả `shared-clash`.
-- Plugin dùng marketplace này vẫn nằm ở Scope đang sync; `missing-marketplace` coi marketplace này là đã khai báo. `claude` 2.1.281 cài được plugin ở `project` khi marketplace chỉ khai báo ở `user`, và chỉ ghi `enabledPlugins` vào settings của project.
+- Plugin dùng marketplace này vẫn nằm ở Scope đang sync, trừ User-scoped plugin; `missing-marketplace` coi marketplace này là đã khai báo. `claude` 2.1.281 cài được plugin ở `project` khi marketplace chỉ khai báo ở `user`, và chỉ ghi `enabledPlugins` vào settings của project.
 - Thứ tự: thêm/sửa ở `user` → thêm/sửa ở Scope đang sync → plugin → gỡ ở Scope đang sync → gỡ ở `user`. `add` ở `user` lỗi → plugin phụ thuộc lỗi `marketplace "…" is not ready in user settings`.
 - Gỡ ở `user` khi settings `user` còn Plugin entry `*@<tên>` → xung đột `manual-entry`, vì `marketplace remove` xoá luôn các entry đó; `--force` vẫn gỡ.
 - Chuyển entry giữa Scope đang sync và `user` (thêm hoặc bỏ `scope: user`): thêm ở Scope mới trước, gỡ ở Scope cũ sau. Bước gỡ này `ap` tự xoá khoá trong `extraKnownMarketplaces` thay vì gọi `marketplace remove`, để giữ plugin của Scope cũ đang còn khai báo.
@@ -76,8 +76,8 @@ Theo [ADR 0011](../adr/0011-user-scoped-marketplace.md). Khai báo dạng map c�
 
 ### Plugin
 
-- Dạng chuẩn: map `name@marketplace: bool`, khớp 1:1 với `enabledPlugins`. Dạng list `name@marketplace` là viết tắt cho toàn bộ `true`.
-- Gộp như `marketplaces`: Preset cha trước, con sau, `spec.plugins` của Config gộp cuối; trùng khoá → giá trị sau thắng, nên `false` tắt được plugin Preset cha đã bật.
+- Dạng chuẩn: map `name@marketplace: bool`, khớp 1:1 với `enabledPlugins`. Dạng list `name@marketplace` là viết tắt cho toàn bộ `true`. Giá trị cũng có thể là map `{ enabled, scope }` (xem User-scoped plugin); `{ enabled: x }` tương đương `x`.
+- Gộp như `marketplaces`: Preset con thắng Preset cha, `spec.plugins` của Config thắng mọi Preset; Preset ngang hàng → khai báo sau thắng. Nên `false` tắt được plugin Preset cha đã bật.
 - Hậu tố `@marketplace` phải là tên một marketplace được khai báo trong chuỗi gộp: dạng map, hoặc dạng rút gọn đã biết tên (tra theo source trong Lock/State, rồi settings). Không khớp → xung đột `missing-marketplace`, kể cả khi máy đã có marketplace đó. Plugin đang lỗi được giữ nguyên như mọi xung đột khác (không `uninstall`), và marketplace mà plugin còn khai báo `@<tên>` không bị gỡ, kể cả ở `user`. Muốn gỡ thì bỏ cả marketplace lẫn các plugin của nó khỏi khai báo.
   - Còn khai báo rút gọn chưa biết tên (máy mới, chưa `add`) → plugin không khớp tên nào vẫn được lập kế hoạch, kèm thông báo; sau khi `add` xong mà vẫn không khớp → action `failed` + xung đột `missing-marketplace`. `--dry-run` trên máy mới vì vậy không bắt được hậu tố sai; dạng map thì bắt được ngay.
 - Trạng thái thực tế: Plugin entry đọc thẳng từ `enabledPlugins` của settings từng scope; Installed plugin đọc từ `<claude config dir>/plugins/installed_plugins.json` (theo scope, và `projectPath` với `project`/`local`). `claude plugin list --json` không dùng được vì `enabled` là giá trị đã gộp mọi scope và không liệt kê plugin chưa cài. `--dry-run`/`--check` vì vậy vẫn không cần `claude`.
@@ -94,6 +94,19 @@ Theo [ADR 0011](../adr/0011-user-scoped-marketplace.md). Khai báo dạng map c�
   - Khai báo khác claim của Config khác ở scope `user` → `shared-clash`.
 - Thứ tự apply: thêm marketplace → action plugin → gỡ marketplace. Marketplace của plugin đang xung đột hoặc vừa `add` lỗi → action plugin `failed`, Managed plugin entry của nó được giữ nguyên.
 - `claude plugin marketplace remove X --scope S` xoá mọi khoá `*@X` ở S và gỡ Installed plugin của chúng. Còn Manual plugin entry `*@X` → không gỡ X, xung đột `manual-entry`; `--force` để gỡ.
+
+#### User-scoped plugin
+
+Theo [ADR 0012](../adr/0012-user-scoped-plugin.md). Plugin declaration dạng `name@marketplace: { enabled: true, scope: user }` luôn được cài, bật và gỡ ở Scope `user`, dù lệnh đang sync Scope nào.
+
+- Khai báo: map chỉ nhận `enabled` (bắt buộc, boolean) và `scope` (chỉ nhận `user`); field khác → lỗi cấu hình. `enabled: false` kèm `scope: user` → lỗi. Marketplace của plugin phải là User-scoped marketplace; Shorthand declaration không bao giờ là User-scoped marketplace nên cũng lỗi.
+- Trùng khai báo: `scope` là một phần của khai báo. Preset ngang hàng khác `scope` → `preset-clash`, Managed entry của plugin đó được giữ nguyên. Preset con hoặc Config ghi đè `scope` → thông báo. Khác `enabled` vẫn theo luật thường (khai báo sau thắng, không thông báo).
+- Sync `project` hoặc `local`: các plugin này được lập kế hoạch bằng cùng luật như mục Plugin, nhưng so với settings và Installed plugin ở `user`, bản ghi State của Config này ở `user` (khoá `<đường dẫn Config>#project` hoặc `#local`) và claim của các Config khác. Sync `user`: `scope` không có tác dụng.
+- Lock không ghi entry này. Chỉ gỡ ở `user` khi không còn Config nào claim; Config khác còn claim → chỉ bỏ claim của Config này. Config chỉ giữ claim (không sở hữu entry) mà bỏ hết khai báo thì bản ghi của nó cũng được xoá.
+- Opt-out: Config khai báo lại `name@marketplace: false` (không `scope`) → bỏ claim ở `user`, ghi `false` vào Scope đang sync; Claude Code ưu tiên project hơn user nên plugin tắt ở repo đó.
+- Thứ tự: thêm/sửa marketplace ở `user` → thêm/sửa marketplace ở Scope đang sync → cài/bật plugin ở `user` → action plugin ở Scope đang sync → gỡ plugin ở `user` → gỡ marketplace. Marketplace ở `user` lỗi → plugin lỗi `marketplace "…" is not ready in user settings`.
+- Chuyển giữa Scope đang sync và `user` (thêm hoặc bỏ `scope: user` trên plugin đang Managed ở Scope kia): cài/bật ở Scope mới trước, gỡ ở Scope cũ sau. Scope mới lỗi hoặc xung đột → Scope cũ giữ nguyên (bước gỡ báo `"…" is kept here until it is set up in <scope> settings`), và khi chuyển về từ `user` thì claim ở `user` của Config này được giữ cho tới lần sync thành công.
+- `--dry-run` gắn nhãn `(user)`; `--check` tính lệch ở `user` là drift.
 
 ### Skill
 
