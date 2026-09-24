@@ -53,8 +53,8 @@ Hai chỗ research phát hiện là lỗi có sẵn, không liên quan tới es-
   tra lại `NAME_PATTERN`. Kết quả: `Dự Án` → `du-an` (trước đây là `d-n`). `x😀y` → `x-y`; `日本語` → lỗi, gợi ý `--name`.
   Trước đây tên suy ra không được kiểm tra lại.
 - **Thứ tự workflow** trong `findWorkflows` và `listInstalledWorkflows` chuyển từ `localeCompare(b)` sang
-  `localeCompare(b, 'en')`. Trước đây thứ tự phụ thuộc locale của máy (`sv_SE` xếp `ä` sau `z`, `tr_TR` đổi thứ tự
-  `i`/`I`/`ı`). Vì vậy hai người trong nhóm có thể ghi ra `workflowSources` khác nhau trong Lock, và chọn khác nhau
+  `localeCompare(b, 'en')`. Trước đây thứ tự phụ thuộc locale của máy, kể cả với tên
+  toàn ASCII mà `ITEM_NAME` cho phép: `da_DK` xếp `aa` sau `z`, `tr_TR` xếp `I` trước `i`. Vì vậy hai người trong nhóm có thể ghi ra `workflowSources` khác nhau trong Lock, và chọn khác nhau
   Installed workflow khi có hai file trùng tên chỉ khác hoa thường.
 
 **Migration:** người dùng có locale không phải tiếng Anh sẽ thấy Lock đổi thứ tự `workflowSources` một lần ở lần Sync
