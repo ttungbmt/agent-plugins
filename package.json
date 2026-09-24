@@ -1,8 +1,8 @@
 {
-  "name": "agent-plugins",
+  "name": "agent-plugins-monorepo",
+  "private": true,
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "ap": "pnpm -C packages/cli build && node packages/cli/bin/run.js"
@@ -20,6 +20,6 @@
   "packageManager": "pnpm@12.5.1",
   "type": "module",
   "devDependencies": {
-    "cli": "workspace:*"
+    "agent-plugins": "workspace:*"
   }
 }

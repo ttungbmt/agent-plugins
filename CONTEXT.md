@@ -149,3 +149,9 @@ File `agent-plugins.lock` được commit, ghi các Managed entry ở scope `pro
 **State**:
 Bản ghi Managed entry và Danh mục nguồn của scope `local` hoặc `user`, không được commit.
 _Avoid_: lock (cho scope cá nhân)
+
+## Phân phối
+
+**Release tarball**:
+File `ap.tgz` (và `ap-<ver>.tgz`) đính vào GitHub Release, chứa `ap` đã bundle thành một file, không có dependency lúc chạy; người dùng cài bằng `npm i -g <url>`. Xem [ADR 0008](docs/adr/0008-distribute-ap-via-github-release-tarball.md).
+_Avoid_: npm package, bản build (khi nói về thứ người dùng cài)

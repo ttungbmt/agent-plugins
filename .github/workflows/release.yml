@@ -1,0 +1,79 @@
+# Phát hành Release tarball của `ap` khi push tag `v*` (ADR 0008).
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Tag khớp version
+        run: |
+          version=$(node -p "require('./packages/cli/package.json').version")
+          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} không khớp version ${version} của packages/cli"
+            exit 1
+          fi
+      - run: pnpm -C packages/cli typecheck
+      - run: pnpm -C packages/cli test
+      - run: pnpm -C packages/cli pack:release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: packages/cli/release/*.tgz
+          if-no-files-found: error
+
+  smoke:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node: [22, 24]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/download-artifact@v5
+        with:
+          name: release
+          path: release
+      - run: packages/cli/scripts/smoke-release.sh release/ap.tgz
+
+  release:
+    needs: smoke
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: release
+          path: release
+      - uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: release/*.tgz
+      - name: Tạo GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flags=(--generate-notes --title "${GITHUB_REF_NAME}")
+          # Pre-release (tag có `-`, vd. v0.2.0-beta.1) không được chiếm link `latest`.
+          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then flags+=(--prerelease --latest=false); fi
+          gh release create "${GITHUB_REF_NAME}" release/*.tgz --repo "${GITHUB_REPOSITORY}" "${flags[@]}"

@@ -2,3 +2,5 @@ node_modules/
 dist/
 .agent-plugins/state.local.json
 .agent-plugins/cache/
+packages/cli/presets/
+packages/cli/release/

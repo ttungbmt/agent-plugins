@@ -1,9 +1,8 @@
 import { spawn } from 'node:child_process'
 import { homedir } from 'node:os'
-import { dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { Command, Flags } from '@oclif/core'
 import { Listr, ListrLogger, PRESET_TIMER, ProcessOutput } from 'listr2'
+import { defaultPresetsDir } from '../presets-dir.js'
 import { SCOPES } from '../sync/files.js'
 import { sync, type SyncProgress, type SyncReport } from '../sync/index.js'
 import type { Exec } from '../sync/registry.js'
@@ -120,8 +119,4 @@ async function fetchText(url: string): Promise<string> {
   const response = await fetch(url)
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
   return response.text()
-}
-
-function defaultPresetsDir(): string {
-  return dirname(fileURLToPath(import.meta.resolve('presets/package.json')))
 }
