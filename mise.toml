@@ -2,3 +2,6 @@
 [tools]
 node = "24"
 pnpm = "12.5.1"
+
+[env]
+_.file = ".env"

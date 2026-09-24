@@ -6,6 +6,10 @@
       "headers": {
         "Authorization": "Bearer ${FIRECRAWL_API_KEY}"
       }
+    },
+    "deepwiki": {
+      "type": "http",
+      "url": "https://mcp.deepwiki.com/mcp"
     }
   }
 }

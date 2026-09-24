@@ -7,4 +7,4 @@ metadata:
 
 spec:
   presets:
-    - agent-plugins
+    - ./agent-plugins.preset.yaml

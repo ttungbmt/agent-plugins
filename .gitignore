@@ -5,3 +5,4 @@ dist/
 packages/cli/release/
 mise.local.toml
 .scratch/claude-config/
+.env

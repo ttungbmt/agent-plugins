@@ -7,5 +7,5 @@ metadata:
 
 spec: 
   presets:
-    - ./.agent-plugins/preset.yaml
+    - ./.agent-plugins.preset.yaml
 

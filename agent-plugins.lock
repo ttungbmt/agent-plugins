@@ -10,30 +10,25 @@ plugins:
     origin: agent-plugins
   - id: security-guidance@claude-plugins-official
     enabled: true
-    origin: base
+    origin: agent-plugins
   - id: code-simplifier@claude-plugins-official
     enabled: true
-    origin: base
+    origin: agent-plugins
   - id: hookify@claude-plugins-official
     enabled: true
-    origin: base
+    origin: agent-plugins
   - id: commit-commands@claude-plugins-official
     enabled: true
     origin: agent-plugins
-skillSources:
-  - source:
-      source: github
-      repo: vercel-labs/skills
-    commit: 7407f3893ad4dceab546ac002c3ef806e4000c73
-    skills:
-      - find-skills
-skills:
-  - name: find-skills
-    source:
-      source: github
-      repo: vercel-labs/skills
-    sha256: 402765cd5b5d4246a9ff3e8fc19872619b543d758c3399c708f27680927579b0
+  - id: claude-code-setup@claude-plugins-official
+    enabled: true
     origin: base
+  - id: claude-md-management@claude-plugins-official
+    enabled: true
+    origin: base
+  - id: skill-creator@claude-plugins-official
+    enabled: true
+    origin: agent-plugins
 mcpServers:
   - name: firecrawl
     server:
@@ -42,3 +37,8 @@ mcpServers:
       headers:
         Authorization: Bearer ${FIRECRAWL_API_KEY}
     origin: agent-plugins
+  - name: deepwiki
+    server:
+      type: http
+      url: https://mcp.deepwiki.com/mcp
+    origin: agent-plugins.preset.yaml
