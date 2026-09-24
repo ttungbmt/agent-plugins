@@ -1,6 +1,6 @@
 ---
 title: "Move a plugin between the targeted Scope and `user`"
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [02]
 ---
 

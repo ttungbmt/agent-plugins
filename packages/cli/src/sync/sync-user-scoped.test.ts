@@ -457,3 +457,137 @@ describe('a User-scoped plugin', () => {
     ])
   })
 })
+
+/** Adding or dropping `scope: user` on a Managed plugin (ADR 0012): the new Scope first, then the old one. */
+describe('moving a plugin between the targeted Scope and user', () => {
+  const CS = 'commit-commands@claude-plugins-official'
+  const withPlugin = (value: string) => config('scope: user', `  plugins:\n    ${CS}: ${value}\n`)
+  const atUser = withPlugin('{ enabled: true, scope: user }')
+  const atTarget = withPlugin('true')
+  const claudeAt = (cwd: string, homedir: string, failOn?: string[]) =>
+    fakeClaude({ cwd, homedir, marketplaces: { 'anthropics/claude-plugins-official': OFFICIAL }, failOn })
+  const userRecord = async (t: { cwd: string; homedir: string }) =>
+    (await readJson<Record<string, any>>(join(t.homedir, '.agent-plugins/state.json')))[`${join(t.cwd, 'agent-plugins.yaml')}#project`]
+  const steps = (report: { actions: { target: string; kind: string; scope?: string; status: string }[] }) =>
+    report.actions.filter((a) => a.target === 'plugin').map((a) => [a.kind, a.scope ?? 'target', a.status])
+
+  it.each(['project', 'local'] as const)('moves a %s plugin to user settings, installing it there first', async (scope) => {
+    const t = await setup({ 'agent-plugins.yaml': atTarget })
+    await sync({ cwd: t.cwd, scope, mode: 'apply' }, t.deps)
+    await writeFile(join(t.cwd, 'agent-plugins.yaml'), atUser)
+
+    const report = await sync({ cwd: t.cwd, scope, mode: 'apply' }, t.deps)
+
+    expect(report.conflicts).toEqual([])
+    expect(steps(report)).toEqual([
+      ['install', 'user', 'done'],
+      ['uninstall', 'target', 'done'],
+    ])
+    expect((await t.settings(scope)).enabledPlugins).toEqual({})
+    expect((await t.settings('user')).enabledPlugins).toEqual({ [CS]: true })
+    expect(await t.lock()).not.toContain(CS)
+    expect(await readFile(join(t.cwd, '.agent-plugins/state.local.json'), 'utf8').catch(() => '')).not.toContain(CS)
+    expect((await sync({ cwd: t.cwd, scope, mode: 'check' }, t.deps)).inSync).toBe(true)
+  })
+
+  it('moves a User-scoped plugin back to the project, installing it there first', async () => {
+    const t = await setup({ 'agent-plugins.yaml': atUser })
+    await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+    await writeFile(join(t.cwd, 'agent-plugins.yaml'), atTarget)
+
+    const report = await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+
+    expect(report.conflicts).toEqual([])
+    expect(steps(report)).toEqual([
+      ['install', 'target', 'done'],
+      ['uninstall', 'user', 'done'],
+    ])
+    expect((await t.settings('project')).enabledPlugins).toEqual({ [CS]: true })
+    expect((await t.settings('user')).enabledPlugins).toEqual({})
+    expect(await t.lock()).toContain(CS)
+    expect((await sync({ cwd: t.cwd, scope: 'project', mode: 'check' }, t.deps)).inSync).toBe(true)
+  })
+
+  it('only drops its user claim when moving back while another Config still claims it', async () => {
+    const t = await setup({ 'agent-plugins.yaml': atUser })
+    const other = await makeTree({ 'agent-plugins.yaml': atUser })
+    const otherDeps = { ...t.deps, exec: claudeAt(other, t.homedir).exec }
+    await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+    await sync({ cwd: other, scope: 'project', mode: 'apply' }, otherDeps)
+    await writeFile(join(t.cwd, 'agent-plugins.yaml'), atTarget)
+
+    const report = await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+
+    expect(steps(report)).toEqual([['install', 'target', 'done']])
+    expect((await t.settings('user')).enabledPlugins).toEqual({ [CS]: true })
+    expect((await t.settings('project')).enabledPlugins).toEqual({ [CS]: true })
+    expect((await userRecord(t)).pluginClaims).toBeUndefined()
+  })
+
+  it('keeps its user claim when installing back at the project fails while another Config claims it', async () => {
+    const t = await setup({ 'agent-plugins.yaml': atUser })
+    const other = await makeTree({ 'agent-plugins.yaml': atUser })
+    await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+    await sync({ cwd: other, scope: 'project', mode: 'apply' }, { ...t.deps, exec: claudeAt(other, t.homedir).exec })
+    await writeFile(join(t.cwd, 'agent-plugins.yaml'), atTarget)
+
+    const failing = { ...t.deps, exec: claudeAt(t.cwd, t.homedir, [CS]).exec }
+    const report = await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, failing)
+
+    expect(steps(report)).toEqual([['install', 'target', 'failed']])
+    expect((await userRecord(t)).pluginClaims).toEqual([{ id: CS, enabled: true, origin: 'agent-plugins.yaml' }])
+  })
+
+  it('leaves the old Scope untouched while the new one has a conflict', async () => {
+    const t = await setup({ 'agent-plugins.yaml': atTarget })
+    await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+    await writeFile(join(t.cwd, 'agent-plugins.yaml'), atUser)
+    const path = settingsPath('user', { cwd: t.cwd, homedir: t.homedir })
+    await writeFile(path, JSON.stringify({ ...(await t.settings('user')), enabledPlugins: { [CS]: false } }))
+
+    const report = await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+
+    expect(report.conflicts).toEqual([expect.objectContaining({ name: CS, reason: 'manual-entry' })])
+    expect(steps(report)).toEqual([])
+    expect((await t.settings('project')).enabledPlugins).toEqual({ [CS]: true })
+    expect(await t.lock()).toContain(CS)
+  })
+
+  it('leaves the old Scope untouched when installing at the new one fails', async () => {
+    const t = await setup({ 'agent-plugins.yaml': atTarget })
+    await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+    await writeFile(join(t.cwd, 'agent-plugins.yaml'), atUser)
+    const failing = claudeAt(t.cwd, t.homedir, [CS])
+
+    const report = await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, { ...t.deps, exec: failing.exec })
+
+    expect(steps(report)).toEqual([
+      ['install', 'user', 'failed'],
+      ['uninstall', 'target', 'failed'],
+    ])
+    expect(report.actions.at(-1)?.error).toBe(`"${CS}" is kept here until it is set up in user settings`)
+    expect((await t.settings('project')).enabledPlugins).toEqual({ [CS]: true })
+    expect(await t.lock()).toContain(CS)
+  })
+
+  it('leaves the user Scope untouched when installing back at the project fails', async () => {
+    const t = await setup({ 'agent-plugins.yaml': atUser })
+    await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+    await writeFile(join(t.cwd, 'agent-plugins.yaml'), atTarget)
+    const failing = claudeAt(t.cwd, t.homedir, [CS])
+
+    const report = await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, { ...t.deps, exec: failing.exec })
+
+    expect(steps(report)).toEqual([
+      ['install', 'target', 'failed'],
+      ['uninstall', 'user', 'failed'],
+    ])
+    expect(report.actions.at(-1)?.error).toBe(`"${CS}" is kept here until it is set up in project settings`)
+    expect((await t.settings('user')).enabledPlugins).toEqual({ [CS]: true })
+    const again = await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+    expect(steps(again)).toEqual([
+      ['install', 'target', 'done'],
+      ['uninstall', 'user', 'done'],
+    ])
+  })
+})

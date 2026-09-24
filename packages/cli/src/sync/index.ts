@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { AGENTS } from './agents.js'
 import { collectItems, type CollectedItems } from './collect-items.js'
 import { identifies, knownName, missingMarketplaceConflict, sameSource } from './identity.js'
-import { checkMarketplaces, manualPluginsOf, planPlugins, pluginsInUseConflict, type PlannedPluginAction } from './plan-plugins.js'
+import { checkMarketplaces, manualPluginsOf, planPlugins, pluginsInUseConflict, type PlannedPluginAction, type PluginPlan } from './plan-plugins.js'
 import type { Location } from './files.js'
 import type { ItemHandler } from './items.js'
 import { normalizeHook, planHooks, readSettingsHooks, writeSettingsHooks, type PlannedHookAction } from './hooks.js'
@@ -141,6 +141,11 @@ export async function sync(
   const userPluginPlan =
     user &&
     planPlugins(liftedPlugins, user.plugins, user.managedPlugins, { force, held: pluginHeld, shared: user.sharedPlugins })
+  // A plugin moving between the targeted Scope and `user` stays at the old Scope while the new one has a conflict (ADR 0012).
+  const conflictedAt = (plan: PluginPlan | null) => new Set(plan?.conflicts.map((c) => c.name))
+  const [targetConflicts, userConflicts] = [conflictedAt(pluginPlan), conflictedAt(userPluginPlan)]
+  const isRemoval = (a: PlannedPluginAction) => a.kind === 'uninstall' || a.kind === 'unset'
+  const targetPluginActions = pluginPlan.actions.filter((a) => !(isRemoval(a) && userConflicts.has(a.id)))
   const inUse = new Set(resolved.plugins.map((p) => p.marketplace))
   const conflicts = [
     ...resolved.conflicts,
@@ -218,7 +223,7 @@ export async function sync(
   // Removing a marketplace takes all its Plugin entries with it, so a marketplace with Manual plugin entries is kept.
   const ownedPlugins = new Set([
     ...managedPlugins.map((m) => m.id),
-    ...pluginPlan.actions.filter((a) => 'adopt' in a && a.adopt).map((a) => a.id),
+    ...targetPluginActions.filter((a) => 'adopt' in a && a.adopt).map((a) => a.id),
   ])
   // A name still declared on the other side of this Sync is moving between the targeted Scope and `user` (ADR 0011):
   // only its entry goes, so its plugins stay.
@@ -250,14 +255,14 @@ export async function sync(
   // moving between the two Scopes is never missing from both.
   const userPluginSteps = (removing: boolean) =>
     (userPluginPlan?.actions ?? [])
-      .filter((a) => (a.kind === 'uninstall' || a.kind === 'unset') === removing)
+      .filter((a) => isRemoval(a) === removing && !(removing && targetConflicts.has(a.id)))
       .map((action) => ({ target: 'plugin' as const, action, scope: 'user' as const }))
   const steps: Exclude<Step, { target: 'hook' }>[] = [
     // User-scope entries first, so the plugins of the targeted Scope find their marketplace (ADR 0011).
     ...userSteps(false),
     ...plan.actions.filter((a) => a.kind !== 'remove').map((action) => ({ target: 'marketplace' as const, action })),
     ...userPluginSteps(false),
-    ...pluginPlan.actions.map((action) => ({ target: 'plugin' as const, action })),
+    ...targetPluginActions.map((action) => ({ target: 'plugin' as const, action })),
     ...userPluginSteps(true),
     ...removals.map((action) => ({ target: 'marketplace' as const, action })),
     ...userSteps(true),
@@ -311,6 +316,8 @@ export async function sync(
   for (const name of hookPlan.forgotten) hookRecords.delete(name)
   /** Marketplaces whose step failed, with the Scope they were meant for. */
   const failedMarketplaces = new Map<string | null, Scope>()
+  /** Plugins whose install/enable/disable failed, with their Scope; one moving there keeps its old Scope (ADR 0012). */
+  const failedPlugins = new Map<string, Scope>()
   const itemRecords = byKind((kind) => {
     const { managed, plan } = items[kind]
     const records = new Map(managed.map((m) => [m.name, m]))
@@ -369,6 +376,7 @@ export async function sync(
     } catch (error) {
       if (error instanceof ConflictError) conflicts.push(error.conflict)
       if (step.target === 'marketplace') failedMarketplaces.set(step.action.name, step.scope ?? scope)
+      if (step.target === 'plugin' && 'declaration' in step.action) failedPlugins.set(step.action.id, step.scope ?? scope)
       actions.push({ ...describe(step), status: 'failed', error: (error as Error).message })
     }
     deps.onProgress?.({ phase: 'end', action: actions.at(-1)!, ms: Date.now() - started })
@@ -408,6 +416,8 @@ export async function sync(
     const { id } = action
     const [target, owned, entries] = at ? [at, userPluginRecords, user!.plugins] : [scope, pluginRecords, actualPlugins]
     if (!('declaration' in action)) {
+      const pluginFailedAt = failedPlugins.get(id)
+      if (pluginFailedAt) throw new Error(`"${id}" is kept here until it is set up in ${pluginFailedAt} settings`)
       await (action.kind === 'uninstall' ? registry.uninstallPlugin(id, target) : registry.unsetPlugin(id, target))
       owned.delete(id)
       return id
@@ -525,6 +535,11 @@ export async function sync(
     },
   )
   // A record holding only claims is saved too, so dropping the last User-scoped declaration drops those claims.
+  // A plugin moving back from `user` keeps this Config's claim there until the targeted Scope has it (ADR 0012).
+  const movingBack = (user?.managedPlugins ?? [])
+    .filter((m) => !liftedPlugins.some((p) => p.id === m.id))
+    .filter((m) => failedPlugins.get(m.id) === scope || targetConflicts.has(m.id))
+    .map(({ id, enabled, origin }) => ({ id, enabled, origin }))
   if (user && (user.recorded || lifted.length || liftedPlugins.length)) {
     await store.save(
       'user',
@@ -532,7 +547,7 @@ export async function sync(
       resolved.pins,
       {
         claims: claimsOf(lifted, [...userRecords.values()], user.actual, conflicts),
-        pluginClaims: claimsOfPlugins(liftedPlugins),
+        pluginClaims: [...claimsOfPlugins(liftedPlugins), ...movingBack],
         itemClaims: byKind(() => []),
         mcpClaims: [],
         released: { ...NO_OWNED, marketplaces: userReleased, plugins: userReleasedPlugins },
