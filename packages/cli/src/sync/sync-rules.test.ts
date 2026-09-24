@@ -1,0 +1,173 @@
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
+import { join, relative, resolve } from 'node:path'
+import { describe, expect, it } from 'vitest'
+import { parse } from 'yaml'
+import { fakeClaude } from './fake-claude.js'
+import { sync, type SyncMode } from './index.js'
+import { makeTree } from './test-helpers.js'
+import type { ItemSource, Scope } from './types.js'
+
+const REPO = 'acme/ECC'
+const SOURCE = { source: 'github', repo: REPO }
+
+/** Bộ rule kiểu ECC: nhóm `common` và `web`, link tương đối giữa các nhóm, kèm các file không phải Rule. */
+const ECC = {
+  'rules/common/coding-style.md': '# Common coding style\n',
+  'rules/common/testing.md': '# Common testing\n',
+  'rules/web/coding-style.md': '---\npaths: ["**/*.tsx"]\n---\nSee [common](../common/coding-style.md).\n',
+  'rules/README.md': '# How to install\n',
+  'rules/web/Readme.md': '# Web rules\n',
+  '.claude/rules/internal.md': '# Rules of the ECC repo itself\n',
+  'CHANGELOG.md': '# Changelog\n',
+}
+
+function config(rules: string) {
+  return `kind: Config\nmetadata: { name: demo }\nspec:\n  rules: ${rules}\n`
+}
+
+/** Nguồn giả: mỗi repo là một chuỗi commit, `publish` thêm commit mới; tải không có commit thì lấy commit mới nhất. */
+async function fakeSources(initial: Record<string, Record<string, string>>) {
+  const history: Record<string, { commit: string; dir: string }[]> = {}
+  async function publish(repo: string, files: Record<string, string>) {
+    const versions = (history[repo] ??= [])
+    versions.push({ commit: `${repo.replace('/', '-')}-${versions.length + 1}`, dir: await makeTree(files) })
+  }
+  for (const [repo, files] of Object.entries(initial)) await publish(repo, files)
+  const fetch = async (source: ItemSource, commit: string | null) => {
+    const versions = history[source.repo as string]
+    if (!versions) throw new Error(`repository ${source.repo} not found`)
+    const version = commit ? versions.find((v) => v.commit === commit) : versions.at(-1)
+    if (!version) throw new Error(`commit ${commit} not found`)
+    return { dir: version.dir, commit: version.commit, cleanup: async () => {} }
+  }
+  return { fetch, publish }
+}
+
+async function setup(files: Record<string, string>, repos: Record<string, Record<string, string>> = { [REPO]: ECC }) {
+  const cwd = await makeTree(files)
+  const homedir = await makeTree({})
+  const sources = await fakeSources(repos)
+  const claude = fakeClaude({ cwd, homedir, marketplaces: {} })
+  const deps = {
+    exec: claude.exec,
+    fetch: async () => {
+      throw new Error('offline')
+    },
+    homedir,
+    defaultPresetsDir: join(cwd, 'default-presets'),
+    fetchSkillSource: (source: ItemSource, commit: string | null) =>
+      source.source === 'directory'
+        ? Promise.resolve({ dir: resolve(cwd, source.path as string), commit: null, cleanup: async () => {} })
+        : sources.fetch(source, commit),
+  }
+  const run = (mode: SyncMode = 'apply', extra: { force?: boolean; update?: boolean; scope?: Scope } = {}) =>
+    sync({ cwd, scope: extra.scope ?? 'project', mode, force: extra.force, update: extra.update }, deps)
+  const read = async (path: string) => readFile(join(cwd, path), 'utf8').catch(() => undefined)
+  const lock = async () => parse((await read('agent-plugins.lock')) ?? '') ?? {}
+  /** Mọi file dưới `dir`, đường dẫn tương đối, đã sắp xếp. */
+  const tree = async (dir = join(cwd, '.claude/rules')) =>
+    (await readdir(dir, { recursive: true, withFileTypes: true }).catch(() => []))
+      .filter((e) => e.isFile())
+      .map((e) => relative(dir, join(e.parentPath, e.name)))
+      .sort()
+  const setConfig = (text: string) => writeFile(join(cwd, 'agent-plugins.yaml'), text)
+  return { cwd, homedir, sources, run, read, lock, tree, setConfig }
+}
+
+const act = (kind: string, name: string | null, status = 'done') => expect.objectContaining({ target: 'rule', kind, name, status })
+
+describe('sync rules', () => {
+  it('copies every rule of a bare source into its namespace, keeping the folder layout', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[${REPO}]`) })
+
+    const report = await t.run()
+
+    expect(report).toMatchObject({ conflicts: [], inSync: true })
+    expect(report.actions).toEqual([
+      act('install', 'ecc/common/coding-style'),
+      act('install', 'ecc/common/testing'),
+      act('install', 'ecc/web/coding-style'),
+    ])
+    expect(await t.tree()).toEqual(['ecc/common/coding-style.md', 'ecc/common/testing.md', 'ecc/web/coding-style.md'])
+    expect(await t.read('.claude/rules/ecc/web/coding-style.md')).toBe(ECC['rules/web/coding-style.md'])
+    const lock = await t.lock()
+    expect(lock.ruleSources).toEqual([
+      { source: SOURCE, commit: 'acme-ECC-1', rules: ['common/coding-style', 'common/testing', 'web/coding-style'] },
+    ])
+    expect(lock.rules.map((r: { name: string }) => r.name)).toEqual(['ecc/common/coding-style', 'ecc/common/testing', 'ecc/web/coding-style'])
+    expect(lock.rules[0]).toMatchObject({ source: SOURCE, origin: 'agent-plugins.yaml', sha256: expect.any(String) })
+    expect(await t.run('check')).toMatchObject({ actions: [], inSync: true })
+  })
+
+  it('refuses a source without rules/ unless `path` points at its rules', async () => {
+    const flat = { 'claude/rules/security.md': '# Security\n', 'CONTRIBUTING.md': '# Contributing\n' }
+    const t = await setup({ 'agent-plugins.yaml': config('[acme/toolkit]') }, { 'acme/toolkit': flat })
+
+    const report = await t.run()
+
+    expect(report.inSync).toBe(false)
+    expect(report.actions).toEqual([expect.objectContaining({ target: 'rule', kind: 'fetch', status: 'failed', error: expect.stringContaining('`path`') })])
+    expect(await t.tree()).toEqual([])
+
+    await t.setConfig(config('[{ source: acme/toolkit, path: claude/rules }]'))
+    expect((await t.run()).actions).toEqual([act('install', 'toolkit/security')])
+    expect(await t.tree()).toEqual(['toolkit/security.md'])
+  })
+
+  it('reads a local directory source as its rules folder', async () => {
+    const t = await setup({
+      'agent-plugins.yaml': config('[./team-rules]'),
+      'team-rules/api.md': '# API\n',
+      'team-rules/README.md': '# About\n',
+    })
+
+    await t.run()
+
+    expect(await t.tree()).toEqual(['team-rules/api.md'])
+  })
+
+  it('removes rules that are no longer declared, drops the empty namespace and leaves user files alone', async () => {
+    const t = await setup({
+      'agent-plugins.yaml': config(`[${REPO}]`),
+      '.claude/rules/mine.md': '# Mine\n',
+      '.claude/rules/team/style.md': '# Team\n',
+    })
+    await t.run()
+
+    await t.setConfig('kind: Config\nmetadata: { name: demo }\nspec: {}\n')
+    const report = await t.run()
+
+    expect(report.actions).toEqual([
+      act('remove', 'ecc/common/coding-style'),
+      act('remove', 'ecc/common/testing'),
+      act('remove', 'ecc/web/coding-style'),
+    ])
+    expect(await t.tree()).toEqual(['mine.md', 'team/style.md'])
+    expect(await readdir(join(t.cwd, '.claude/rules'))).not.toContain('ecc')
+    expect((await t.lock()).rules).toBeUndefined()
+  })
+
+  it('skips rules in local scope and installs them under the Claude config dir in user scope', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[${REPO}]`) })
+
+    const local = await t.run('apply', { scope: 'local' })
+    expect(local.notices).toContain('rules are not synced in local scope: Claude Code has no local rules directory')
+    expect(await t.tree()).toEqual([])
+
+    await t.run('apply', { scope: 'user' })
+    expect(await t.tree(join(t.homedir, '.claude/rules'))).toEqual([
+      'ecc/common/coding-style.md',
+      'ecc/common/testing.md',
+      'ecc/web/coding-style.md',
+    ])
+  })
+
+  it('only looks inside declared or managed namespaces', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[${REPO}]`) })
+    await mkdir(join(t.cwd, '.claude/rules/other'), { recursive: true })
+    await writeFile(join(t.cwd, '.claude/rules/other/common.md'), '# Not ours\n')
+
+    expect((await t.run()).conflicts).toEqual([])
+    expect(await t.tree()).toContain('other/common.md')
+  })
+})

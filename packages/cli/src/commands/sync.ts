@@ -7,16 +7,17 @@ import { SCOPES } from '../sync/files.js'
 import { sync, type SyncProgress, type SyncReport } from '../sync/index.js'
 import type { Exec } from '../sync/registry.js'
 import { ConfigError, describeItemSource } from '../sync/resolve.js'
+import { ITEM_KINDS, type ItemKind } from '../sync/types.js'
 
 export default class Sync extends Command {
-  static override description = 'Sync marketplaces, plugins, skills, agents and MCP servers declared in agent-plugins.yaml into Claude Code'
+  static override description = 'Sync marketplaces, plugins, skills, agents, rules and MCP servers declared in agent-plugins.yaml into Claude Code'
 
   static override flags = {
     scope: Flags.option({ options: SCOPES, default: 'project' as const, description: 'settings scope to write' })(),
     'dry-run': Flags.boolean({ description: 'print the plan without changing anything', exclusive: ['check'] }),
     check: Flags.boolean({ description: 'exit non-zero if settings are out of sync', exclusive: ['dry-run'] }),
-    force: Flags.boolean({ description: 'overwrite manual entries with the same name, plugin id, skill, agent or MCP server name, and skills or agents edited on disk' }),
-    update: Flags.boolean({ description: 'accept changed content of remote presets and fetch the latest commit of skill and agent sources' }),
+    force: Flags.boolean({ description: 'overwrite manual entries with the same name, plugin id, skill, agent, rule or MCP server name, and skills, agents or rules edited on disk' }),
+    update: Flags.boolean({ description: 'accept changed content of remote presets and fetch the latest commit of skill, agent and rule sources' }),
     verbose: Flags.boolean({ description: 'stream output of the underlying claude and git commands' }),
   }
 
@@ -50,14 +51,14 @@ export default class Sync extends Command {
     }
     for (const n of report.notices) this.log(`note    ${n}`)
     for (const c of report.conflicts) this.logToStderr(`conflict ${c.name}: ${c.detail}`)
-    if (report.inSync && report.actions.length === 0) this.log('marketplaces, plugins, skills, agents and MCP servers are in sync')
+    if (report.inSync && report.actions.length === 0) this.log('marketplaces, plugins, skills, agents, rules and MCP servers are in sync')
     // dry-run chỉ báo lỗi khi có xung đột; check và apply báo lỗi khi còn lệch.
     if (mode === 'dry-run' ? report.conflicts.length > 0 : !report.inSync) this.exit(1)
   }
 }
 
 function target(a: SyncProgress['action']): string {
-  if ((a.target === 'skill' || a.target === 'agent') && !a.name && a.source) return `${a.target}s from ${describeItemSource(a.source)}`
+  if (ITEM_KINDS.includes(a.target as ItemKind) && !a.name && a.source) return `${a.target}s from ${describeItemSource(a.source)}`
   if (a.target === 'mcp') return `MCP server ${a.name}`
   return a.name ?? (a.source ? JSON.stringify(a.source) : '?')
 }

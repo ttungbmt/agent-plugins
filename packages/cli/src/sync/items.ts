@@ -18,7 +18,13 @@ export type ItemHandler = {
   dir(scope: Scope, location: Location): string | null
   /** Tìm các thứ trong `root` (gốc nguồn đã tải, hoặc `path` của nó). */
   find(root: string, source: ItemSource): Promise<FoundItem[]>
-  list(dir: string): Promise<InstalledItem[]>
+  /**
+   * Chỉ Rule (ADR 0009): thư mục con mà mọi thứ của `source` được cài vào. Định danh trên đĩa (Lock/State, Bản cài) là
+   * `<namespace>/<tên trong nguồn>`, còn Danh mục nguồn và lựa chọn trong khai báo dùng tên trong nguồn.
+   */
+  namespace?(source: ItemSource): string
+  /** `namespaces`: các Namespace đang khai báo hoặc có trong Lock/State; chỉ loại có `namespace` dùng tới. */
+  list(dir: string, namespaces: string[]): Promise<InstalledItem[]>
   /** Thay Bản cài `name` bằng bản copy của `from`. Symlink cũ chỉ bị gỡ link, không đụng thứ nó trỏ tới. */
   install(from: string, dir: string, name: string): Promise<void>
   remove(dir: string, name: string): Promise<void>

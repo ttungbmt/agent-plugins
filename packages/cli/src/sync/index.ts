@@ -9,6 +9,7 @@ import { planItems, type ItemPlan, type PlannedItemAction } from './plan-items.j
 import { planSync, type PlannedAction } from './plan.js'
 import { ConflictError, createRegistry, type Exec } from './registry.js'
 import { resolveConfig, type Fetch } from './resolve.js'
+import { RULES } from './rules.js'
 import { createGitFetcher, SKILLS, type FetchedSource, type FetchSkillSource } from './skills.js'
 import { createStore, NO_OWNED } from './store.js'
 import { byKind, ITEM_KINDS } from './types.js'
@@ -58,7 +59,7 @@ type ItemSync = {
 }
 
 /** Cách tải và cài của từng loại item. */
-const HANDLERS: ByKind<ItemHandler> = { skill: SKILLS, agent: AGENTS }
+const HANDLERS: ByKind<ItemHandler> = { skill: SKILLS, agent: AGENTS, rule: RULES }
 
 const EMPTY_PLAN: ItemPlan = { actions: [], conflicts: [], notices: [], adopted: [], forgotten: [] }
 
@@ -127,7 +128,10 @@ export async function sync(
       if (declarations.length) notices.push(`${kind}s are not synced in local scope: Claude Code has no local ${kind}s directory`)
       return run
     }
-    const installed = await handler.list(dir)
+    const namespaces = handler.namespace
+      ? [...new Set([...declarations.map((d) => handler.namespace!(d.source)), ...managed.map((m) => m.name.split('/')[0]!)])]
+      : []
+    const installed = await handler.list(dir, namespaces)
     run.collected = await collectItems(handler, declarations, managed, {
       catalogs,
       installed,

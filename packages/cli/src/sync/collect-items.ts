@@ -53,6 +53,10 @@ export async function collectItems(
   const candidates: (DesiredItem & { declaration: ItemDeclaration })[] = []
   for (const declaration of declarations) {
     const { source, origin, select } = declaration
+    // Rule: định danh trên đĩa có Namespace ở trước, còn Danh mục nguồn và lựa chọn dùng tên trong nguồn (ADR 0009).
+    const namespace = handler.namespace?.(source)
+    const onDisk = (name: string) => (namespace ? `${namespace}/${name}` : name)
+    const inSource = (name: string) => (namespace ? name.slice(namespace.length + 1) : name)
     const records = managed.filter((m) => sameSource(m.source, source))
     const catalog = opts.catalogs.find((c) => sameSource(c.source, source))
     const selected = (names: string[]) => (Array.isArray(select) ? select : names.filter((n) => !select.exclude.includes(n)))
@@ -64,14 +68,14 @@ export async function collectItems(
           result.notices.push(`${origin} excludes ${kind} "${name}" but ${describeItemSource(source)} has no such ${kind}`)
           continue
         }
-        hold([name])
-        result.conflicts.push({ name, reason: `missing-${kind}`, detail: `${origin} selects ${kind} "${name}" but ${describeItemSource(source)} has no such ${kind}` })
+        hold([onDisk(name)])
+        result.conflicts.push({ name: onDisk(name), reason: `missing-${kind}`, detail: `${origin} selects ${kind} "${name}" but ${describeItemSource(source)} has no such ${kind}` })
       }
       return selected(available).filter((n) => available.includes(n))
     }
     /** Thứ lấy nội dung từ Lock/State, không cần tải; `null` khi Lock/State không đủ để quyết định. */
     const fromRecords = (names: string[]) =>
-      names.map((name) => {
+      names.map(onDisk).map((name) => {
         const record = records.find((r) => r.name === name)
         return { name, source, sha256: record?.sha256 ?? null, from: null, origin, declaration }
       })
@@ -86,13 +90,13 @@ export async function collectItems(
         hold(managed.filter((m) => sameRepo(m.source, source)).map((m) => m.name))
         continue
       }
-      candidates.push(...fromRecords(selected(records.map((r) => r.name))))
+      candidates.push(...fromRecords(selected(records.map((r) => inSource(r.name)))))
       continue
     }
 
     if (catalog && !opts.update) {
       const names = selected(catalog.names).filter((n) => catalog.names.includes(n))
-      const needsContent = names.some((name) => {
+      const needsContent = names.map(onDisk).some((name) => {
         const record = records.find((r) => r.name === name)
         const entry = opts.installed.find((e) => e.name === name)
         return !record || !entry || (opts.force && entry.sha256 !== record.sha256)
@@ -116,13 +120,13 @@ export async function collectItems(
       if (fetched!.commit) result.catalogs.push({ source, commit: fetched!.commit, names: found.map((f) => f.name) })
       for (const name of checkNames(found.map((f) => f.name))) {
         const item = found.find((f) => f.name === name)!
-        candidates.push({ name, source, sha256: item.sha256, from: item.path, origin, declaration })
+        candidates.push({ name: onDisk(name), source, sha256: item.sha256, from: item.path, origin, declaration })
       }
     } catch (error) {
       result.failures.push({ source, error: (error as Error).message })
       if (catalog) result.catalogs.push(catalog)
       hold(managed.filter((m) => sameRepo(m.source, source)).map((m) => m.name))
-      if (Array.isArray(select)) hold(select)
+      if (Array.isArray(select)) hold(select.map(onDisk))
     }
   }
 
