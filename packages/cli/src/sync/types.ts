@@ -1,3 +1,7 @@
+import type { HookGroup, HookHandler, PluginDeclaration, Selection } from './spec.js'
+
+// Derived from the `spec.*` schema (ADR 0015).
+export type { HookGroup, HookHandler, PluginDeclaration, Selection }
 export type Scope = 'project' | 'local' | 'user'
 
 /** A `source` value in `extraKnownMarketplaces`, e.g. `{ source: 'github', repo: 'owner/repo' }`. */
@@ -13,15 +17,6 @@ export type MarketplaceDeclaration = {
   origin: string
 }
 
-/** A merged Plugin declaration: `id` is `name@marketplace`, `marketplace` is its suffix. */
-export type PluginDeclaration = {
-  id: string
-  marketplace: string
-  enabled: boolean
-  /** `user` for a User-scoped plugin (ADR 0012), always `enabled`; absent means the Scope the Sync targets. */
-  scope?: 'user'
-  origin: string
-}
 
 /** A Scope's Plugin entry (a key in `enabledPlugins`), plus whether that Scope has an Installed plugin. */
 export type PluginEntry = { id: string; enabled: boolean | undefined; installed: boolean }
@@ -48,8 +43,6 @@ export function byKind<T>(make: (kind: ItemKind) => T): ByKind<T> {
 export type ItemSource = MarketplaceSource
 export type SkillSource = ItemSource
 
-/** The selected Skill/Agent names, or everything in the source except the names in `exclude` (`exclude: []` means all). */
-export type Selection = string[] | { exclude: string[] }
 
 /**
  * A Skill declaration or Agent declaration merged by source.
@@ -156,11 +149,6 @@ export type ManagedMcp = { name: string; server: McpConfig; origin: string }
 export type McpClaim = { name: string; server: McpConfig; origin: string }
 export type SharedMcpClaim = McpClaim & { config: string }
 
-/** A handler in a matcher group, in Claude Code's exact format; every field besides `type` is kept verbatim. */
-export type HookHandler = { type: string; [field: string]: unknown }
-
-/** A Hook: a matcher group (`matcher`, `hooks`) together with the event that holds it under the settings' `hooks` key. */
-export type HookGroup = { event: string; matcher?: string; hooks: HookHandler[] }
 
 /** A resolved Hook declaration: `group` is kept exactly as the user wrote it, so it is written to settings verbatim. */
 export type HookDeclaration = { name: string; group: HookGroup; origin: string }

@@ -4,7 +4,7 @@ import { ConfigError } from './errors.js'
 import { checkMcp, normalizeMcp } from './mcp.js'
 import { parseShorthand } from './shorthand.js'
 import { byKind, ITEM_KINDS } from './types.js'
-import type { ByKind, HookDeclaration, HookGroup, ItemDeclaration, ItemKind, MarketplaceDeclaration, MarketplaceSource, McpConfig, PluginDeclaration } from './types.js'
+import type { ByKind, HookDeclaration, ItemDeclaration, ItemKind, MarketplaceDeclaration, MarketplaceSource, McpConfig } from './types.js'
 
 // The shape of `spec` is checked in one synchronous parse (ADR 0015); the semantic steps (Shorthand sources, the MCP
 // catalog) run after it as plain code. Messages use `{}` for the subject (plugin id, marketplace, MCP server or hook
@@ -55,6 +55,7 @@ const PluginSettings = z
 const PluginValue = z.union([z.pipe(z.boolean(), z.transform((enabled) => ({ enabled }))), PluginSettings], {
   error: 'plugin {} must be true, false or { enabled, scope }',
 })
+/** `id` is `name@marketplace`, `marketplace` its suffix; `scope: user` marks a User-scoped plugin (ADR 0012), always `enabled`. */
 const plugin = (id: string, value: { enabled: boolean; scope?: 'user' }) => ({ id, marketplace: PLUGIN_ID.exec(id)![1]!, ...value })
 /** A map of `name@marketplace: bool | { enabled, scope? }`, or a list of `name@marketplace` as shorthand for all `true`. */
 const Plugins = z.union(
@@ -143,7 +144,7 @@ const handler = <T extends keyof typeof HANDLER_FIELDS>(type: T) =>
     type: z.literal(type),
     ...Object.fromEntries(HANDLER_FIELDS[type].map((f) => [f, z.string({ error: `handler {n} of hook {} (${type}) needs \`${f}\`` })])),
   } as { type: z.ZodMiniLiteral<T> } & Record<(typeof HANDLER_FIELDS)[T][number], z.ZodMiniString>)
-const HookHandler = z.discriminatedUnion('type', [handler('command'), handler('http'), handler('mcp_tool'), handler('prompt'), handler('agent')], {
+const HookHandlerSchema = z.discriminatedUnion('type', [handler('command'), handler('http'), handler('mcp_tool'), handler('prompt'), handler('agent')], {
   error: 'handler {n} of hook {} needs a `type`: command, http, mcp_tool, prompt or agent',
 })
 const HOOK_LIST_ERROR = 'hook {} needs a non-empty `hooks` list of handlers'
@@ -153,7 +154,7 @@ const HookGroupSchema = z.strictObject(
   {
     event: z.string({ error: EVENT_ERROR }).check(z.minLength(1, { error: EVENT_ERROR })),
     matcher: z.optional(z.string({ error: '`matcher` of hook {} must be a string' })),
-    hooks: z.array(HookHandler, { error: HOOK_LIST_ERROR }).check(z.minLength(1, { error: HOOK_LIST_ERROR })),
+    hooks: z.array(HookHandlerSchema, { error: HOOK_LIST_ERROR }).check(z.minLength(1, { error: HOOK_LIST_ERROR })),
   },
   { error: (iss) => (iss.code === 'unrecognized_keys' ? `hook {} has unknown key \`${iss.keys[0]}\`; a hook has only event, matcher and hooks` : undefined) },
 )
@@ -171,6 +172,15 @@ const SpecShape = z.object(
   { error: '`spec` must be a map' },
 )
 const Spec = z.nullish(SpecShape)
+
+/** A merged Plugin declaration. */
+export type PluginDeclaration = z.output<typeof Plugins>[number] & { origin: string }
+/** The selected names, or everything in the source except the names in `exclude` (`exclude: []` means all). */
+export type Selection = z.output<ReturnType<typeof itemEntry>>['select']
+/** A handler in a matcher group, in Claude Code's exact format; every field besides the required ones is kept verbatim. */
+export type HookHandler = z.output<typeof HookHandlerSchema>
+/** A Hook: a matcher group (`matcher`, `hooks`) together with the event that holds it under the settings' `hooks` key. */
+export type HookGroup = z.output<typeof HookGroupSchema>
 
 /** A Skill, Agent, Rule or Workflow declaration as read from one document, before merging. */
 export type ItemPart = Pick<ItemDeclaration, 'source' | 'select' | 'scope' | 'origin'>

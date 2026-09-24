@@ -1,6 +1,6 @@
 ---
 title: Derive `Selection`, `HookGroup`/`HookHandler` and `PluginDeclaration` from the schema
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [01]
 ---
 
