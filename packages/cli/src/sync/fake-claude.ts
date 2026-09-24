@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import { claudeDir, claudeJsonPath, installedPluginsPath, readJson, SCOPES, settingsPath, writeJson, type Location } from './files.js'
+import { claudeJsonPath, installedPluginsPath, knownMarketplacesPath, readJson, SCOPES, settingsPath, writeJson, type Location } from './files.js'
 import type { Exec } from './registry.js'
 import type { MarketplaceSource, Scope } from './types.js'
 
@@ -25,7 +25,7 @@ export function fakeClaude(opts: Location & {
   confirm?: string[]
 }) {
   const calls: string[][] = []
-  const knownPath = join(claudeDir(opts), 'plugins/known_marketplaces.json')
+  const knownPath = knownMarketplacesPath(opts)
   const installed = () => readJson<Record<string, { source: MarketplaceSource }>>(knownPath)
   const pluginsPath = installedPluginsPath(opts)
   const installs = async () => (await readJson<{ plugins?: Record<string, InstallRecord[]> }>(pluginsPath)).plugins ?? {}

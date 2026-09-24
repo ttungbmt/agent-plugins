@@ -26,12 +26,14 @@ export type Plan = {
  * `elsewhere` holds entries at other scopes: Claude Code installs only one marketplace per name for the whole machine, so
  * the same name with a different source would make `add` replace the other scope's install — a conflict `--force` does
  * not override.
+ * `installed` holds the names of the Installed marketplaces: a Managed entry whose install is gone is added again, or
+ * `claude plugin install` cannot find its plugins. Left out, every entry in settings counts as installed.
  */
 export function planSync(
   desired: MarketplaceDeclaration[],
   actual: KnownEntry[],
   managed: ManagedEntry[],
-  opts: { force: boolean; blocked?: string[]; shared?: SharedClaim[]; elsewhere?: { cwd: string; entries: ScopedEntry[] } },
+  opts: { force: boolean; blocked?: string[]; shared?: SharedClaim[]; elsewhere?: { cwd: string; entries: ScopedEntry[] }; installed?: Set<string> },
 ): Plan {
   const actions: PlannedAction[] = []
   const conflicts: Conflict[] = []
@@ -64,6 +66,8 @@ export function planSync(
     } else if (!sameSource(entry.source, declaration.source)) {
       if (isManaged || opts.force) actions.push({ kind: 'add', name, declaration })
       else conflicts.push(manualEntryConflict(entry.name))
+    } else if ((isManaged || opts.force) && opts.installed && !opts.installed.has(entry.name)) {
+      actions.push({ kind: isManaged ? 'readd' : 'add', name, declaration })
     } else if (isManaged || opts.force) {
       // A Managed entry must match its declaration exactly, even when an optional field was dropped.
       if (!isDeepStrictEqual(entry.extras, declaration.extras)) actions.push({ kind: 'patch', name, declaration })

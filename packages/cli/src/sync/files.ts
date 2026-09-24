@@ -19,6 +19,11 @@ export function installedPluginsPath(location: Location): string {
   return join(claudeDir(location), 'plugins/installed_plugins.json')
 }
 
+/** Where Claude Code records the Installed marketplaces, shared by every scope on the machine and keyed by name. */
+export function knownMarketplacesPath(location: Location): string {
+  return join(claudeDir(location), 'plugins/known_marketplaces.json')
+}
+
 /**
  * Claude Code's `.claude.json`: holds the MCP servers of the `user` scope (`mcpServers`) and the `local` scope
  * (`projects[<cwd>].mcpServers`). Lives in `CLAUDE_CONFIG_DIR` when that variable is set, otherwise in home (not

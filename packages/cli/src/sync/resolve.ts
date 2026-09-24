@@ -429,6 +429,11 @@ function list(refs: unknown): string[] {
 async function readMarketplaces(raw: unknown, origin: string, dir: string): Promise<MarketplaceDeclaration[]> {
   if (!raw) return []
   if (Array.isArray(raw)) {
+    if (!raw.every((item) => typeof item === 'string')) {
+      throw new ConfigError(
+        `${origin}: \`marketplaces\` list items must be source strings; use the \`name: { source }\` map form for extra fields`,
+      )
+    }
     return Promise.all(
       raw.map(async (text: string) => ({ name: null, source: await parseShorthand(text, dir, origin), extras: {}, origin })),
     )

@@ -1,0 +1,8 @@
+kind: Preset
+
+metadata:
+  name: mealops
+
+spec:
+  extends: base
+
