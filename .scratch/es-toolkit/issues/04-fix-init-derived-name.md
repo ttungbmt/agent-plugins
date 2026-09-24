@@ -1,6 +1,6 @@
 ---
 title: "`ap init` strips diacritics and re-validates a derived name"
-labels: []
+labels: [done]
 blocked_by: [02, 03]
 ---
 

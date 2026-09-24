@@ -36,6 +36,22 @@ describe('init', () => {
     expect(parse(await read(cwd, 'agent-plugins.yaml')).metadata.name).toBe(name)
   })
 
+  it.each([
+    ['Dự Án', 'du-an'],
+    ['Đường Đi', 'duong-di'],
+    ['x😀y', 'x-y'],
+  ])('strips diacritics and symbols when deriving the name from %s', async (dirName, name) => {
+    const cwd = await makeRepo(dirName)
+    await init({ cwd })
+    expect(parse(await read(cwd, 'agent-plugins.yaml')).metadata.name).toBe(name)
+  })
+
+  it('asks for --name when the directory name has no Latin letters or digits', async () => {
+    const cwd = await makeRepo('日本語')
+    await expect(init({ cwd })).rejects.toThrow('cannot derive a Config name from "日本語"; pass --name')
+    await expect(read(cwd, 'agent-plugins.yaml')).rejects.toThrow()
+  })
+
   it('uses --name instead of the directory name', async () => {
     const cwd = await makeRepo('whatever')
     await init({ cwd, name: 'team-tools' })

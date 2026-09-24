@@ -1,5 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
+import { deburr } from 'es-toolkit'
 import { ConfigError } from '../sync/errors.js'
 
 const SCHEMA_URL =
@@ -12,11 +13,10 @@ export type InitResult = { configPath: string; gitignoreAdded: string[] }
 
 /** Create an empty `agent-plugins.yaml` and extend .gitignore, per docs/design/ap-init.md. */
 export async function init(opts: { cwd: string; name?: string; force?: boolean }): Promise<InitResult> {
-  const name = opts.name ?? kebabCase(basename(opts.cwd))
-  if (opts.name !== undefined && !NAME_PATTERN.test(name)) {
+  const name = opts.name ?? deriveName(opts.cwd)
+  if (!NAME_PATTERN.test(name)) {
     throw new ConfigError(`--name "${name}" must be kebab-case (lowercase letters, digits and single dashes)`)
   }
-  if (!name) throw new ConfigError(`cannot derive a Config name from "${basename(opts.cwd)}"; pass --name`)
 
   const configPath = join(opts.cwd, 'agent-plugins.yaml')
   // The 'wx' flag avoids overwriting an existing Config, even if the file appears in the meantime.
@@ -28,6 +28,14 @@ export async function init(opts: { cwd: string; name?: string; force?: boolean }
   return { configPath, gitignoreAdded: await extendGitignore(join(opts.cwd, '.gitignore')) }
 }
 
+/** Kebab-case the directory name with diacritics stripped (`Dự Án` → `du-an`); throws when nothing valid is left. */
+function deriveName(cwd: string): string {
+  const name = kebabCase(deburr(basename(cwd)))
+  if (!NAME_PATTERN.test(name)) throw new ConfigError(`cannot derive a Config name from "${basename(cwd)}"; pass --name`)
+  return name
+}
+
+/** Hand-written on purpose: es-toolkit's `kebabCase` keeps non-ASCII letters and splits `v2` (ADR 0016). */
 function kebabCase(text: string): string {
   return text
     .toLowerCase()
