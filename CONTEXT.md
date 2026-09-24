@@ -167,6 +167,12 @@ A named key in `spec.mcpServers` of a Config or Preset — desired state. `true`
 catalog; a map is an inline config in Claude Code's exact format; `false` drops an inherited MCP server. Identified by
 name. Secrets may only be written as `${VAR}` placeholders.
 
+**User-scoped MCP server**:
+An MCP server declaration carrying `scope: user` next to its inline fields, or a map holding only `scope: user` (which
+takes the config from the MCP catalog). It is synced to the `user` Scope whatever Scope the Sync targets; `ap` strips
+`scope` before writing. See [ADR 0014](docs/adr/0014-user-scoped-mcp-server.md).
+_Avoid_: global MCP server
+
 **MCP catalog**:
 The set of MCP server configs shipped with `ap`, looked up by name through the value `true`. Users do not declare
 catalogs of their own; to reuse configs, write a Preset containing only `mcpServers`.

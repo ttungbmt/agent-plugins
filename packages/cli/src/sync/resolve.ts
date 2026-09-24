@@ -128,7 +128,7 @@ type PresetGraph = {
 type PluginContribution = PluginDeclaration & Pick<ItemDeclaration, 'presets' | 'shadows'>
 
 /** An MCP server declaration from a Preset or Config; a null `server` is `false` (drops an inherited server). */
-type McpContribution = { name: string; server: McpConfig | null; origin: string } & Pick<ItemDeclaration, 'presets' | 'shadows'>
+type McpContribution = { name: string; server: McpConfig | null; scope?: 'user'; origin: string } & Pick<ItemDeclaration, 'presets' | 'shadows'>
 
 /**
  * Merge declarations across Presets (ADR 0004):
@@ -290,14 +290,15 @@ function mergeMcpServers(contributions: McpContribution[]) {
   for (const [name, group] of groups) {
     const winners = group.filter((d) => !group.some((o) => o !== d && outranks(o, d)))
     const [first, ...rest] = winners as [McpContribution, ...McpContribution[]]
-    const rival = rest.find((d) => !sameMcp(d.server, first.server))
+    const same = (d: McpContribution) => sameMcp(d.server, first.server) && d.scope === first.scope
+    const rival = rest.find((d) => !same(d))
     if (rival) {
       conflicts.push({ name, reason: 'preset-clash', detail: `MCP server "${name}" is declared differently by ${first.origin} and ${rival.origin}` })
       continue
     }
-    if (first.server) declarations.push({ name, server: first.server, origin: first.origin })
+    if (first.server) declarations.push({ name, server: first.server, ...(first.scope && { scope: first.scope }), origin: first.origin })
     for (const loser of group.filter((d) => !winners.includes(d))) {
-      if (!sameMcp(loser.server, first.server)) notices.push(`${first.origin} overrides MCP server "${name}" declared by ${loser.origin}`)
+      if (!same(loser)) notices.push(`${first.origin} overrides MCP server "${name}" declared by ${loser.origin}`)
     }
   }
   return { declarations, conflicts, notices }
@@ -580,33 +581,55 @@ async function readItems(kind: ItemKind, raw: unknown, origin: string, dir: stri
 
 /**
  * `mcpServers` is a map by name: `true` takes the config verbatim from the MCP catalog (even when a parent Preset defined
- * the same name inline), a map is an inline config, `false` drops an inherited MCP server (ADR 0006).
+ * the same name inline), a map is an inline config, `false` drops an inherited MCP server (ADR 0006). A map may carry
+ * `scope: user` (ADR 0014), which is stripped from the config; a map holding only `scope` takes the catalog config.
  */
 async function readMcpServers(raw: unknown, origin: string, resolution: Resolution) {
   if (!raw) return []
   if (typeof raw !== 'object' || Array.isArray(raw)) {
     throw new ConfigError(`${origin}: \`mcpServers\` must be a map of server names to true, false or a server configuration`)
   }
+  const fromCatalog = async (name: string) => {
+    const server = (await mcpCatalog(resolution))[name]
+    if (!server) throw new ConfigError(`${origin}: MCP server "${name}" is not in the ap catalog; declare its configuration inline`)
+    return server
+  }
   return Promise.all(
     Object.entries(raw).map(async ([name, value]) => {
       let server: McpConfig | null
+      let scope: 'user' | undefined
       if (value === false) server = null
-      else if (value === true) {
-        server = (await mcpCatalog(resolution))[name] ?? null
-        if (!server) throw new ConfigError(`${origin}: MCP server "${name}" is not in the ap catalog; declare its configuration inline`)
-      } else if (value && typeof value === 'object' && !Array.isArray(value)) {
-        server = value as McpConfig
+      else if (value === true) server = await fromCatalog(name)
+      else if (value && typeof value === 'object' && !Array.isArray(value)) {
+        const { scope: rawScope, ...inline } = value as McpConfig
+        if (rawScope !== undefined) {
+          if (rawScope !== 'user') throw new ConfigError(`${origin}: MCP server "${name}" has scope "${String(rawScope)}"; the only scope is "user"`)
+          scope = 'user'
+        }
+        server = scope && Object.keys(inline).length === 0 ? await fromCatalog(name) : inline
       } else {
         throw new ConfigError(`${origin}: MCP server "${name}" must be true, false or a server configuration`)
       }
       if (server) {
-        const error = checkMcp(name, server)
+        const error = checkMcp(name, server) ?? (scope ? projectRelativePath(name, server) : null)
         if (error) throw new ConfigError(`${origin}: ${error}`)
         server = normalizeMcp(server)
       }
-      return { name, server, origin }
+      return { name, server, ...(scope && { scope }), origin }
     }),
   )
+}
+
+/**
+ * A User-scoped MCP server runs in every repo, so a `command` or argument starting with `./` or `../` would point into
+ * whichever project Claude Code happens to open (ADR 0014). Returns an error message, or null.
+ */
+function projectRelativePath(name: string, server: McpConfig): string | null {
+  const relative = (value: unknown): value is string => typeof value === 'string' && /^\.\.?\//.test(value)
+  if (relative(server.command)) return `MCP server "${name}" has \`scope: user\` but its command "${server.command}" is relative to the project`
+  const arg = Array.isArray(server.args) ? server.args.find(relative) : undefined
+  if (arg) return `MCP server "${name}" has \`scope: user\` but its argument "${arg}" is relative to the project`
+  return null
 }
 
 /** The MCP catalog shipped with `ap` (`mcp-servers.yaml` next to the Bundled presets), loaded once on the first `true`. */

@@ -309,7 +309,7 @@
           ]
         },
         "mcpServers": {
-          "description": "MCP servers to add to Claude Code's MCP configuration of the scope (`.mcp.json` for project), by name. `true` takes the server as-is from the catalog shipped with `ap`; an object is the server configuration inline, in Claude Code's `.mcp.json` format; `false` drops a server declared by an inherited preset. Secrets must be written as `${VAR}` placeholders, which Claude Code expands at run time.",
+          "description": "MCP servers to add to Claude Code's MCP configuration of the scope (`.mcp.json` for project), by name. `true` takes the server as-is from the catalog shipped with `ap`; an object is the server configuration inline, in Claude Code's `.mcp.json` format; `false` drops a server declared by an inherited preset. An object may add `scope: user` to write the server to the `user` Scope (`~/.claude.json`) whatever Scope `ap sync` targets; `{ scope: user }` alone takes the catalog's configuration. Secrets must be written as `${VAR}` placeholders, which Claude Code expands at run time.",
           "type": "object",
           "propertyNames": { "$ref": "#/$defs/name" },
           "additionalProperties": {
@@ -318,12 +318,13 @@
                 "type": "boolean",
                 "description": "`true`: the catalog's configuration for this name. `false`: drop an inherited server."
               },
-              { "$ref": "#/$defs/mcpServer" }
+              { "$ref": "#/$defs/mcpServerDeclaration" }
             ]
           },
           "examples": [
             {
               "firecrawl": true,
+              "context7": { "scope": "user" },
               "docs": {
                 "type": "http",
                 "url": "https://example.com/mcp",
@@ -786,10 +787,27 @@
       "pattern": "^[a-z0-9]+(-[a-z0-9]+)*@[a-z0-9]+(-[a-z0-9]+)*$",
       "examples": ["context7@claude-plugins-official"]
     },
-    "mcpServer": {
-      "description": "An MCP server configuration as in Claude Code's `.mcp.json`: stdio (`command`, `args`, `env`) or remote (`type: http|sse`, `url`, `headers`, `headersHelper`, `oauth`). `${VAR}` and `${VAR:-default}` are expanded by Claude Code.",
-      "$ref": "#/$defs/mcpServerFields",
-      "unevaluatedProperties": false
+    "mcpServerDeclaration": {
+      "description": "An MCP server configuration, optionally with `scope`; or `{ scope: user }` alone to take the catalog's configuration at the `user` Scope.",
+      "oneOf": [
+        {
+          "title": "catalog server at the user Scope",
+          "type": "object",
+          "required": ["scope"],
+          "properties": { "scope": { "$ref": "#/$defs/mcpServerScope" } },
+          "additionalProperties": false
+        },
+        {
+          "title": "inline server",
+          "$ref": "#/$defs/mcpServerFields",
+          "properties": { "scope": { "$ref": "#/$defs/mcpServerScope" } },
+          "unevaluatedProperties": false
+        }
+      ]
+    },
+    "mcpServerScope": {
+      "const": "user",
+      "description": "Write this server to the `user` Scope (`~/.claude.json`) whatever Scope `ap sync` targets. `command` and `args` must not start with `./` or `../`. Omitted: the targeted Scope."
     },
     "mcpServerFields": {
       "description": "The two shapes of `mcpServer` without its closing `unevaluatedProperties`, so the MCP catalog can add `description` on top.",

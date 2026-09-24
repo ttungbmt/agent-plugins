@@ -741,3 +741,81 @@ spec:
     })
   })
 })
+
+describe('user-scoped MCP servers', () => {
+  const catalog = 'kind: McpCatalog\nservers:\n  context7: { description: docs, command: npx, args: [-y, "@upstash/context7-mcp"] }\n'
+  const cfg = (servers: string) => ({
+    'agent-plugins.yaml': `kind: Config\nmetadata: { name: demo }\nspec:\n  mcpServers: ${servers}\n`,
+    'default-presets/mcp-servers.yaml': catalog,
+  })
+  const preset = (name: string, servers: string) => `kind: Preset\nmetadata: { name: ${name} }\nspec:\n  mcpServers: ${servers}\n`
+
+  it('reads servers without `scope` as before', async () => {
+    const result = await resolveIn(cfg('{ context7: true, tool: { command: tool }, gone: false }'))
+
+    expect(result.mcpServers).toEqual([
+      { name: 'context7', server: { command: 'npx', args: ['-y', '@upstash/context7-mcp'] }, origin: 'agent-plugins.yaml' },
+      { name: 'tool', server: { command: 'tool' }, origin: 'agent-plugins.yaml' },
+    ])
+  })
+
+  it('takes a map holding only `scope: user` from the MCP catalog', async () => {
+    const result = await resolveIn(cfg('{ context7: { scope: user } }'))
+
+    expect(result.mcpServers).toEqual([
+      { name: 'context7', server: { command: 'npx', args: ['-y', '@upstash/context7-mcp'] }, scope: 'user', origin: 'agent-plugins.yaml' },
+    ])
+  })
+
+  it('strips `scope` from an inline server', async () => {
+    const result = await resolveIn(cfg('{ tool: { command: tool, args: [--flag], scope: user } }'))
+
+    expect(result.mcpServers).toEqual([{ name: 'tool', server: { command: 'tool', args: ['--flag'] }, scope: 'user', origin: 'agent-plugins.yaml' }])
+  })
+
+  it.each([
+    ['{ nope: { scope: user } }', 'MCP server "nope" is not in the ap catalog; declare its configuration inline'],
+    ['{ tool: { command: tool, scope: global } }', 'MCP server "tool" has scope "global"; the only scope is "user"'],
+    ['{ tool: { scope: global } }', 'MCP server "tool" has scope "global"; the only scope is "user"'],
+    ['{ tool: { command: ./bin/tool, scope: user } }', 'MCP server "tool" has `scope: user` but its command "./bin/tool" is relative to the project'],
+    ['{ tool: { command: node, args: [../x.js], scope: user } }', 'MCP server "tool" has `scope: user` but its argument "../x.js" is relative to the project'],
+  ])('rejects %s', async (servers, message) => {
+    await expect(resolveIn(cfg(servers))).rejects.toThrow(message)
+  })
+
+  it('allows relative paths on servers without `scope`', async () => {
+    const result = await resolveIn(cfg('{ tool: { command: ./bin/tool } }'))
+
+    expect(result.mcpServers).toEqual([{ name: 'tool', server: { command: './bin/tool' }, origin: 'agent-plugins.yaml' }])
+  })
+
+  it('merges identical declarations and treats peers that disagree on `scope` as a preset-clash', async () => {
+    const same = await resolveIn({
+      ...cfg('{}'),
+      'agent-plugins.yaml': 'kind: Config\nmetadata: { name: demo }\nspec:\n  presets: [./a.yaml, ./b.yaml]\n',
+      'a.yaml': preset('a', '{ tool: { command: tool, scope: user } }'),
+      'b.yaml': preset('b', '{ tool: { command: tool, scope: user } }'),
+    })
+    const clash = await resolveIn({
+      ...cfg('{}'),
+      'agent-plugins.yaml': 'kind: Config\nmetadata: { name: demo }\nspec:\n  presets: [./a.yaml, ./b.yaml]\n',
+      'a.yaml': preset('a', '{ tool: { command: tool } }'),
+      'b.yaml': preset('b', '{ tool: { command: tool, scope: user } }'),
+    })
+
+    expect(same.mcpServers).toEqual([{ name: 'tool', server: { command: 'tool' }, scope: 'user', origin: 'a.yaml' }])
+    expect(clash.mcpServers).toEqual([])
+    expect(clash.mcpConflicts).toEqual([{ name: 'tool', reason: 'preset-clash', detail: expect.stringMatching(/a\.yaml.*b\.yaml/) }])
+  })
+
+  it('lets the Config override a preset on `scope`, with a notice', async () => {
+    const result = await resolveIn({
+      ...cfg('{ tool: { command: tool } }'),
+      'agent-plugins.yaml': 'kind: Config\nmetadata: { name: demo }\nspec:\n  presets: [./a.yaml]\n  mcpServers: { tool: { command: tool } }\n',
+      'a.yaml': preset('a', '{ tool: { command: tool, scope: user } }'),
+    })
+
+    expect(result.mcpServers).toEqual([{ name: 'tool', server: { command: 'tool' }, origin: 'agent-plugins.yaml' }])
+    expect(result.notices).toContain('agent-plugins.yaml overrides MCP server "tool" declared by a.yaml')
+  })
+})

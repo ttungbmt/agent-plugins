@@ -1,6 +1,6 @@
 # Thiết kế `ap sync` (v1)
 
-Thuật ngữ: xem [CONTEXT.md](../../CONTEXT.md). Quyết định kiến trúc: [ADR 0001](../adr/0001-delegate-settings-writes-to-claude-cli.md), [0002](../adr/0002-config-kind-naming.md), [0003](../adr/0003-managed-entries-per-scope-state.md), [0005](../adr/0005-ap-installs-skills-itself.md), [0006](../adr/0006-mcp-servers-inline-plus-bundled-catalog.md), [0010](../adr/0010-workflow-flat-install-by-meta-name.md).
+Thuật ngữ: xem [CONTEXT.md](../../CONTEXT.md). Quyết định kiến trúc: [ADR 0001](../adr/0001-delegate-settings-writes-to-claude-cli.md), [0002](../adr/0002-config-kind-naming.md), [0003](../adr/0003-managed-entries-per-scope-state.md), [0005](../adr/0005-ap-installs-skills-itself.md), [0006](../adr/0006-mcp-servers-inline-plus-bundled-catalog.md), [0010](../adr/0010-workflow-flat-install-by-meta-name.md), [0014](../adr/0014-user-scoped-mcp-server.md).
 
 ## Phạm vi
 
@@ -152,6 +152,17 @@ Quyết định: [ADR 0006](../adr/0006-mcp-servers-inline-plus-bundled-catalog.
   - Tên trùng với MCP server của một plugin đang bật và đã cài ở scope đó (đọc `.mcp.json` ở gốc Installed plugin và `mcpServers` của `.claude-plugin/plugin.json` — map, hoặc đường dẫn tới file cùng dạng) → thông báo, không chặn. Plugin chưa cài thì bỏ qua.
   - Scope `project`: server đã khai báo mà người dùng chưa duyệt hay từ chối (`enabledMcpjsonServers`/`disabledMcpjsonServers` trong `.claude.json` theo repo hoặc trong settings, `enableAllProjectMcpServers`) → thông báo chờ duyệt; server `add-json` lỗi thì không tính. `ap` không duyệt thay.
 - Thứ tự apply: sau Skill và Agent.
+
+#### User-scoped MCP server
+
+Theo [ADR 0014](../adr/0014-user-scoped-mcp-server.md). Khai báo có `scope: user` luôn được sync lên Scope `user` (`mcpServers` của `.claude.json`), dù lệnh đang sync Scope nào.
+
+- Khai báo: `scope: user` nằm cạnh field inline; map chỉ có `{ scope: user }` → lấy từ MCP catalog như `true`. `scope` chỉ nhận `user` và bị bỏ trước khi chuẩn hoá, so và ghi.
+- Kiểm tra lúc phân giải: `command` hoặc phần tử `args` bắt đầu bằng `./` hoặc `../` → lỗi cấu hình.
+- Lập kế hoạch, State, claim, `shared-clash`, chuyển Scope, `cross-scope`, `--dry-run` `(user)` và `--check`: như User-scoped marketplace. Lock không ghi entry này. Không có ràng buộc thứ tự với action khác.
+- Nguồn gốc là Remote preset và nội dung chưa có trong State → cần xác nhận như Hook; không TTY, thiếu `--yes` → bỏ qua, cảnh báo, exit code khác 0.
+- `name: false` chỉ bỏ claim của Config này; Config khác còn claim → thông báo gợi ý tắt bằng `/mcp`. `ap` không ghi `disabledMcpServers`.
+- Không tính vào thông báo chờ duyệt `.mcp.json`.
 
 ### Chế độ và lỗi
 

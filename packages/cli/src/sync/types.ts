@@ -136,7 +136,13 @@ export type Conflict = {
 export type McpConfig = Record<string, unknown>
 
 /** An MCP server declaration, resolved (looked up in the MCP catalog when `true`) and merged. */
-export type McpDeclaration = { name: string; server: McpConfig; origin: string }
+export type McpDeclaration = {
+  name: string
+  server: McpConfig
+  /** `user` for a User-scoped MCP server (ADR 0014); absent means the Scope the Sync targets. */
+  scope?: 'user'
+  origin: string
+}
 
 /** An Installed MCP server managed by `ap`, recorded in the Lock/State. */
 export type ManagedMcp = { name: string; server: McpConfig; origin: string }
