@@ -1,6 +1,6 @@
 ---
 title: Replace hand-written collection helpers with es-toolkit and built-ins
-labels: []
+labels: [done]
 ---
 
 Decision: [ADR 0016](../../docs/adr/0016-es-toolkit-for-collection-helpers.md). Research:

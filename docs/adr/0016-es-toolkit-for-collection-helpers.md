@@ -9,7 +9,7 @@ tử), mỗi lời gọi tốn dưới 2,2 µs ở cả hai phía, trong khi m�
 es-toolkit là so với lodash, không phải so với code viết tay. Đừng mở lại quyết định này vì lý do hiệu năng.
 
 es-toolkit được bundle như zod, nên nằm ở `devDependencies` ([ADR 0008](0008-distribute-ap-via-github-release-tarball.md),
-[ADR 0015](0015-zod-mini-for-spec-shape.md)). Phần thay thế tương đương làm `dist/ap.js` tăng khoảng +3,5 KB (+0,25%).
+[ADR 0015](0015-zod-mini-for-spec-shape.md)). Toàn bộ thay đổi làm `dist/ap.js` tăng +4 944 byte (+0,35%), đo trên bản release.
 
 ## Quy ước
 
