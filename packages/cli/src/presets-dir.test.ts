@@ -4,5 +4,5 @@ import { defaultPresetsDir } from './presets-dir.js'
 
 test('points at the Bundled presets shipped with ap', async () => {
   const files = await readdir(defaultPresetsDir())
-  expect(files).toEqual(expect.arrayContaining(['base.yaml', 'agent-plugins.yaml', 'mcp-servers.yaml']))
+  expect(files).toEqual(expect.arrayContaining(['base.yaml', 'mcp-servers.yaml']))
 })

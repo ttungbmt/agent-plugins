@@ -152,9 +152,9 @@ spec:
     ).rejects.toThrow(/metadata\.name "agent-plugins".*"base"/)
   })
 
-  it.each(['base', 'agent-plugins'])('resolves the bundled %s preset', async (name) => {
+  it('resolves the bundled base preset', async () => {
     const result = await resolveIn(
-      { 'agent-plugins.yaml': `kind: Config\nmetadata: { name: demo }\nspec:\n  presets: [${name}]\n` },
+      { 'agent-plugins.yaml': 'kind: Config\nmetadata: { name: demo }\nspec:\n  presets: [base]\n' },
       { defaultPresetsDir: defaultPresetsDir() },
     )
 
