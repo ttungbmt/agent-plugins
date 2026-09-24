@@ -144,4 +144,34 @@ describe('sync workflows', () => {
     await t.run('apply', { scope: 'user' })
     expect(await t.files(join(t.homedir, '.claude/workflows'))).toEqual(['audit.js', 'code-review.js'])
   })
+
+  it('selects and excludes workflows by meta.name, not file name', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[{ source: ${REPO}, workflows: [code-review] }]`) })
+
+    expect((await t.run()).actions).toEqual([act('install', 'code-review')])
+    expect(await t.files()).toEqual(['code-review.js'])
+
+    await t.setConfig(config(`[{ source: ${REPO}, exclude: [code-review] }]`))
+    expect((await t.run()).actions).toEqual([act('install', 'audit'), act('remove', 'code-review')])
+    expect(await t.files()).toEqual(['audit.js'])
+  })
+
+  it('reports missing-workflow for a selected name the source lacks, and only notes an unknown exclusion', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[{ source: ${REPO}, workflows: [review] }]`) })
+
+    const report = await t.run()
+
+    expect(report.conflicts).toEqual([expect.objectContaining({ name: 'review', reason: 'missing-workflow' })])
+    expect(await t.files()).toEqual([])
+
+    await t.setConfig(config(`[{ source: ${REPO}, exclude: [review] }]`))
+    const excluded = await t.run()
+    expect(excluded.conflicts).toEqual([])
+    expect(excluded.notices).toEqual(expect.arrayContaining([expect.stringContaining('excludes workflow "review"')]))
+  })
+
+  it('rejects a workflow entry with both workflows and exclude', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[{ source: ${REPO}, workflows: [audit], exclude: [code-review] }]`) })
+    await expect(t.run()).rejects.toThrow(`"${REPO}" cannot have both \`workflows\` and \`exclude\``)
+  })
 })
