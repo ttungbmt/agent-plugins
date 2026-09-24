@@ -1,6 +1,6 @@
 ---
 title: Add `spec.ts` and read every document through `readDeclarations`
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [01]
 ---
 

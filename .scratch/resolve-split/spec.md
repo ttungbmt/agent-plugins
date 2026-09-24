@@ -173,9 +173,12 @@ avoid that, pass the Preset document to `readDeclarations` with `spec.hooks` rem
 
 ## Accepted deviation
 
-`readDeclarations` reads the Config's hooks before `mergeLayers` runs `checkUserScopedPlugins`. Today it is the other
-way round. When a Config has **both** an invalid Hook declaration and a User-scoped plugin whose marketplace is not
-User-scoped, the first error reported changes. Every other error order is kept. Note this in the commit message.
+`readDeclarations` reads every key of the Config before any merge runs. Today, reading and merging are interleaved:
+`checkUserScopedPlugins` runs before the Config's items, MCP servers and hooks are read, and `mergeItems` for one item
+kind (the same-origin "with and without `scope: user`" error) runs before the next kind is read.
+
+So when a Config has **both** a read error in a later key and one of those two merge errors, the read error is now
+reported first. Every other error order is kept, including the order across Presets. Note this in the commit message.
 
 ## Out of scope
 

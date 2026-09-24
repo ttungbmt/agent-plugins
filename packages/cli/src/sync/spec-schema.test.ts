@@ -5,7 +5,8 @@ import { Ajv2020 } from 'ajv/dist/2020.js'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 import { defaultPresetsDir } from '../presets-dir.js'
-import { CONFIG_SPEC_KEYS, PRESET_SPEC_KEYS, resolveConfig } from './resolve.js'
+import { resolveConfig } from './resolve.js'
+import { CONFIG_SPEC_KEYS, PRESET_SPEC_KEYS } from './spec.js'
 import { makeTree } from './test-helpers.js'
 
 const repo = new URL('../../../../', import.meta.url)
