@@ -20,6 +20,21 @@ async function resolveIn(files: Record<string, string>, extra: Partial<Parameter
 }
 
 describe('resolveConfig', () => {
+  it('rejects a marketplace list item that is not a source string', async () => {
+    await expect(
+      resolveIn({
+        'agent-plugins.yaml': `
+kind: Config
+metadata: { name: demo }
+spec:
+  marketplaces:
+    - source: anthropics/claude-plugins-official
+      scope: global
+`,
+      }),
+    ).rejects.toThrow(/agent-plugins\.yaml: `marketplaces` list items must be source strings.*name: \{ source \}/)
+  })
+
   it('reads marketplaces declared as a map in the Config', async () => {
     const result = await resolveIn({
       'agent-plugins.yaml': `
