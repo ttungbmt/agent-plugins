@@ -6,7 +6,40 @@ metadata:
 spec:
   extends: base
 
+  marketplaces:
+    - clerk/skills
+
+  plugins:
+    playground@claude-plugins-official: true
+    core@clerk-skills: true
+
   skills:
     - source: vercel-labs/agent-skills
       skills: [vercel-composition-patterns, vercel-react-best-practices]
+
+    - source: anthropics/skills
+      skills: [webapp-testing]
+
+    - source: jasonku09/grill-with-ui
+
+    - source: Leonxlnx/taste-skill
+      skills:
+        - brandkit
+        - design-taste-frontend
+        - full-output-enforcement
+        - gpt-taste
+        - high-end-visual-design
+        - image-to-code
+        - imagegen-frontend-mobile
+        - imagegen-frontend-web
+        - industrial-brutalist-ui
+        - minimalist-ui
+        - redesign-existing-projects
+        - stitch-design-taste
+
+    - source: clerk/skills
+      path: skills/frameworks
+      skills: [clerk-nextjs-patterns]
+
+      
 

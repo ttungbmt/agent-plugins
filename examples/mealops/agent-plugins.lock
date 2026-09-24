@@ -1,3 +1,22 @@
+marketplaces:
+  - name: clerk-skills
+    source:
+      source: github
+      repo: clerk/skills
+    origin: agent-plugins.preset.yaml
+plugins:
+  - id: claude-code-setup@claude-plugins-official
+    enabled: true
+    origin: base
+  - id: claude-md-management@claude-plugins-official
+    enabled: true
+    origin: base
+  - id: playground@claude-plugins-official
+    enabled: true
+    origin: agent-plugins.preset.yaml
+  - id: core@clerk-skills
+    enabled: true
+    origin: agent-plugins.preset.yaml
 skillSources:
   - source:
       source: github
@@ -13,16 +32,169 @@ skillSources:
       - vercel-optimize
       - web-design-guidelines
       - writing-guidelines
+  - source:
+      source: github
+      repo: anthropics/skills
+    commit: 34040c9c568585f6929bedeaad110ad08f079624
+    skills:
+      - academy-guide
+      - algorithmic-art
+      - brand-guidelines
+      - canvas-design
+      - claude-api
+      - discernment-nudge
+      - doc-coauthoring
+      - docx
+      - frontend-design
+      - internal-comms
+      - mcp-builder
+      - pdf
+      - pptx
+      - skill-creator
+      - slack-gif-creator
+      - theme-factory
+      - web-artifacts-builder
+      - webapp-testing
+      - xlsx
+  - source:
+      source: github
+      repo: jasonku09/grill-with-ui
+    commit: daafa1e2111d7c6efc85a11b00cbbdae42a72c9d
+    skills:
+      - grill-with-ui
+  - source:
+      source: github
+      repo: Leonxlnx/taste-skill
+    commit: c184364c58658b2f131b4ae8bd3d206cabb3deee
+    skills:
+      - brandkit
+      - industrial-brutalist-ui
+      - gpt-taste
+      - image-to-code
+      - imagegen-frontend-mobile
+      - imagegen-frontend-web
+      - minimalist-ui
+      - full-output-enforcement
+      - redesign-existing-projects
+      - high-end-visual-design
+      - stitch-design-taste
+      - design-taste-frontend
+      - design-taste-frontend-v1
+  - source:
+      source: github
+      repo: clerk/skills
+      path: skills/frameworks
+    commit: 417e4783812dbe75eda43cb9882cc9d26b762a19
+    skills:
+      - clerk-astro-patterns
+      - clerk-chrome-extension-patterns
+      - clerk-nextjs-patterns
+      - clerk-nuxt-patterns
+      - clerk-react-patterns
+      - clerk-react-router-patterns
+      - clerk-tanstack-patterns
+      - clerk-vue-patterns
 skills:
   - name: vercel-composition-patterns
     source:
       source: github
       repo: vercel-labs/agent-skills
     sha256: d60442200d59e98efd41a696422bcb239791d3eb08855fa7ad9c399f4f97a1a2
-    origin: .agent-plugins/preset.yaml
+    origin: agent-plugins.preset.yaml
   - name: vercel-react-best-practices
     source:
       source: github
       repo: vercel-labs/agent-skills
     sha256: 5ec2c4c265afe01e6b5c38c7db4ea10010a1d329dc09230e3fcfe6d1986d00c2
-    origin: .agent-plugins/preset.yaml
+    origin: agent-plugins.preset.yaml
+  - name: webapp-testing
+    source:
+      source: github
+      repo: anthropics/skills
+    sha256: 488048a66bb431fdf78f9afd400d47bc9d433a7ad9d597f0a72dc370ba5551d3
+    origin: agent-plugins.preset.yaml
+  - name: grill-with-ui
+    source:
+      source: github
+      repo: jasonku09/grill-with-ui
+    sha256: 7f2a4d89bda95c985efab16b63beee86f4c6b05e793ee87d7fecbdb75f25e9b3
+    origin: agent-plugins.preset.yaml
+  - name: brandkit
+    source:
+      source: github
+      repo: Leonxlnx/taste-skill
+    sha256: 69acc7548fd741c68f1f3a9810f667dc7f8ad24f6d233250756c6e87644dd4c8
+    origin: agent-plugins.preset.yaml
+  - name: design-taste-frontend
+    source:
+      source: github
+      repo: Leonxlnx/taste-skill
+    sha256: 185900517e30143cef9c5e65c0c8a76fd592746fa9b537cb179771a4d8500b89
+    origin: agent-plugins.preset.yaml
+  - name: full-output-enforcement
+    source:
+      source: github
+      repo: Leonxlnx/taste-skill
+    sha256: c7c0828953a8f849541a463985254d078289a5c0f9e9686216e48ac731a35284
+    origin: agent-plugins.preset.yaml
+  - name: gpt-taste
+    source:
+      source: github
+      repo: Leonxlnx/taste-skill
+    sha256: 27282c6339896b4ec2433aac6d09b6aa11951ffc302e0137a4211fa846b4cb9b
+    origin: agent-plugins.preset.yaml
+  - name: high-end-visual-design
+    source:
+      source: github
+      repo: Leonxlnx/taste-skill
+    sha256: bde0403116e04a6f3a86870993b05b3ab0afa1f1e844e5b63937d9fd35ca5421
+    origin: agent-plugins.preset.yaml
+  - name: image-to-code
+    source:
+      source: github
+      repo: Leonxlnx/taste-skill
+    sha256: b571ff328b5addd4d8dab4b049d0f6f9e4a2378de402241b851a47720e025e00
+    origin: agent-plugins.preset.yaml
+  - name: imagegen-frontend-mobile
+    source:
+      source: github
+      repo: Leonxlnx/taste-skill
+    sha256: 11036f4aad96f87fdd3a73a161b5d1e2639ce8ef9fbb58545b421d69bb9e12b9
+    origin: agent-plugins.preset.yaml
+  - name: imagegen-frontend-web
+    source:
+      source: github
+      repo: Leonxlnx/taste-skill
+    sha256: 006c3773e1794f48f368ce14d3f7c02281032bd0d6caf25f2077e27cdbe8eab7
+    origin: agent-plugins.preset.yaml
+  - name: industrial-brutalist-ui
+    source:
+      source: github
+      repo: Leonxlnx/taste-skill
+    sha256: f43533fe84b5c67745d4d32c2c2d9e0e29f0ad4c9ab65447dba88ce96cf28361
+    origin: agent-plugins.preset.yaml
+  - name: minimalist-ui
+    source:
+      source: github
+      repo: Leonxlnx/taste-skill
+    sha256: 90cfdef2366d0143dbd0f50cded2074b40251a20121bbd4278ab6cd2089f6612
+    origin: agent-plugins.preset.yaml
+  - name: redesign-existing-projects
+    source:
+      source: github
+      repo: Leonxlnx/taste-skill
+    sha256: c95a5967268faa4183daee68df861f3376b76b7e2d77d6ed08688f2d338199c7
+    origin: agent-plugins.preset.yaml
+  - name: stitch-design-taste
+    source:
+      source: github
+      repo: Leonxlnx/taste-skill
+    sha256: 3e91f65156ecb7df8ee05cbb6df0a9c1a19e754c8758b65970a8d74976047982
+    origin: agent-plugins.preset.yaml
+  - name: clerk-nextjs-patterns
+    source:
+      source: github
+      repo: clerk/skills
+      path: skills/frameworks
+    sha256: d0c6c84f1f94462cc3e6094af632e9e70de0994b4143c65d18dad67b9db599d8
+    origin: agent-plugins.preset.yaml
