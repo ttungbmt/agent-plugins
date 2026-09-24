@@ -1,15 +1,773 @@
 # yaml-language-server: $schema=../schemas/schemas/mcp-catalog.schema.json
 
-# Danh mục MCP: cấu hình MCP server mà Preset/Config bật bằng `<name>: true` trong `spec.mcpServers` (ADR 0006).
+# MCP catalog: server configurations a Preset or Config enables with `<name>: true` under `spec.mcpServers` (ADR 0006).
+# Sources and the reasoning behind each entry: docs/research/mcp-servers-catalog.md and mcp-servers-catalog-{2,3,4}.md.
+# An `Authorization` header turns off Claude Code's OAuth login, so each name picks one auth style: the bare name is the
+# vendor-recommended one and the `-oauth` / `-token` twin is the other.
+# OAuth entries: after sync, run `/mcp` or `claude mcp login <name>` to sign in.
+# `description` is catalog-only; `ap` drops it before writing the server.
 kind: McpCatalog
 
 servers:
+  # --- Web search and fetch ------------------------------------------------------
+  jina:
+    description: Jina AI's official hosted server for reading pages, screenshots, web search and reranking; needs JINA_API_KEY.
+    type: http
+    url: https://mcp.jina.ai/v1
+    headers:
+      Authorization: Bearer ${JINA_API_KEY}
+
   firecrawl:
+    description: Firecrawl's official hosted server for scraping, crawling and searching the web; needs FIRECRAWL_API_KEY.
+    type: http
+    url: https://mcp.firecrawl.dev/v2/mcp
+    headers:
+      Authorization: Bearer ${FIRECRAWL_API_KEY}
+
+  firecrawl-oauth:
+    description: Firecrawl's official hosted server with browser sign-in instead of an API key.
+    type: http
+    url: https://mcp.firecrawl.dev/v2/mcp-oauth
+
+  firecrawl-self-hosted:
+    description: >-
+      Firecrawl's official local server pointed at a self-hosted Firecrawl through FIRECRAWL_API_URL; runs with npx.
+      If the instance needs a key, declare it inline with FIRECRAWL_API_KEY.
     command: npx
-    args: [-y, firecrawl-mcp@3.25.3]
+    args: [-y, firecrawl-mcp@3.25.4]
     env:
-      FIRECRAWL_API_KEY: ${FIRECRAWL_API_KEY}
+      FIRECRAWL_API_URL: ${FIRECRAWL_API_URL}
+
+  tavily:
+    description: Tavily's official hosted server for web search and page extraction; needs TAVILY_API_KEY.
+    type: http
+    url: https://mcp.tavily.com/mcp/
+    headers:
+      Authorization: Bearer ${TAVILY_API_KEY}
+
+  tavily-oauth:
+    description: Tavily's official hosted server with browser sign-in instead of an API key.
+    type: http
+    url: https://mcp.tavily.com/mcp/
+
+  # --- GitHub --------------------------------------------------------------------
+  # github.com OAuth needs a GitHub App you register yourself: declare it inline with `oauth.clientId`.
+  github:
+    description: >-
+      GitHub's official hosted server for repositories, issues and pull requests; needs GITHUB_PERSONAL_ACCESS_TOKEN.
+      Also shipped as plugin `github@claude-plugins-official`.
+    type: http
+    url: https://api.githubcopilot.com/mcp/
+    headers:
+      Authorization: Bearer ${GITHUB_PERSONAL_ACCESS_TOKEN}
+
+  github-enterprise-cloud:
+    description: >-
+      GitHub's official hosted server for GitHub Enterprise Cloud with data residency (<sub>.ghe.com); needs GHE_SUBDOMAIN
+      and GITHUB_PERSONAL_ACCESS_TOKEN.
+    type: http
+    url: https://copilot-api.${GHE_SUBDOMAIN}.ghe.com/mcp
+    headers:
+      Authorization: Bearer ${GITHUB_PERSONAL_ACCESS_TOKEN}
+
+  github-enterprise-server:
+    description: >-
+      GitHub's official local server for a GitHub Enterprise Server instance, which has no hosted server; runs in Docker
+      and needs GITHUB_HOST (e.g. https://github.example.com) and GITHUB_PERSONAL_ACCESS_TOKEN.
+    command: docker
+    args: [run, -i, --rm, -e, GITHUB_PERSONAL_ACCESS_TOKEN, -e, GITHUB_HOST, ghcr.io/github/github-mcp-server:v1.12.2]
+    env:
+      GITHUB_PERSONAL_ACCESS_TOKEN: ${GITHUB_PERSONAL_ACCESS_TOKEN}
+      GITHUB_HOST: ${GITHUB_HOST}
+
+  # --- GitLab --------------------------------------------------------------------
+  gitlab:
+    description: >-
+      GitLab's official server built into GitLab 18.6+ (Beta), OAuth sign-in only; set GITLAB_HOST (e.g.
+      gitlab.example.com) for a self-managed instance, otherwise gitlab.com. Also shipped as plugin
+      `gitlab@claude-plugins-official`.
+    type: http
+    url: https://${GITLAB_HOST:-gitlab.com}/api/v4/mcp
+
+  gitlab-token:
+    description: >-
+      Community server (zereight/gitlab-mcp) using a personal access token, for CI, older GitLab or instances with MCP
+      disabled; needs GITLAB_PERSONAL_ACCESS_TOKEN, and GITLAB_API_URL for a self-managed instance.
+    command: npx
+    args: [-y, '@zereight/mcp-gitlab@2.1.66']
+    env:
+      GITLAB_PERSONAL_ACCESS_TOKEN: ${GITLAB_PERSONAL_ACCESS_TOKEN}
+      GITLAB_API_URL: ${GITLAB_API_URL:-https://gitlab.com/api/v4}
+
+  # --- Cloudflare (OAuth sign-in, except docs which needs none) --------------------
+  cloudflare:
+    description: >-
+      Cloudflare's official Code Mode server covering the whole Cloudflare API in a few tools; OAuth sign-in. Also
+      shipped as plugin `cloudflare@claude-plugins-official`.
+    type: http
+    url: https://mcp.cloudflare.com/mcp
+
+  cloudflare-token:
+    description: >-
+      Cloudflare's official Code Mode server with an API token instead of OAuth; needs CLOUDFLARE_API_TOKEN (tokens with
+      client IP filtering are not supported). Also shipped as plugin `cloudflare@claude-plugins-official`.
+    type: http
+    url: https://mcp.cloudflare.com/mcp
+    headers:
+      Authorization: Bearer ${CLOUDFLARE_API_TOKEN}
 
   cloudflare-docs:
+    description: Cloudflare's official documentation search server; no sign-in.
     type: http
     url: https://docs.mcp.cloudflare.com/mcp
+
+  cloudflare-bindings:
+    description: Cloudflare's official server for Workers bindings (KV, R2, D1, Durable Objects, AI); OAuth sign-in.
+    type: http
+    url: https://bindings.mcp.cloudflare.com/mcp
+
+  cloudflare-builds:
+    description: Cloudflare's official server for Workers Builds; OAuth sign-in.
+    type: http
+    url: https://builds.mcp.cloudflare.com/mcp
+
+  cloudflare-observability:
+    description: Cloudflare's official server for Workers logs and analytics; OAuth sign-in.
+    type: http
+    url: https://observability.mcp.cloudflare.com/mcp
+
+  cloudflare-containers:
+    description: Cloudflare's official server for a sandbox development container; OAuth sign-in.
+    type: http
+    url: https://containers.mcp.cloudflare.com/mcp
+
+  cloudflare-browser:
+    description: Cloudflare's official Browser Run server for fetching pages, markdown and screenshots; OAuth sign-in.
+    type: http
+    url: https://browser.mcp.cloudflare.com/mcp
+
+  cloudflare-logs:
+    description: Cloudflare's official server for Logpush job health; OAuth sign-in.
+    type: http
+    url: https://logs.mcp.cloudflare.com/mcp
+
+  cloudflare-ai-gateway:
+    description: Cloudflare's official server for searching AI Gateway logs, prompts and responses; OAuth sign-in.
+    type: http
+    url: https://ai-gateway.mcp.cloudflare.com/mcp
+
+  cloudflare-autorag:
+    description: Cloudflare's official server for querying AutoRAG instances; OAuth sign-in.
+    type: http
+    url: https://autorag.mcp.cloudflare.com/mcp
+
+  cloudflare-auditlogs:
+    description: Cloudflare's official server for querying audit logs; OAuth sign-in.
+    type: http
+    url: https://auditlogs.mcp.cloudflare.com/mcp
+
+  cloudflare-dns-analytics:
+    description: Cloudflare's official server for DNS analytics and debugging; OAuth sign-in.
+    type: http
+    url: https://dns-analytics.mcp.cloudflare.com/mcp
+
+  cloudflare-dex:
+    description: Cloudflare's official Digital Experience Monitoring server; OAuth sign-in.
+    type: http
+    url: https://dex.mcp.cloudflare.com/mcp
+
+  cloudflare-casb:
+    description: Cloudflare's official Cloudflare One CASB server for SaaS security misconfigurations; OAuth sign-in.
+    type: http
+    url: https://casb.mcp.cloudflare.com/mcp
+
+  cloudflare-radar:
+    description: Cloudflare's official Radar server for internet traffic and security insights; OAuth sign-in.
+    type: http
+    url: https://radar.mcp.cloudflare.com/mcp
+
+  cloudflare-blog:
+    description: Cloudflare's official server for searching and reading the Cloudflare Blog; OAuth sign-in.
+    type: http
+    url: https://blog.mcp.cloudflare.com/mcp
+
+  # --- Atlassian (Jira + Confluence) -----------------------------------------------
+  atlassian:
+    description: >-
+      Atlassian's official Rovo server for Jira, Confluence and Compass on Atlassian Cloud only; OAuth sign-in. Also
+      shipped as plugin `atlassian@claude-plugins-official`.
+    type: http
+    url: https://mcp.atlassian.com/v2/mcp
+
+  atlassian-token:
+    description: >-
+      Atlassian's official Rovo server with an API token, only once an org admin enables API tokens;
+      ATLASSIAN_BASIC_AUTH must already be base64("email:api_token"). Also shipped as plugin
+      `atlassian@claude-plugins-official`.
+    type: http
+    url: https://mcp.atlassian.com/v2/mcp
+    headers:
+      Authorization: Basic ${ATLASSIAN_BASIC_AUTH}
+
+  jira-dc:
+    description: >-
+      Community server (sooperset/mcp-atlassian) for Jira Server / Data Center; runs with uvx and needs JIRA_URL and
+      JIRA_PERSONAL_TOKEN.
+    command: uvx
+    args: [mcp-atlassian@0.23.1]
+    env:
+      JIRA_URL: ${JIRA_URL}
+      JIRA_PERSONAL_TOKEN: ${JIRA_PERSONAL_TOKEN}
+
+  confluence-dc:
+    description: >-
+      Community server (sooperset/mcp-atlassian) for Confluence Server / Data Center; runs with uvx and needs
+      CONFLUENCE_URL and CONFLUENCE_PERSONAL_TOKEN.
+    command: uvx
+    args: [mcp-atlassian@0.23.1]
+    env:
+      CONFLUENCE_URL: ${CONFLUENCE_URL}
+      CONFLUENCE_PERSONAL_TOKEN: ${CONFLUENCE_PERSONAL_TOKEN}
+  # --- Apify ---------------------------------------------------------------------
+  apify:
+    description: Apify's official hosted server for running Apify Actors (scrapers, crawlers) and reading their results; browser sign-in (OAuth).
+    type: http
+    url: https://mcp.apify.com?telemetry-enabled=false
+
+  apify-token:
+    description: Apify's official hosted server with an API token instead of browser sign-in; needs APIFY_TOKEN.
+    type: http
+    url: https://mcp.apify.com?telemetry-enabled=false
+    headers:
+      Authorization: Bearer ${APIFY_TOKEN}
+
+  # --- Exa -----------------------------------------------------------------------
+  # Plain /mcp answers 200 (keyless tier), so Claude Code never starts OAuth; `?login` forces sign-in.
+  exa:
+    description: >-
+      Exa's official hosted server for web search and page fetching; browser sign-in (OAuth). Also shipped as plugin
+      `exa@claude-plugins-official`.
+    type: http
+    url: https://mcp.exa.ai/mcp?login
+
+  exa-token:
+    description: >-
+      Exa's official hosted server with an API key instead of browser sign-in; needs EXA_API_KEY. Also shipped as plugin
+      `exa@claude-plugins-official`.
+    type: http
+    url: https://mcp.exa.ai/mcp
+    headers:
+      x-api-key: ${EXA_API_KEY}
+
+  # --- n8n -----------------------------------------------------------------------
+  # N8N_BASE_URL is the instance origin: https://<instance>.app.n8n.cloud, https://n8n.example.com or http://localhost:5678.
+  n8n:
+    description: >-
+      n8n's official instance-level MCP server (n8n Cloud or self-hosted) for searching, running and building workflows;
+      browser sign-in (OAuth). Needs N8N_BASE_URL, and MCP access enabled under Settings > Instance-level MCP.
+    type: http
+    url: ${N8N_BASE_URL}/mcp-server/http
+
+  n8n-token:
+    description: >-
+      n8n's official instance-level MCP server with a personal MCP token instead of browser sign-in; needs N8N_BASE_URL
+      and N8N_MCP_TOKEN (from the "API key" tab of Instance-level MCP, not the public API key).
+    type: http
+    url: ${N8N_BASE_URL}/mcp-server/http
+    headers:
+      Authorization: Bearer ${N8N_MCP_TOKEN}
+
+  n8n-docs:
+    description: n8n's official documentation server (GitBook); no sign-in.
+    type: http
+    url: https://docs.n8n.io/~gitbook/mcp
+
+  # --- Databases -----------------------------------------------------------------
+  postgres:
+    description: >-
+      DBHub by Bytebase (community, the server Claude Code's docs use) for querying PostgreSQL, and also MySQL, SQL Server
+      or SQLite through the DSN; runs with npx (Node 22.5+) and needs POSTGRES_DSN, which holds the password.
+    command: npx
+    args: [-y, '@bytebase/dbhub@1.3.1']
+    env:
+      DSN: ${POSTGRES_DSN}
+
+  postgres-toolbox:
+    description: >-
+      Google's official MCP Toolbox for Databases with its prebuilt PostgreSQL tools; runs with npx and needs
+      POSTGRES_DATABASE, POSTGRES_USER and POSTGRES_PASSWORD (POSTGRES_HOST and POSTGRES_PORT default to localhost:5432).
+    command: npx
+    args: [-y, '@toolbox-sdk/server@1.12.0', --prebuilt=postgres, --stdio]
+    env:
+      POSTGRES_HOST: ${POSTGRES_HOST:-localhost}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DATABASE: ${POSTGRES_DATABASE}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+  supabase:
+    description: >-
+      Supabase's official hosted server for projects, databases, edge functions and docs; browser sign-in (OAuth). Also
+      shipped as plugin `supabase@claude-plugins-official`.
+    type: http
+    url: https://mcp.supabase.com/mcp
+
+  supabase-token:
+    description: >-
+      Supabase's official hosted server scoped to one project, with a personal access token instead of browser sign-in;
+      needs SUPABASE_PROJECT_REF and SUPABASE_ACCESS_TOKEN. Also shipped as plugin `supabase@claude-plugins-official`.
+    type: http
+    url: https://mcp.supabase.com/mcp?project_ref=${SUPABASE_PROJECT_REF}
+    headers:
+      Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}
+
+  supabase-self-hosted:
+    description: >-
+      Supabase's official MCP endpoint on a local Supabase CLI stack (default http://localhost:54321/mcp) or a self-hosted
+      instance reached through an SSH tunnel (set SUPABASE_MCP_URL); no sign-in.
+    type: http
+    url: ${SUPABASE_MCP_URL:-http://localhost:54321/mcp}
+
+  # --- Hosting -------------------------------------------------------------------
+  vercel:
+    description: >-
+      Vercel's official hosted server (beta) for projects, deployments, logs and docs; browser sign-in (OAuth), limited
+      to clients Vercel has approved, which include Claude Code. Also shipped as plugin
+      `vercel@claude-plugins-official`.
+    type: http
+    url: https://mcp.vercel.com
+
+  vercel-project:
+    description: >-
+      Vercel's official hosted server scoped to one project; browser sign-in (OAuth), needs VERCEL_TEAM_SLUG and
+      VERCEL_PROJECT_SLUG. Also shipped as plugin `vercel@claude-plugins-official`.
+    type: http
+    url: https://mcp.vercel.com/${VERCEL_TEAM_SLUG}/${VERCEL_PROJECT_SLUG}
+
+  netlify:
+    description: >-
+      Netlify's official hosted server for sites, deploys and project settings; browser sign-in (OAuth). Also shipped as
+      plugin `netlify-skills@claude-plugins-official`.
+    type: http
+    url: https://netlify-mcp.netlify.app/mcp
+
+  netlify-token:
+    description: >-
+      Netlify's official local server with a personal access token instead of browser sign-in; runs with npx (Node 22+)
+      and needs NETLIFY_PERSONAL_ACCESS_TOKEN. Also shipped as plugin `netlify-skills@claude-plugins-official`.
+    command: npx
+    args: [-y, '@netlify/mcp@1.15.1']
+    env:
+      NETLIFY_PERSONAL_ACCESS_TOKEN: ${NETLIFY_PERSONAL_ACCESS_TOKEN}
+
+  # --- AWS -----------------------------------------------------------------------
+  # Endpoint region: AWS_MCP_ENDPOINT_REGION=us-east-1 | eu-central-1. A custom name, because Claude Code may blank AWS_*
+  # credential variables in a remote url.
+  aws:
+    description: >-
+      AWS's official managed AWS MCP Server (preview) for AWS APIs, docs and skills, signed with SigV4 from your local
+      AWS credentials (AWS_PROFILE, SSO or `aws login`); runs the official proxy with uvx. The operations region follows
+      AWS_REGION or the profile. Also shipped as plugin `aws-core@claude-plugins-official`.
+    command: uvx
+    args: [mcp-proxy-for-aws-cli@1.7.0, 'https://aws-mcp.${AWS_MCP_ENDPOINT_REGION:-us-east-1}.api.aws/mcp']
+
+  aws-oauth:
+    description: >-
+      AWS's official managed AWS MCP Server (preview) with browser sign-in (OAuth) instead of SigV4; needs the IAM
+      policy AWSMCPSignInOAuthAccessPolicy. Also shipped as plugin `aws-core@claude-plugins-official`.
+    type: http
+    url: https://aws-mcp.${AWS_MCP_ENDPOINT_REGION:-us-east-1}.api.aws/mcp
+
+  aws-knowledge:
+    description: >-
+      AWS's official hosted knowledge server for AWS documentation, What's New and Well-Architected; no account or
+      sign-in. AWS advises against enabling it together with `aws`.
+    type: http
+    url: https://knowledge-mcp.global.api.aws
+
+  aws-eks:
+    description: >-
+      AWS's official managed Amazon EKS MCP server (preview) for clusters and workloads, signed with SigV4 from your local
+      AWS credentials; runs the official proxy with uvx. The region follows AWS_REGION.
+    command: uvx
+    args: [mcp-proxy-for-aws-cli@1.7.0, 'https://eks-mcp.${AWS_REGION:-us-east-1}.api.aws/mcp', --service, eks-mcp]
+
+  # --- Oracle Cloud (OCI) --------------------------------------------------------
+  oci:
+    description: >-
+      Oracle's official OCI server (reference, OCI Python SDK) for managing Oracle Cloud resources; runs with uvx (Python
+      3.13) and uses the ~/.oci/config profile OCI_CONFIG_PROFILE (default DEFAULT). OCI_REGION overrides the region.
+    command: uvx
+    args: [oracle.oci-cloud-mcp-server@2.2.3]
+    env:
+      OCI_CONFIG_PROFILE: ${OCI_CONFIG_PROFILE:-DEFAULT}
+      FASTMCP_LOG_LEVEL: ERROR
+
+  oci-cli:
+    description: >-
+      Oracle's official OCI server that runs `oci` CLI commands (reference); runs with uvx (Python 3.13) and uses the
+      ~/.oci/config profile OCI_CONFIG_PROFILE (default DEFAULT).
+    command: uvx
+    args: [oracle.oci-api-mcp-server@2.1.5]
+    env:
+      OCI_CONFIG_PROFILE: ${OCI_CONFIG_PROFILE:-DEFAULT}
+      FASTMCP_LOG_LEVEL: ERROR
+
+  # --- Kubernetes ----------------------------------------------------------------
+  # Extra toolsets (helm, kubevirt, ...) or read-only: declare an inline entry with `--config <toml>`.
+  kubernetes:
+    description: >-
+      Red Hat's kubernetes-mcp-server (containers org; Kubernetes itself ships none) for resources, pods, logs and events
+      across kubeconfig contexts; runs with npx, no kubectl needed, and uses KUBECONFIG or ~/.kube/config.
+    command: npx
+    args: [-y, kubernetes-mcp-server@0.0.67]
+
+  # --- Sentry --------------------------------------------------------------------
+  sentry:
+    description: >-
+      Sentry's official hosted server for issues, errors, traces and Seer analysis on sentry.io; browser sign-in
+      (OAuth). Also shipped as plugin `sentry@claude-plugins-official`.
+    type: http
+    url: https://mcp.sentry.dev/mcp
+
+  sentry-project:
+    description: >-
+      Sentry's official hosted server scoped to one organization and project, as Sentry recommends; browser sign-in
+      (OAuth), needs SENTRY_ORG and SENTRY_PROJECT (slugs). Also shipped as plugin `sentry@claude-plugins-official`.
+    type: http
+    url: https://mcp.sentry.dev/mcp/${SENTRY_ORG}/${SENTRY_PROJECT}
+
+  # The scheme is `Sentry-Bearer`, not `Bearer`.
+  sentry-token:
+    description: >-
+      Sentry's official hosted server with a user auth token instead of browser sign-in; needs SENTRY_ACCESS_TOKEN. Also
+      shipped as plugin `sentry@claude-plugins-official`.
+    type: http
+    url: https://mcp.sentry.dev/mcp
+    headers:
+      Authorization: Sentry-Bearer ${SENTRY_ACCESS_TOKEN}
+
+  sentry-self-hosted:
+    description: >-
+      Sentry's official local server for a self-hosted Sentry, with Seer turned off; runs with npx (Node 22.13+) and
+      needs SENTRY_HOST (hostname only, e.g. sentry.example.com) and SENTRY_ACCESS_TOKEN. Also shipped as plugin
+      `sentry@claude-plugins-official`.
+    command: npx
+    args: [-y, '@sentry/mcp-server@0.39.0']
+    env:
+      SENTRY_ACCESS_TOKEN: ${SENTRY_ACCESS_TOKEN}
+      SENTRY_HOST: ${SENTRY_HOST}
+      MCP_DISABLE_SKILLS: seer
+
+  # --- Design --------------------------------------------------------------------
+  figma:
+    description: >-
+      Figma's official hosted server for design context, variables, Code Connect and writing to the canvas; browser
+      sign-in (OAuth), limited to clients in Figma's MCP catalog, which include Claude Code. Rate limits depend on plan
+      and seat. Also shipped as plugin `figma@claude-plugins-official`.
+    type: http
+    url: https://mcp.figma.com/mcp
+
+  figma-desktop:
+    description: >-
+      Figma's official server inside the Figma desktop app; no sign-in, but the app must be running with Dev Mode >
+      Inspect > "Enable desktop MCP server" turned on.
+    type: http
+    url: http://127.0.0.1:3845/mcp
+
+  # --- Local tools ---------------------------------------------------------------
+  chrome-devtools:
+    description: >-
+      The Chrome DevTools team's official server for driving and debugging Chrome (navigation, console, network,
+      performance traces); runs with npx and launches Chrome with a persistent profile. Also shipped as plugin
+      `chrome-devtools-mcp@claude-plugins-official`.
+    command: npx
+    args: [-y, chrome-devtools-mcp@1.10.1, --no-usage-statistics]
+
+  chrome-devtools-headless:
+    description: >-
+      The official Chrome DevTools server with headless Chrome and a temporary profile, for machines without a display
+      (WSL, CI, SSH) or parallel sessions; runs with npx. Also shipped as plugin
+      `chrome-devtools-mcp@claude-plugins-official`.
+    command: npx
+    args: [-y, chrome-devtools-mcp@1.10.1, --no-usage-statistics, --headless, --isolated]
+
+  chrome-devtools-browser-url:
+    description: >-
+      The official Chrome DevTools server attached to a Chrome you started with --remote-debugging-port; runs with npx,
+      CHROME_BROWSER_URL defaults to http://127.0.0.1:9222. Also shipped as plugin
+      `chrome-devtools-mcp@claude-plugins-official`.
+    command: npx
+    args: [-y, chrome-devtools-mcp@1.10.1, --no-usage-statistics, '--browser-url=${CHROME_BROWSER_URL:-http://127.0.0.1:9222}']
+
+  sequential-thinking:
+    description: >-
+      The MCP steering group's reference server for step-by-step reasoning with revisable thoughts; runs with npx, no
+      configuration.
+    command: npx
+    args: [-y, '@modelcontextprotocol/server-sequential-thinking@2026.8.31']
+
+  markitdown:
+    description: >-
+      Microsoft's official MarkItDown server (beta) that converts files and URLs (PDF, Office, HTML, images, ...) to
+      Markdown; runs with uvx and can read any file you can read.
+    command: uvx
+    args: [markitdown-mcp==0.0.1a7]
+  # --- Notion ----------------------------------------------------------------------
+  notion:
+    description: >-
+      Notion's official hosted server (Notion MCP) for searching, reading and editing pages and databases; OAuth only.
+      Also shipped as plugin `notion@claude-plugins-official`.
+    type: http
+    url: https://mcp.notion.com/mcp
+
+  notion-token:
+    description: >-
+      Notion's older local server, which Notion no longer maintains, for an integration token instead of OAuth (CI,
+      headless); runs with npx and needs NOTION_TOKEN, and pages must be shared with the integration.
+    command: npx
+    args: [-y, '@notionhq/notion-mcp-server@2.5.2']
+    env:
+      NOTION_TOKEN: ${NOTION_TOKEN}
+
+  # --- Terraform (HashiCorp has no hosted server) -----------------------------------
+  terraform:
+    description: >-
+      HashiCorp's official local server for public Terraform Registry docs (providers, modules, Sentinel policies); runs
+      in Docker and needs no credentials. Also shipped as plugin `terraform@claude-plugins-official`.
+    command: docker
+    args: [run, -i, --rm, hashicorp/terraform-mcp-server:1.3.0]
+
+  terraform-cloud:
+    description: >-
+      HashiCorp's official local server with every toolset, for HCP Terraform or Terraform Enterprise workspaces, runs,
+      variables and private registry; runs in Docker and needs TFE_TOKEN, plus TFE_ADDRESS for Terraform Enterprise
+      (default https://app.terraform.io). Also shipped as plugin `terraform@claude-plugins-official`.
+    command: docker
+    args: [run, -i, --rm, -e, TFE_TOKEN, -e, TFE_ADDRESS, hashicorp/terraform-mcp-server:1.3.0, --toolsets=all]
+    env:
+      TFE_TOKEN: ${TFE_TOKEN}
+      TFE_ADDRESS: ${TFE_ADDRESS:-https://app.terraform.io}
+
+  terraform-remote:
+    description: >-
+      A Terraform MCP server your organization runs in streamable-http mode (HashiCorp hosts none); needs
+      TERRAFORM_MCP_URL (e.g. https://terraform-mcp.example.com/mcp) and TFE_TOKEN, sent as a Bearer token. Also shipped
+      as plugin `terraform@claude-plugins-official`.
+    type: http
+    url: ${TERRAFORM_MCP_URL}
+    headers:
+      Authorization: Bearer ${TFE_TOKEN}
+
+  # --- Task and project management -------------------------------------------------
+  todoist:
+    description: Doist's official hosted Todoist server for tasks, projects, sections and comments; OAuth.
+    type: http
+    url: https://ai.todoist.net/mcp
+
+  todoist-token:
+    description: Doist's official local Todoist server with an API token instead of OAuth; runs with npx and needs TODOIST_API_KEY.
+    command: npx
+    args: [-y, '@doist/todoist-mcp@13.3.1']
+    env:
+      TODOIST_API_KEY: ${TODOIST_API_KEY}
+
+  clickup:
+    description: ClickUp's official hosted server (public beta) for tasks, lists, docs and time tracking; OAuth only, workspace chosen at sign-in.
+    type: http
+    url: https://mcp.clickup.com/mcp
+
+  miro:
+    description: >-
+      Miro's official hosted server for reading and creating board content (diagrams, docs, tables); OAuth, limited to
+      the team chosen at sign-in. Also shipped as plugin `miro@claude-plugins-official`.
+    type: http
+    url: https://mcp.miro.com/
+
+  # --- DeepWiki / Devin (Cognition) ------------------------------------------------
+  deepwiki:
+    description: Cognition's official hosted DeepWiki server for reading and asking about generated docs of public GitHub repositories; no auth.
+    type: http
+    url: https://mcp.deepwiki.com/mcp
+
+  devin:
+    description: >-
+      Cognition's official hosted Devin server: DeepWiki for private and public repositories plus Devin sessions,
+      playbooks, knowledge and schedules; needs DEVIN_API_KEY (an org-scoped service user key, cog_…).
+    type: http
+    url: https://mcp.devin.ai/mcp
+    headers:
+      Authorization: Bearer ${DEVIN_API_KEY}
+
+  devin-enterprise:
+    description: >-
+      Cognition's official hosted Devin server for an enterprise service user key or personal access token, which must
+      name the organization; needs DEVIN_API_KEY and DEVIN_ORG_ID.
+    type: http
+    url: https://mcp.devin.ai/mcp
+    headers:
+      Authorization: Bearer ${DEVIN_API_KEY}
+      X-Org-Id: ${DEVIN_ORG_ID}
+
+  # --- Mapbox ----------------------------------------------------------------------
+  mapbox:
+    description: >-
+      Mapbox's official hosted server for geocoding, POI search, directions, isochrones and static maps; OAuth. Also
+      shipped as plugin `mapbox@claude-plugins-official`.
+    type: http
+    url: https://mcp.mapbox.com/mcp
+
+  mapbox-token:
+    description: >-
+      Mapbox's official hosted server with an access token instead of OAuth; needs MAPBOX_ACCESS_TOKEN. Also shipped as
+      plugin `mapbox@claude-plugins-official`.
+    type: http
+    url: https://mcp.mapbox.com/mcp
+    headers:
+      Authorization: Bearer ${MAPBOX_ACCESS_TOKEN}
+
+  mapbox-devkit:
+    description: >-
+      Mapbox's official hosted DevKit server for building styles, managing tokens and tilesets, and previewing GeoJSON;
+      OAuth. Also shipped as plugin `mapbox@claude-plugins-official`.
+    type: http
+    url: https://mcp-devkit.mapbox.com/mcp
+
+  mapbox-devkit-token:
+    description: >-
+      Mapbox's official hosted DevKit server with an access token instead of OAuth; needs MAPBOX_ACCESS_TOKEN with the
+      scopes each tool requires (e.g. styles:write, tokens:write). Also shipped as plugin
+      `mapbox@claude-plugins-official`.
+    type: http
+    url: https://mcp-devkit.mapbox.com/mcp
+    headers:
+      Authorization: Bearer ${MAPBOX_ACCESS_TOKEN}
+
+  mapbox-docs:
+    description: >-
+      Mapbox's official hosted server for Mapbox documentation, guides and API references; no auth. Also shipped as
+      plugin `mapbox@claude-plugins-official`.
+    type: http
+    url: https://mcp-docs.mapbox.com/mcp
+
+  # --- Snyk ------------------------------------------------------------------------
+  snyk:
+    description: >-
+      Snyk's official local server built into the Snyk CLI, for code, open-source, IaC, container and secret scans, with the
+      lite tool profile; runs with npx, and you sign in once through its snyk_auth tool or `snyk auth` (browser OAuth).
+    command: npx
+    args: [-y, snyk@1.1307.4, mcp, -t, stdio, --profile=lite]
+
+  snyk-token:
+    description: Snyk's official local server built into the Snyk CLI, authenticated with an API token or PAT instead of browser sign-in, with the lite tool profile; runs with npx and needs SNYK_TOKEN, plus SNYK_API for a non-US region (default https://api.snyk.io).
+    command: npx
+    args: [-y, snyk@1.1307.4, mcp, -t, stdio, --profile=lite]
+    env:
+      SNYK_TOKEN: ${SNYK_TOKEN}
+      SNYK_API: ${SNYK_API:-https://api.snyk.io}
+
+  snyk-evo:
+    description: >-
+      Snyk's official hosted Evo server for the AI inventory, risk, policy and issue data of an Evo tenant; OAuth. For
+      other regions set SNYK_EVO_HOST (e.g. evo.eu.snyk.io).
+    type: http
+    url: https://${SNYK_EVO_HOST:-evo.snyk.io}/mcp
+  # --- Nexus Repository ------------------------------------------------------------
+  # Sonatype ships no Nexus Repository MCP. The package reads NEXUS_* from the environment (not in its README), so the
+  # password stays off the command line.
+  nexus-repository:
+    description: >-
+      Community server (brianveltman/sonatype-mcp, last published 2025-07) for Sonatype Nexus Repository Manager
+      repositories, components and system status; runs with npx and needs NEXUS_BASE_URL, NEXUS_USERNAME and
+      NEXUS_PASSWORD.
+    command: npx
+    args: [-y, '@brianveltman/sonatype-mcp@1.4.0']
+    env:
+      NEXUS_BASE_URL: ${NEXUS_BASE_URL}
+      NEXUS_USERNAME: ${NEXUS_USERNAME}
+      NEXUS_PASSWORD: ${NEXUS_PASSWORD}
+
+  # --- ClickHouse ----------------------------------------------------------------
+  clickhouse-cloud:
+    description: >-
+      ClickHouse's official hosted read-only server for ClickHouse Cloud (query, schema, services, backups, billing);
+      OAuth sign-in, and the MCP must be enabled per service in the Cloud console. Also shipped as plugin
+      `clickhouse@claude-plugins-official`.
+    type: http
+    url: https://mcp.clickhouse.cloud/mcp
+
+  # Plain-HTTP servers (e.g. local Docker on 8123): CLICKHOUSE_SECURE=false.
+  clickhouse:
+    description: >-
+      ClickHouse's official local server for any ClickHouse over its HTTP interface (self-hosted or Cloud);
+      needs uv, CLICKHOUSE_HOST, CLICKHOUSE_USER and CLICKHOUSE_PASSWORD, plus CLICKHOUSE_SECURE=false for plain HTTP.
+      Read-only unless CLICKHOUSE_ALLOW_WRITE_ACCESS=true is declared inline.
+    command: uvx
+    args: [--python, '3.12', mcp-clickhouse@0.7.0]
+    env:
+      CLICKHOUSE_HOST: ${CLICKHOUSE_HOST}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_SECURE: ${CLICKHOUSE_SECURE:-true}
+
+  # Optional: ClickStack observability.
+  clickstack:
+    description: ClickHouse's official hosted ClickStack observability server (logs, traces, metrics, dashboards) on ClickHouse Cloud; OAuth sign-in.
+    type: http
+    url: https://mcp.clickhouse.cloud/clickstack
+
+  clickstack-self-hosted:
+    description: >-
+      ClickHouse's official ClickStack server built into a self-hosted ClickStack/HyperDX v2 frontend; needs CLICKSTACK_URL
+      (e.g. http://localhost:8080) and CLICKSTACK_API_KEY, a Personal API Access Key.
+    type: http
+    url: ${CLICKSTACK_URL}/api/mcp
+    headers:
+      Authorization: Bearer ${CLICKSTACK_API_KEY}
+
+  # --- Parallel --------------------------------------------------------------------
+  parallel-search:
+    description: Parallel's official hosted server for web search and page fetching; free and anonymous at lower rate limits, no key.
+    type: http
+    url: https://search.parallel.ai/mcp
+
+  parallel-search-token:
+    description: Parallel's official hosted search server with an API key for higher rate limits and search settings; needs PARALLEL_API_KEY.
+    type: http
+    url: https://search.parallel.ai/mcp
+    headers:
+      Authorization: Bearer ${PARALLEL_API_KEY}
+
+  parallel-search-oauth:
+    description: Parallel's official hosted search server with browser sign-in to a Parallel account instead of an API key.
+    type: http
+    url: https://search.parallel.ai/mcp-oauth
+
+  parallel-task:
+    description: Parallel's official hosted server for billable deep research and data enrichment tasks; OAuth sign-in to a Parallel account.
+    type: http
+    url: https://task-mcp.parallel.ai/mcp
+
+  parallel-task-token:
+    description: Parallel's official hosted deep research and enrichment server with an API key instead of sign-in; needs PARALLEL_API_KEY.
+    type: http
+    url: https://task-mcp.parallel.ai/mcp
+    headers:
+      Authorization: Bearer ${PARALLEL_API_KEY}
+
+  # --- Browser automation ------------------------------------------------------------
+  browser-use:
+    description: Browser Use's official hosted server that runs browser agents on Browser Use Cloud browsers (billed per use); needs BROWSER_USE_API_KEY.
+    type: http
+    url: https://api.browser-use.com/v3/mcp
+    headers:
+      x-browser-use-api-key: ${BROWSER_USE_API_KEY}
+
+  browser-use-local:
+    description: >-
+      Browser Use's official open-source local server that drives a local Chromium; runs with uvx. OPENAI_API_KEY is
+      used only by its agent and extract tools; navigation, clicking and screenshots work without it.
+    command: uvx
+    args: [--from, 'browser-use[cli]==0.13.10', browser-use, --mcp]
+    env:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
