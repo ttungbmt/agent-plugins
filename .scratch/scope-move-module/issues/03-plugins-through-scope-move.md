@@ -1,6 +1,6 @@
 ---
 title: Route plugins through `scopeMove`
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [02]
 ---
 
