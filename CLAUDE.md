@@ -21,8 +21,8 @@ Run from the repo root; `mise install` provides Node and pnpm.
 ├── packages/
 │   ├── cli/                  # the `ap` CLI (oclif)
 │   │   ├── src/sync/         # nearly all logic; tests sit next to the file they cover
-│   │   └── src/commands/     # thin oclif wiring: flags, progress, exit codes
-│   ├── presets/              # bundled Presets + MCP catalog
+│   │   ├── src/commands/     # thin oclif wiring: flags, progress, exit codes
+│   │   └── presets/          # Bundled presets + MCP catalog
 │   └── schemas/
 ├── examples/                 # sample Configs for manual testing, mounted into the Docker sandbox
 ├── .claude-plugin/, plugins/ # this repo is also a Claude Code marketplace
@@ -65,12 +65,11 @@ Claude Code's live config — `--scope user` means your own `~/.claude`. Run app
 
 ## Gotchas
 
-- `packages/cli/presets/` is a build-time copy and gitignored — edit Presets in `packages/presets/`.
 - This repo dogfoods `ap`: `.claude/` and `agent-plugins.lock` at the root are generated from the `agent-plugins`
   preset. Change the preset and run `pnpm ap sync` instead of editing them by hand. The exception is the files
   directly in `.claude/rules/`: they are hand-written Manual entries that `ap` never touches.
 - The git fetcher every item kind uses lives in `sync/skills.ts` (`createGitFetcher`), not in a module of its own.
-- After touching the MCP catalog (`packages/presets/mcp-servers.yaml`), run `mcp-catalog.test.ts`.
+- After touching the MCP catalog (`packages/cli/presets/mcp-servers.yaml`), run `mcp-catalog.test.ts`.
 
 ## Conventions
 

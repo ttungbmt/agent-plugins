@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../schemas/schemas/preset.schema.json
+# yaml-language-server: $schema=../../schemas/schemas/preset.schema.json
 
 kind: Preset
 
@@ -7,8 +7,9 @@ metadata:
 
 spec:
   marketplaces:
-    - source: anthropics/claude-plugins-official
-      scope: global
+    claude-plugins-official:
+      source: { source: github, repo: anthropics/claude-plugins-official }
+      autoUpdate: true
 
   plugins:
     claude-code-setup@claude-plugins-official: true

@@ -26,7 +26,7 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "build": "node scripts/copy-presets.mjs && tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json",
     "pack:release": "pnpm build && node scripts/pack-release.mjs"
   },
   "devDependencies": {
@@ -40,7 +40,6 @@
     "esbuild": "^0.28.2",
     "ink": "^7.1.1",
     "listr2": "^11.1.0",
-    "presets": "workspace:*",
     "react": "^19.3.0",
     "typescript": "^7.0.2",
     "vitest": "^5.0.1",

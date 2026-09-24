@@ -13,7 +13,7 @@ Thuật ngữ: xem [CONTEXT.md](../../CONTEXT.md). Quyết định kiến trúc:
 
 - `agent-plugins.yaml` (`kind: Config`, schema `config.schema.json`). Thiếu file → lỗi, gợi ý `ap init`.
 - `spec.presets` của Config (chọn Preset) và `spec.extends` của Preset (kế thừa, một tham chiếu hoặc list) — mỗi tham chiếu:
-  - tên trần → Bundled preset trong `packages/presets`, tìm theo tên file; `metadata.name` phải trùng tên file.
+  - tên trần → Bundled preset trong `packages/cli/presets`, tìm theo tên file; `metadata.name` phải trùng tên file.
   - `./…`, `../…` → Local preset, tương đối với file chứa tham chiếu.
   - `https://…` → Remote preset; `sha256` nội dung ghim trong Lock, cache ở `.agent-plugins/cache/`; nội dung đổi → lỗi, `--update` để chấp nhận.
 - Preset kế thừa bằng `spec.extends` (tuỳ độ sâu); Config chỉ dùng `spec.presets`. Dùng lẫn → lỗi kèm gợi ý. Phát hiện vòng lặp. Mỗi Preset chỉ nạp một lần, ở lần gặp đầu tiên; thứ tự: cha trước, con sau. Tham chiếu tương đối trong Remote preset phân giải theo URL của nó.
@@ -128,7 +128,7 @@ Cùng khuôn với Agent; quyết định riêng: [ADR 0010](../adr/0010-workflo
 
 Quyết định: [ADR 0006](../adr/0006-mcp-servers-inline-plus-bundled-catalog.md).
 
-- Khai báo: `spec.mcpServers` là map theo tên. `true` → lấy nguyên cấu hình trong MCP catalog (`packages/presets/mcp-servers.yaml`, `kind: McpCatalog`, schema `mcp-catalog.schema.json`), kể cả khi Preset cha đã định nghĩa inline cùng tên; tên không có trong danh mục → lỗi. Mỗi mục trong danh mục có `description` bắt buộc (chỉ để đọc), `ap` bỏ field này trước khi ghi. Map → cấu hình inline đúng định dạng `.mcp.json`: stdio (`command`, `args`, `env`) hoặc `type: http|sse` (`url`, `headers`, `headersHelper`, `oauth`). `false` → bỏ MCP server kế thừa.
+- Khai báo: `spec.mcpServers` là map theo tên. `true` → lấy nguyên cấu hình trong MCP catalog (`packages/cli/presets/mcp-servers.yaml`, `kind: McpCatalog`, schema `mcp-catalog.schema.json`), kể cả khi Preset cha đã định nghĩa inline cùng tên; tên không có trong danh mục → lỗi. Mỗi mục trong danh mục có `description` bắt buộc (chỉ để đọc), `ap` bỏ field này trước khi ghi. Map → cấu hình inline đúng định dạng `.mcp.json`: stdio (`command`, `args`, `env`) hoặc `type: http|sse` (`url`, `headers`, `headersHelper`, `oauth`). `false` → bỏ MCP server kế thừa.
 - Chuẩn hoá trước khi so và ghi: bỏ `type: stdio` và `args`/`env`/`headers` rỗng.
 - Kiểm tra lúc phân giải (lỗi cấu hình; danh mục không đọc được hoặc YAML hỏng cũng là lỗi, chỉ thiếu file mới coi như rỗng): thiếu `command`/`url`, `type` lạ, hoặc khoá trong `env`/`headers` giống secret (`key`, `token`, `secret`, `password`, `auth`, `credential`) mà giá trị không chứa `${`. Biến `${VAR}` (không có `:-default`) chưa đặt trong môi trường lúc sync → thông báo.
 - Gộp theo tên (ADR 0004): Preset con/Config thay cả cấu hình; Preset ngang hàng phải giống hệt nhau sau chuẩn hoá (kể cả `false`), khác → `preset-clash`, Bản cài của tên đó được giữ nguyên. Tên MCP server là không gian tên riêng: xung đột của nó không chặn marketplace/plugin/Skill/Agent cùng tên, và ngược lại. Đường dẫn trong `command`/`args` ghi nguyên văn, Claude Code hiểu theo gốc project.

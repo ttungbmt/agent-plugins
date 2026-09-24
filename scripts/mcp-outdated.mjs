@@ -4,7 +4,7 @@
 import { readFile } from 'node:fs/promises'
 import { parse } from 'yaml'
 
-const catalog = new URL('../packages/presets/mcp-servers.yaml', import.meta.url)
+const catalog = new URL('../packages/cli/presets/mcp-servers.yaml', import.meta.url)
 const { servers } = parse(await readFile(catalog, 'utf8'))
 
 /** The pinned artifact of a stdio server, or null when it pins nothing. */

@@ -205,9 +205,6 @@ importers:
       listr2:
         specifier: ^11.1.0
         version: 11.1.0
-      presets:
-        specifier: workspace:*
-        version: link:../presets
       react:
         specifier: ^19.3.0
         version: 19.3.0
@@ -220,8 +217,6 @@ importers:
       yaml:
         specifier: ^2.9.1
         version: 2.9.1
-
-  packages/presets: {}
 
   packages/schemas: {}
 

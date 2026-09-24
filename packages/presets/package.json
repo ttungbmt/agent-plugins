@@ -1,8 +1,0 @@
-{
-  "name": "presets",
-  "version": "1.0.0",
-  "description": "Bundled presets shipped with the `ap` CLI, referenced by bare name in `spec.presets`.",
-  "type": "module",
-  "files": ["*.yaml"],
-  "license": "ISC"
-}
