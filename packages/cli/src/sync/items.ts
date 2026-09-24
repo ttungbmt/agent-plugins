@@ -5,8 +5,12 @@ import type { ItemKind, ItemSource, Scope } from './types.js'
 /** Một Skill/Agent tìm thấy trong nguồn đã tải: `path` là thư mục Skill hoặc file Agent, để copy. */
 export type FoundItem = { name: string; path: string; sha256: string }
 
-/** Bản cài skill/agent có trong thư mục của một Scope. `symlink`: do công cụ khác tạo (vd. `npx skills`). */
-export type InstalledItem = { name: string; symlink: boolean; sha256: string }
+/**
+ * Bản cài skill/agent có trong thư mục của một Scope. `symlink`: do công cụ khác tạo (vd. `npx skills`).
+ * `files`: chỉ Workflow (định danh là `meta.name`, không phải tên file, ADR 0010) — mọi file mang tên này, file đầu
+ * tiên là Bản cài; từ hai file trở lên thì Claude Code chỉ chạy được một.
+ */
+export type InstalledItem = { name: string; symlink: boolean; sha256: string; files?: string[] }
 
 /**
  * Cách một loại thứ được tải từ nguồn và cài vào Scope (ADR 0005): Skill là thư mục `<name>/SKILL.md`, Agent là

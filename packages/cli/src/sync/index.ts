@@ -135,6 +135,9 @@ export async function sync(
       ? [...new Set([...declarations.map((d) => handler.namespace!(d.source)), ...managed.map((m) => m.name.split('/')[0]!)])]
       : []
     const installed = await handler.list(dir, namespaces)
+    for (const { name, files } of installed) {
+      if (files && files.length > 1) notices.push(`${kind} "${name}" is defined by ${files.join(', ')} in ${dir}; Claude Code runs only one of them`)
+    }
     run.collected = await collectItems(handler, declarations, managed, {
       catalogs,
       installed,

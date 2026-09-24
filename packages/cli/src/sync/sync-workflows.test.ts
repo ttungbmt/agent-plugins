@@ -1,4 +1,4 @@
-import { readdir, readFile, writeFile } from 'node:fs/promises'
+import { readdir, readFile, readlink, symlink, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
@@ -59,7 +59,8 @@ async function setup(files: Record<string, string>, repos: Record<string, Record
         ? Promise.resolve({ dir: resolve(cwd, source.path as string), commit: null, cleanup: async () => {} })
         : fetchSource(source, commit),
   }
-  const run = (mode: SyncMode = 'apply', extra: { scope?: Scope } = {}) => sync({ cwd, scope: extra.scope ?? 'project', mode }, deps)
+  const run = (mode: SyncMode = 'apply', extra: { scope?: Scope; force?: boolean } = {}) =>
+    sync({ cwd, scope: extra.scope ?? 'project', mode, force: extra.force }, deps)
   const read = async (path: string) => readFile(join(cwd, path), 'utf8').catch(() => undefined)
   const lock = async () => parse((await read('agent-plugins.lock')) ?? '') ?? {}
   const files_ = async (dir = join(cwd, '.claude/workflows')) => (await readdir(dir).catch(() => [])).sort()
@@ -175,3 +176,88 @@ describe('sync workflows', () => {
     await expect(t.run()).rejects.toThrow(`"${REPO}" cannot have both \`workflows\` and \`exclude\``)
   })
 })
+
+describe('sync workflows ownership', () => {
+  const REVIEW = FLOWS['workflows/review.js']
+  const only = (names: string[]) => config(`[{ source: ${REPO}, workflows: [${names.join(', ')}] }]`)
+
+  it('adopts a hand-copied workflow with the same meta.name and content, whatever its file name', async () => {
+    const t = await setup({ 'agent-plugins.yaml': only(['code-review']), '.claude/workflows/foo.js': REVIEW })
+
+    const report = await t.run()
+
+    expect(report.actions).toEqual([])
+    expect(report.notices).toEqual(expect.arrayContaining(['ap now manages workflow "code-review", which was set up by hand']))
+    expect((await t.lock()).workflows.map((w: { name: string }) => w.name)).toEqual(['code-review'])
+
+    await t.setConfig('kind: Config\nmetadata: { name: demo }\nspec: {}\n')
+    expect((await t.run()).actions).toEqual([act('remove', 'code-review')])
+    expect(await t.files()).toEqual([])
+  })
+
+  it('refuses a hand-written workflow with the same meta.name but other content until --force', async () => {
+    const mine = script('code-review', `await agent('my own review')`)
+    const t = await setup({ 'agent-plugins.yaml': only(['code-review']), '.claude/workflows/foo.js': mine })
+
+    const report = await t.run()
+
+    expect(report.conflicts).toEqual([expect.objectContaining({ name: 'code-review', reason: 'manual-entry' })])
+    expect(await t.read('.claude/workflows/foo.js')).toBe(mine)
+
+    expect((await t.run('apply', { force: true })).actions).toEqual([act('install', 'code-review')])
+    expect(await t.files()).toEqual(['code-review.js'])
+    expect(await t.read('.claude/workflows/code-review.js')).toBe(REVIEW)
+  })
+
+  it('reports modified-workflow for an edited managed workflow, on update and on removal', async () => {
+    const t = await setup({ 'agent-plugins.yaml': only(['code-review', 'audit']) })
+    await t.run()
+    const edited = `${REVIEW}// tweak\n`
+    await writeFile(join(t.cwd, '.claude/workflows/code-review.js'), edited)
+
+    expect((await t.run()).conflicts).toEqual([expect.objectContaining({ name: 'code-review', reason: 'modified-workflow' })])
+
+    await t.setConfig(only(['audit']))
+    const report = await t.run()
+    expect(report.conflicts).toEqual([expect.objectContaining({ name: 'code-review', reason: 'modified-workflow' })])
+    expect(await t.read('.claude/workflows/code-review.js')).toBe(edited)
+
+    expect((await t.run('apply', { force: true })).actions).toEqual([act('remove', 'code-review')])
+    expect(await t.files()).toEqual(['audit.js'])
+  })
+
+  it('warns when two hand-written files share a meta.name', async () => {
+    const t = await setup({
+      'agent-plugins.yaml': config('[]'),
+      '.claude/workflows/a.js': script('twin'),
+      '.claude/workflows/b.js': script('twin', `await agent('other')`),
+    })
+
+    const report = await t.run()
+
+    expect(report.notices).toEqual(expect.arrayContaining([expect.stringMatching(/"twin".*a\.js.*b\.js/)]))
+    expect(await t.files()).toEqual(['a.js', 'b.js'])
+  })
+
+  it('treats a symlinked workflow as manual and only unlinks it with --force', async () => {
+    const outside = await makeTree({ 'review.js': script('code-review', `await agent('linked')`) })
+    const t = await setup({ 'agent-plugins.yaml': only(['code-review']), '.claude/workflows/.keep': '' })
+    await symlink(join(outside, 'review.js'), join(t.cwd, '.claude/workflows/code-review.js'))
+
+    expect((await t.run()).conflicts).toEqual([expect.objectContaining({ name: 'code-review', reason: 'manual-entry' })])
+
+    await t.run('apply', { force: true })
+    expect(await readlink(join(t.cwd, '.claude/workflows/code-review.js')).catch(() => 'not a link')).toBe('not a link')
+    expect(await t.read('.claude/workflows/code-review.js')).toBe(REVIEW)
+    expect(await readFile(join(outside, 'review.js'), 'utf8')).toContain('linked')
+  })
+
+  it('leaves files without a valid meta alone', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[${REPO}]`), '.claude/workflows/notes.js': 'const x = 1\n' })
+    await t.run()
+    await t.setConfig('kind: Config\nmetadata: { name: demo }\nspec: {}\n')
+    await t.run()
+    expect(await t.files()).toEqual(['notes.js'])
+  })
+})
+

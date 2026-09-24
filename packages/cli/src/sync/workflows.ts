@@ -46,29 +46,54 @@ export async function findWorkflows(root: string, source: ItemSource): Promise<F
   return workflows.sort((a, b) => a.name.localeCompare(b.name))
 }
 
-/** Bản cài workflow: mọi `*.js` ngay trong thư mục có `meta.name` hợp lệ, định danh bằng `meta.name`. */
+/**
+ * Bản cài workflow: mọi `*.js` ngay trong thư mục có `meta.name` hợp lệ, định danh bằng `meta.name` (ADR 0010), nên
+ * file người dùng tự đặt tên khác vẫn khớp được khai báo. Nhiều file cùng tên gộp thành một Bản cài; file dùng làm Bản
+ * cài là `<name>.js` nếu có, còn không thì file đầu tiên theo tên.
+ */
 export async function listInstalledWorkflows(dir: string): Promise<InstalledItem[]> {
-  const workflows: InstalledItem[] = []
-  for (const entry of await readdir(dir, { withFileTypes: true }).catch(() => [])) {
+  const byName = new Map<string, { file: string; symlink: boolean; sha256: string }[]>()
+  const entries = (await readdir(dir, { withFileTypes: true }).catch(() => [])).sort((a, b) => a.name.localeCompare(b.name))
+  for (const entry of entries) {
     if ((!entry.isFile() && !entry.isSymbolicLink()) || !entry.name.endsWith('.js')) continue
     const text = await readFile(join(dir, entry.name)).catch(() => undefined)
     const name = text && workflowName(text.toString('utf8'))
-    if (name === undefined || !text) continue
-    workflows.push({ name, symlink: entry.isSymbolicLink(), sha256: hash(text) })
+    if (!text || name === undefined) continue
+    const files = byName.get(name) ?? []
+    const file = { file: entry.name, symlink: entry.isSymbolicLink(), sha256: hash(text) }
+    if (entry.name === `${name}.js`) files.unshift(file)
+    else files.push(file)
+    byName.set(name, files)
   }
-  return workflows
+  return [...byName].map(([name, [first, ...rest]]) => ({
+    name,
+    symlink: first!.symlink,
+    sha256: first!.sha256,
+    files: [first!.file, ...rest.map((f) => f.file)],
+  }))
 }
 
-/** Copy đúng file Workflow vào `<dir>/<meta.name>.js`; tên file trong nguồn không được giữ. */
+/**
+ * Ghi file Workflow thành `<dir>/<meta.name>.js`. Bản cài cũ mang tên này mà khác tên file (đã nhận quản lý, hoặc bị
+ * thay bằng `--force`) bị gỡ, để chỉ còn một file; symlink chỉ bị gỡ link. File cùng tên khác không bị đụng tới.
+ */
 export async function installWorkflow(from: string, dir: string, name: string): Promise<void> {
+  const current = await installedFile(dir, name)
+  if (current) await rm(join(dir, current), { force: true })
   const target = join(dir, `${name}.js`)
   await rm(target, { force: true })
   await mkdir(dir, { recursive: true })
   await copyFile(from, target)
 }
 
+/** Gỡ đúng file là Bản cài của `name`, dù tên file là gì. */
 export async function removeWorkflow(dir: string, name: string): Promise<void> {
-  await rm(join(dir, `${name}.js`), { force: true })
+  const current = await installedFile(dir, name)
+  if (current) await rm(join(dir, current), { force: true })
+}
+
+async function installedFile(dir: string, name: string): Promise<string | undefined> {
+  return (await listInstalledWorkflows(dir)).find((w) => w.name === name)?.files?.[0]
 }
 
 function isCandidate(file: string): boolean {
