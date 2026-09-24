@@ -9,7 +9,8 @@ tử), mỗi lời gọi tốn dưới 2,2 µs ở cả hai phía, trong khi m�
 es-toolkit là so với lodash, không phải so với code viết tay. Đừng mở lại quyết định này vì lý do hiệu năng.
 
 es-toolkit được bundle như zod, nên nằm ở `devDependencies` ([ADR 0008](0008-distribute-ap-via-github-release-tarball.md),
-[ADR 0015](0015-zod-mini-for-spec-shape.md)). Toàn bộ thay đổi làm `dist/ap.js` tăng +4 944 byte (+0,35%), đo trên bản release.
+[ADR 0015](0015-zod-mini-for-spec-shape.md)). Toàn bộ thay đổi làm `dist/ap.js`
+tăng +4 944 byte (+0,35%), đo trên bản release.
 
 ## Quy ước
 
@@ -80,7 +81,13 @@ Hai chỗ research phát hiện là lỗi có sẵn, không liên quan tới es-
   - message lỗi của `spec: [a]`;
   - manifest plugin có `mcpServers` là mảng.
 - `compact` trong `store.ts` biến mất (thay bằng `pickBy`), nên không còn tên trùng.
-- `isRecord` là guard duy nhất cho "plain object". Hai chỗ đang coi mảng là object (`registry.ts:250`,
-  `spec.ts:315`) được giữ nguyên, vì đổi chúng là đổi output.
+- `isRecord` là guard duy nhất cho "plain object". Ba chỗ đang coi mảng là object được giữ nguyên, vì đổi chúng là đổi
+  output: đọc `mcpServers` trong `plugin.json` (`registry.ts`), `checkSpecKeys` và `fill` trong `spec.ts`. Research bỏ
+  sót chỗ thứ ba: với `plugins: [['a']]`, message là `plugin "undefined" …`, còn `isRecord` sẽ cho `plugin "a" …`.
+  Cả ba đều có test khoá.
+- `pick` (dùng `Object.hasOwn` thay `in`) và `mapValues` (key `__proto__`) chỉ khác code cũ ở trường hợp biên mà input
+  thật không có (xem research). Hai thay đổi này được chấp nhận.
+- Bundle tăng +4 944 byte thay vì khoảng +3,5 KB như bản thử trong research. Bản thử chỉ viết lại 56 chỗ, còn bản thật
+  dùng thêm `countBy`, `deburr`, `isPlainObject`, `isEmptyObject`, `trimEnd` và `asyncNoop`.
 - Thêm một dependency còn ở bản 1.x; changelog từng sửa kiểu dữ liệu ngay trong bản minor. Lockfile giữ phiên bản cố
   định, và typecheck bắt được thay đổi kiểu khi nâng cấp.
