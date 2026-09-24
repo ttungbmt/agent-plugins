@@ -86,4 +86,5 @@ only — it is not faster here.
   grouping → `Map.groupBy`; deep equality → `isDeepStrictEqual` from `node:util`.
 - Never import `isEqual`, `compact`, `groupBy`, `sortBy`/`orderBy`, `kebabCase`, `memoize`, the `*Async` array helpers,
   `es-toolkit/server` or `es-toolkit/compat`; ADR 0016 says why for each.
+- `packages/cli/src/es-toolkit-imports.test.ts` enforces that list and holds it; change the list there, nowhere else.
 - Skip a replacement that needs a new cast or lets `any` through. Use the repo's `isRecord`, never `isPlainObject`.

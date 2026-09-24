@@ -1,6 +1,6 @@
 ---
 title: Add es-toolkit, the `isRecord` guard and the banned-import test
-labels: []
+labels: [done]
 blocked_by: []
 ---
 

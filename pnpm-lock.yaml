@@ -196,6 +196,9 @@ importers:
       cli-progress:
         specifier: ^3.12.0
         version: 3.12.0
+      es-toolkit:
+        specifier: ^1.52.0
+        version: 1.52.0
       esbuild:
         specifier: ^0.28.2
         version: 0.28.2
