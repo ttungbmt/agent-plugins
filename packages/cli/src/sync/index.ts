@@ -105,7 +105,8 @@ export async function sync(
   const actualPlugins = await registry.listPlugins(scope)
   const blocked = resolved.conflicts.map((c) => c.name)
   const elsewhere = { cwd, entries: await registry.listElsewhere(scope) }
-  const plan = planSync(resolved.declarations, actual, managed, { force, blocked, shared, elsewhere })
+  const installed = await registry.listInstalled()
+  const plan = planSync(resolved.declarations, actual, managed, { force, blocked, shared, elsewhere, installed })
   const held = new Set([...resolved.conflicts, ...plan.conflicts].map((c) => c.name))
   const names = resolved.declarations.map((d) => knownName(d, managed, actual))
   const checked = checkMarketplaces(
@@ -319,7 +320,7 @@ export async function sync(
       return name
     }
     const mayReplace = (name: string) => force || records.has(name)
-    const { name } = await registry.put(action.declaration, scope, { mayReplace })
+    const { name } = await registry.put(action.declaration, scope, { mayReplace, known: action.name })
     records.set(name, record(name, action.declaration))
     return name
   }

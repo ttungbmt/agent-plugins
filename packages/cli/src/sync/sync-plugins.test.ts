@@ -65,6 +65,27 @@ describe('sync plugins', () => {
     expect(await t.run('check')).toEqual({ actions: [], conflicts: [], notices: [], inSync: true })
   })
 
+  it('re-adds a marketplace still in settings but gone from the machine-wide install, then installs its plugins', async () => {
+    // Shorthand, as in the `base` Preset: its name comes from Lock/State, since `add` leaves settings unchanged.
+    const t = await setup({ 'agent-plugins.yaml': config(`[${C7}]`, '\n  marketplaces: [anthropics/claude-plugins-official]') })
+    await t.run()
+    // Another scope's `marketplace remove` (or a wiped `~/.claude/plugins`) drops the shared install, not this scope's entry.
+    const knownPath = join(t.homedir, '.claude/plugins/known_marketplaces.json')
+    await writeFile(knownPath, '{}')
+    await writeFile(join(t.homedir, '.claude/plugins/installed_plugins.json'), '{"version":2,"plugins":{}}')
+
+    const report = await t.run()
+
+    expect(report.inSync).toBe(true)
+    expect(report.actions).toEqual([
+      expect.objectContaining({ target: 'marketplace', kind: 'readd', name: 'claude-plugins-official', status: 'done' }),
+      plugin('install', C7),
+    ])
+    expect(Object.keys(await t.claude.installed())).toEqual(['claude-plugins-official'])
+    expect(await t.installedAt(C7)).toEqual(['project'])
+    expect(await t.run('check')).toEqual({ actions: [], conflicts: [], notices: [], inSync: true })
+  })
+
   it('writes a declared false itself, without installing the plugin', async () => {
     const t = await setup({ 'agent-plugins.yaml': config(`{ ${C7}: false }`) })
 

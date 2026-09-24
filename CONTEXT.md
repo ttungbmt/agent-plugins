@@ -50,6 +50,11 @@ _Avoid_: source string
 **Known marketplace entry**:
 An entry in `extraKnownMarketplaces` of Claude Code's settings — actual state.
 
+**Installed marketplace**:
+A marketplace cloned to the machine and recorded by name in `known_marketplaces.json`, shared by every Scope.
+`claude plugin install` only sees Installed marketplaces, so a Known marketplace entry with no Installed marketplace
+is out of sync.
+
 ## Plugin
 
 **Plugin declaration**:

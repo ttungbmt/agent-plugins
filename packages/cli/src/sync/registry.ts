@@ -1,6 +1,6 @@
 import { join, resolve } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
-import { claudeJsonPath, installedPluginsPath, readJson, SCOPES, settingsPath, writeJson, type Location } from './files.js'
+import { claudeJsonPath, installedPluginsPath, knownMarketplacesPath, readJson, SCOPES, settingsPath, writeJson, type Location } from './files.js'
 import { crossScopeConflict, manualEntryConflict, sameInstall, sameSource } from './identity.js'
 import type { Conflict, KnownEntry, MarketplaceDeclaration, MarketplaceSource, McpConfig, PluginEntry, Scope, ScopedEntry } from './types.js'
 
@@ -26,6 +26,14 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
     return Object.entries(known).map(([name, { source, ...extras }]: [string, any]) => ({ name, source, extras }))
   }
 
+  /**
+   * Names of the Installed marketplaces (`known_marketplaces.json`). An entry can stay in a scope's settings after its
+   * install is gone, and `claude plugin install` only sees what is installed.
+   */
+  async function listInstalled(): Promise<Set<string>> {
+    return new Set(Object.keys(await readJson<Record<string, unknown>>(knownMarketplacesPath(location))))
+  }
+
   /** Entries of the other scopes: they share the install with the scope being synced. */
   async function listElsewhere(scope: Scope): Promise<ScopedEntry[]> {
     const others = SCOPES.filter((s) => s !== scope)
@@ -49,19 +57,20 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
    * Declare a marketplace through `claude plugin marketplace add`. claude resolves the name; if that name overwrites an
    * entry with a different source that `mayReplace` does not allow, or matches the name of another scope's entry with a
    * different source (a Shorthand declaration's name is only known after `add`), the old entry and its install are
-   * restored and a ConflictError is thrown.
+   * restored and a ConflictError is thrown. `known` is the name the plan already found in Lock/State or settings: `add`
+   * leaves an existing entry unchanged, so the name cannot be read from what `add` changed.
    */
   async function put(
     declaration: MarketplaceDeclaration,
     scope: Scope,
-    { mayReplace }: { mayReplace: (name: string) => boolean },
+    { mayReplace, known }: { mayReplace: (name: string) => boolean; known?: string | null },
   ): Promise<{ name: string }> {
     const before = await list(scope)
     const elsewhere = await listElsewhere(scope)
     await runMarketplaceCommand('add', sourceArgument(declaration.source), '--scope', scope)
     const after = await list(scope)
     const changed = after.find((e) => !before.some((b) => isDeepStrictEqual(b, e)))
-    const name = declaration.name ?? changed?.name
+    const name = declaration.name ?? changed?.name ?? known
     if (!name) throw new Error(`claude did not declare a marketplace for ${sourceArgument(declaration.source)}`)
 
     const previous = before.find((b) => b.name === name)
@@ -244,6 +253,7 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
     pendingMcp,
     pluginMcpServers,
     list,
+    listInstalled,
     listElsewhere,
     put,
     patch,
