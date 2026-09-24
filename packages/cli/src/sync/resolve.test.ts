@@ -487,6 +487,31 @@ spec:
       ).rejects.toThrow(/agent-plugins\.yaml: a Config selects presets with `spec\.presets`/)
     })
 
+    it('rejects an unknown `spec` key in a Config, naming the accepted keys', async () => {
+      await expect(
+        resolveIn({ 'agent-plugins.yaml': 'kind: Config\nmetadata: { name: demo }\nspec:\n  skils: [acme/kit]\n' }),
+      ).rejects.toThrow(/agent-plugins\.yaml: unknown key `spec\.skils`; a Config's spec takes presets, marketplaces, .*skills.*hooks/)
+    })
+
+    it('rejects an unknown `spec` key in a local Preset', async () => {
+      await expect(
+        resolveIn({ 'agent-plugins.yaml': cfg('[./team.yaml]'), 'team.yaml': preset('team', '  skils: [acme/kit]\n') }),
+      ).rejects.toThrow(/team\.yaml: unknown key `spec\.skils`; a Preset's spec takes extends, marketplaces, /)
+    })
+
+    it('rejects `hooks` in a Preset, which only a Config reads', async () => {
+      await expect(
+        resolveIn({ 'agent-plugins.yaml': cfg('[./team.yaml]'), 'team.yaml': preset('team', '  hooks: {}\n') }),
+      ).rejects.toThrow(/team\.yaml: unknown key `spec\.hooks`/)
+    })
+
+    it('rejects an unknown `spec` key in a remote Preset', async () => {
+      const url = 'https://example.com/p.yaml'
+      await expect(
+        resolveIn({ 'agent-plugins.yaml': cfg(`["${url}"]`) }, { fetch: async () => preset('p', '  mcpServer: {}\n') }),
+      ).rejects.toThrow(/p\.yaml: unknown key `spec\.mcpServer`/)
+    })
+
     it('lets a child preset replace a parent declaration entirely, with a notice', async () => {
       const result = await resolveIn({
         'agent-plugins.yaml': cfg('[./child.yaml]'),

@@ -49,6 +49,13 @@ export type ResolvedConfig = {
 export class ConfigError extends Error {}
 
 type PresetDocument = { kind?: string; metadata?: { name?: string }; spec?: { presets?: unknown; extends?: unknown; marketplaces?: unknown; plugins?: unknown; mcpServers?: unknown; hooks?: unknown } & { [K in ItemKind as `${K}s`]?: unknown } }
+
+const SHARED_SPEC_KEYS = ['marketplaces', 'plugins', ...ITEM_KINDS.map((kind) => `${kind}s`), 'mcpServers']
+/** The keys a Preset's `spec` may carry; the parser rejects any other. */
+export const PRESET_SPEC_KEYS: readonly string[] = ['extends', ...SHARED_SPEC_KEYS]
+/** The keys a Config's `spec` may carry; the parser rejects any other. */
+export const CONFIG_SPEC_KEYS: readonly string[] = ['presets', ...SHARED_SPEC_KEYS, 'hooks']
+
 type LoadedPreset = { id: string; label: string; doc: PresetDocument; dir: string }
 type Resolution = ResolveContext & { root: string; usedPins: PresetPins; catalog?: Promise<Record<string, McpConfig>> }
 
@@ -59,9 +66,7 @@ export async function resolveConfig(configPath: string, ctx: ResolveContext): Pr
     throw new ConfigError(`${configLabel} not found; run \`ap init\` to create one`)
   })
   const config = parse(text) as PresetDocument
-  if (config.spec?.extends !== undefined) {
-    throw new ConfigError(`${configLabel}: a Config selects presets with \`spec.presets\`, not \`spec.extends\``)
-  }
+  checkSpecKeys(config, 'Config', configLabel)
   const resolution: Resolution = { ...ctx, root: dirname(configPath), usedPins: {} }
   const graph: PresetGraph = { ancestors: new Map(), contributions: [], plugins: [], items: byKind(() => []), mcpServers: [] }
   for (const ref of list(config.spec?.presets)) await collect(ref, resolution.root, [], graph, resolution)
@@ -402,10 +407,11 @@ async function collect(ref: string, from: string, stack: LoadedPreset[], graph: 
     throw new ConfigError(`preset cycle: ${chain}`)
   }
   if (graph.ancestors.has(preset.id)) return preset.id
+  checkSpecKeys(preset.doc, 'Preset', preset.label)
 
   const ancestors = new Set<string>()
   graph.ancestors.set(preset.id, ancestors)
-  for (const parent of extendsRefs(preset)) {
+  for (const parent of list(preset.doc.spec?.extends)) {
     const id = await collect(parent, preset.dir, [...stack, preset], graph, resolution)
     ancestors.add(id)
     for (const a of graph.ancestors.get(id) ?? []) ancestors.add(a)
@@ -429,11 +435,18 @@ async function collect(ref: string, from: string, stack: LoadedPreset[], graph: 
   return preset.id
 }
 
-function extendsRefs(preset: LoadedPreset): string[] {
-  if (preset.doc.spec?.presets !== undefined) {
-    throw new ConfigError(`${preset.label}: a Preset inherits with \`spec.extends\`, not \`spec.presets\``)
+/** A Config and a Preset each read a fixed set of `spec` keys; a stray key is a mistake, not something to ignore. */
+function checkSpecKeys(doc: PresetDocument, kind: 'Config' | 'Preset', label: string) {
+  const keys = doc.spec && typeof doc.spec === 'object' ? Object.keys(doc.spec) : []
+  if (kind === 'Config' && keys.includes('extends')) {
+    throw new ConfigError(`${label}: a Config selects presets with \`spec.presets\`, not \`spec.extends\``)
   }
-  return list(preset.doc.spec?.extends)
+  if (kind === 'Preset' && keys.includes('presets')) {
+    throw new ConfigError(`${label}: a Preset inherits with \`spec.extends\`, not \`spec.presets\``)
+  }
+  const accepted = kind === 'Config' ? CONFIG_SPEC_KEYS : PRESET_SPEC_KEYS
+  const unknown = keys.find((key) => !accepted.includes(key))
+  if (unknown) throw new ConfigError(`${label}: unknown key \`spec.${unknown}\`; a ${kind}'s spec takes ${accepted.join(', ')}`)
 }
 
 /** A relative path in a Preset is resolved against that Preset's file, then rebased onto the Config directory. */
