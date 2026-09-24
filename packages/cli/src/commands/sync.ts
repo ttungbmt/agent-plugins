@@ -1,7 +1,9 @@
 import { spawn } from 'node:child_process'
 import { homedir } from 'node:os'
+import { styleText } from 'node:util'
 import { Command, Flags } from '@oclif/core'
 import { Listr, ListrLogger, PRESET_TIMER, ProcessOutput } from 'listr2'
+import { formatConflicts } from '../format-conflicts.js'
 import { defaultPresetsDir } from '../presets-dir.js'
 import { SCOPES } from '../sync/files.js'
 import { sync, type SyncProgress, type SyncReport } from '../sync/index.js'
@@ -50,7 +52,7 @@ export default class Sync extends Command {
       this.log(`${a.status.padEnd(7)} ${a.kind.padEnd(9)} ${target(a)}${a.error ? ` — ${a.error}` : ''}`)
     }
     for (const n of report.notices) this.log(`note    ${n}`)
-    for (const c of report.conflicts) this.logToStderr(`conflict ${c.name}: ${c.detail}`)
+    if (report.conflicts.length > 0) this.logToStderr(formatConflicts(report.conflicts, (format, text) => styleText(format, text, { stream: process.stderr })))
     if (report.inSync && report.actions.length === 0) this.log('marketplaces, plugins, skills, agents, rules, workflows, MCP servers and hooks are in sync')
     // dry-run only fails on conflicts; check and apply fail while anything is still out of sync.
     if (mode === 'dry-run' ? report.conflicts.length > 0 : !report.inSync) this.exit(1)

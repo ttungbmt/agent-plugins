@@ -90,7 +90,12 @@ export async function collectItems(
           continue
         }
         hold([onDisk(name)])
-        result.conflicts.push({ name: onDisk(name), reason: `missing-${kind}`, detail: `${origin} selects ${kind} "${name}" but ${describeItemSource(source)} has no such ${kind}` })
+        result.conflicts.push({
+          name: onDisk(name),
+          reason: `missing-${kind}`,
+          detail: `${origin} selects ${kind} "${name}" but ${describeItemSource(source)} has no such ${kind}`,
+          cause: `${origin} selects ${kind}s that ${describeItemSource(source)} does not have`,
+        })
       }
       return selected(available).filter((n) => available.includes(n)).filter(usable)
     }

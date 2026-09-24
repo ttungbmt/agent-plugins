@@ -124,6 +124,8 @@ export type Conflict = {
     | 'modified-workflow'
     | 'plugin-workflow'
   detail: string
+  /** The cause shared by conflicts of the same reason, without the name; `ap sync` lists such conflicts once under it. */
+  cause?: string
 }
 
 /** An MCP server config in Claude Code's exact `.mcp.json` format (`command`/`args`/`env` or `type` + `url`/`headers`). */

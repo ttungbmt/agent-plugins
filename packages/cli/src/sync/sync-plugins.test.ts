@@ -292,7 +292,12 @@ describe('sync plugins', () => {
     const report = await t.run('dry-run')
 
     expect(report.conflicts).toEqual([
-      { name: 'context7@typo', reason: 'missing-marketplace', detail: expect.stringContaining('"typo"') },
+      {
+        name: 'context7@typo',
+        reason: 'missing-marketplace',
+        detail: expect.stringContaining('"typo"'),
+        cause: expect.stringContaining('marketplace "typo"'),
+      },
     ])
     expect(report.actions.filter((a) => a.target === 'plugin')).toEqual([])
   })
