@@ -50,7 +50,7 @@ qua type guard `isRecord` của repo, trả về `Record<string, unknown>`.
 Hai chỗ research phát hiện là lỗi có sẵn, không liên quan tới es-toolkit. Mỗi chỗ được sửa bằng một commit riêng:
 
 - **`ap init` suy tên từ thư mục.** Tên được bỏ dấu bằng `deburr`, sau đó đi qua `kebabCase` viết tay, rồi được kiểm
-  tra lại `NAME_PATTERN`. Kết quả: `Dự Án` → `du-an` (trước đây là `d-n`). `日本語` hay `x😀y` → lỗi, gợi ý `--name`.
+  tra lại `NAME_PATTERN`. Kết quả: `Dự Án` → `du-an` (trước đây là `d-n`). `x😀y` → `x-y`; `日本語` → lỗi, gợi ý `--name`.
   Trước đây tên suy ra không được kiểm tra lại.
 - **Thứ tự workflow** trong `findWorkflows` và `listInstalledWorkflows` chuyển từ `localeCompare(b)` sang
   `localeCompare(b, 'en')`. Trước đây thứ tự phụ thuộc locale của máy (`sv_SE` xếp `ä` sau `z`, `tr_TR` đổi thứ tự
