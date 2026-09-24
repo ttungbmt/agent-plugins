@@ -4,7 +4,7 @@ import { deburr } from 'es-toolkit'
 import { ConfigError } from '../sync/errors.js'
 
 const SCHEMA_URL =
-  'https://raw.githubusercontent.com/ttungbmt/agent-plugins/master/packages/schemas/schemas/config.schema.json'
+  'https://raw.githubusercontent.com/ttungbmt/agent-plugins/master/schemas/config.schema.json'
 const NAME_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
 /** Machine-local files that `ap sync` writes; never committed. */
 const IGNORED = ['.agent-plugins/state.local.json', '.agent-plugins/cache/']
