@@ -198,6 +198,8 @@ export function createStore({ cwd, homedir }: Location) {
         (state?.[keysOf(kind).sources] ?? []).map(({ source, commit, [keysOf(kind).items]: names, blocked }): SourceCatalog => ({ source, commit, names: names!, ...(blocked ? { blocked } : {}) })),
       ),
       managedMcp: state?.mcpServers ?? [],
+      /** This Config's own MCP server claims in the record, owned or not. */
+      mcpClaims: state?.mcpClaims ?? [],
       managedHooks: state?.hooks ?? [],
       pins: lock.presets ?? {},
       shared: shared.marketplaces,

@@ -262,10 +262,12 @@ export async function sync(
     (userPluginPlan?.actions ?? [])
       .filter((a) => isRemoval(a) === removing && !(removing && targetConflicts.has(a.id)))
       .map((action) => ({ target: 'plugin' as const, action, scope: 'user' as const }))
-  // A User-scoped MCP server is added before the targeted Scope's servers and removed after them.
+  // A User-scoped MCP server is added before the targeted Scope's servers and removed after them, and a server moving
+  // between the two Scopes stays at the old one while the new one has a conflict (ADR 0014).
+  const [targetMcpConflicts, userMcpConflicts] = [mcpPlan, userMcpPlan].map((p) => new Set(p?.conflicts.map((c) => c.name)))
   const userMcpSteps = (removing: boolean) =>
     (userMcpPlan?.actions ?? [])
-      .filter((a) => (a.kind === 'remove') === removing)
+      .filter((a) => (a.kind === 'remove') === removing && !(removing && targetMcpConflicts!.has(a.name)))
       .map((action) => ({ target: 'mcp' as const, action, scope: 'user' as const }))
   const steps: Exclude<Step, { target: 'hook' }>[] = [
     // User-scope entries first, so the plugins of the targeted Scope find their marketplace (ADR 0011).
@@ -278,7 +280,9 @@ export async function sync(
     ...userSteps(true),
     ...itemRuns.flatMap(({ handler, plan }) => plan.actions.map((action) => ({ target: handler.kind, action }))),
     ...userMcpSteps(false),
-    ...mcpPlan.actions.map((action) => ({ target: 'mcp' as const, action })),
+    ...mcpPlan.actions
+      .filter((a) => !(a.kind === 'remove' && userMcpConflicts!.has(a.name)))
+      .map((action) => ({ target: 'mcp' as const, action })),
     ...userMcpSteps(true),
   ]
   const hookSteps: Step[] = hookPlan.actions.map((action) => ({ target: 'hook' as const, action }))
@@ -335,6 +339,8 @@ export async function sync(
   const failedMarketplaces = new Map<string | null, Scope>()
   /** Plugins whose install/enable/disable failed, with their Scope; one moving there keeps its old Scope (ADR 0012). */
   const failedPlugins = new Map<string, Scope>()
+  /** MCP servers whose add/update failed, with their Scope; one moving there keeps its old Scope (ADR 0014). */
+  const failedMcp = new Map<string, Scope>()
   const itemRecords = byKind((kind) => {
     const { managed, plan } = items[kind]
     const records = new Map(managed.map((m) => [m.name, m]))
@@ -396,6 +402,7 @@ export async function sync(
       if (error instanceof ConflictError) conflicts.push(error.conflict)
       if (step.target === 'marketplace') failedMarketplaces.set(step.action.name, step.scope ?? scope)
       if (step.target === 'plugin' && 'declaration' in step.action) failedPlugins.set(step.action.id, step.scope ?? scope)
+      if (step.target === 'mcp' && step.action.kind !== 'remove') failedMcp.set(step.action.name, step.scope ?? scope)
       actions.push({ ...describe(step), status: 'failed', error: (error as Error).message })
     }
     deps.onProgress?.({ phase: 'end', action: actions.at(-1)!, ms: Date.now() - started })
@@ -464,6 +471,8 @@ export async function sync(
   async function applyMcp(action: PlannedMcpAction, at?: 'user'): Promise<string> {
     const { name } = action
     const [target, owned] = at ? [at, userMcpRecords] : [scope, mcpRecords]
+    const failedAt = failedMcp.get(name)
+    if (action.kind === 'remove' && failedAt && failedAt !== target) throw new Error(`"${name}" is kept here until it is set up in ${failedAt} settings`)
     if (action.kind !== 'add') await registry.removeMcp(name, target)
     if (action.kind === 'remove') {
       owned.delete(name)
@@ -561,6 +570,11 @@ export async function sync(
     .filter((m) => !liftedPlugins.some((p) => p.id === m.id))
     .filter((m) => failedPlugins.get(m.id) === scope || targetConflicts.has(m.id))
     .map(({ id, enabled, origin }) => ({ id, enabled, origin }))
+  // An MCP server moving back from `user` keeps this Config's claim there until the targeted Scope has it (ADR 0014).
+  const movingBackMcp = [...(user?.managedMcp ?? []), ...(user?.mcpClaims ?? [])]
+    .filter((m, i, all) => all.findIndex((o) => o.name === m.name) === i && !liftedMcp.some((d) => d.name === m.name))
+    .filter((m) => failedMcp.get(m.name) === scope || targetMcpConflicts!.has(m.name))
+    .map(({ name, server, origin }) => ({ name, server, origin }))
   if (user && (user.recorded || lifted.length || liftedPlugins.length || liftedMcp.length)) {
     await store.save(
       'user',
@@ -575,7 +589,7 @@ export async function sync(
         claims: claimsOf(lifted, [...userRecords.values()], user.actual, conflicts),
         pluginClaims: [...claimsOfPlugins(liftedPlugins), ...movingBack],
         itemClaims: byKind(() => []),
-        mcpClaims: claimsOfMcp(liftedMcp),
+        mcpClaims: [...claimsOfMcp(liftedMcp), ...movingBackMcp],
         released: { ...NO_OWNED, marketplaces: userReleased, plugins: userReleasedPlugins, mcpServers: userReleasedMcp },
       },
       { target: scope },
@@ -594,13 +608,14 @@ export async function sync(
    * the rest; returns what the User-scoped plugins and MCP servers are planned against too.
    */
   async function planUserScoped() {
-    const { recorded, managed, shared, managedPlugins, sharedPlugins, managedMcp, sharedMcp } = await store.load('user', { target: scope })
+    const loaded = await store.load('user', { target: scope })
+    const { recorded, managed, shared, managedPlugins, sharedPlugins, managedMcp, sharedMcp, mcpClaims } = loaded
     const actual = await registry.list('user')
     const elsewhere = { cwd, entries: await registry.listElsewhere('user') }
     const plan = planSync(lifted, actual, managed, { force, blocked, shared, elsewhere, installed })
     const plugins = await registry.listPlugins('user')
     const mcp = await registry.listMcp('user')
-    return { recorded, managed, actual, plan, plugins, managedPlugins, sharedPlugins, mcp, managedMcp, sharedMcp }
+    return { recorded, managed, actual, plan, plugins, managedPlugins, sharedPlugins, mcp, managedMcp, sharedMcp, mcpClaims }
   }
 }
 

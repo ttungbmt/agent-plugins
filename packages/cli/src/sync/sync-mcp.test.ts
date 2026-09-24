@@ -403,3 +403,128 @@ describe('a User-scoped MCP server', () => {
     expect((await t.run('check')).inSync).toBe(true)
   })
 })
+
+describe('moving an MCP server between the targeted Scope and user', () => {
+  const userMcp = (kind: string, name: string, status = 'done') => expect.objectContaining({ target: 'mcp', kind, name, status, scope: 'user' })
+  const calls = (t: { mcpCalls: () => string[][] }) => t.mcpCalls().map((c) => [c[2], c.at(-1)])
+  const atUser = config('{ docs: { command: docs-mcp, scope: user } }')
+  const atTarget = config('{ docs: { command: docs-mcp } }')
+  /** Syncs `t` with a `claude` whose MCP commands for `docs` fail. */
+  const failingRun = (t: { cwd: string; homedir: string }) =>
+    sync(
+      { cwd: t.cwd, scope: 'project', mode: 'apply' },
+      {
+        exec: fakeClaude({ cwd: t.cwd, homedir: t.homedir, marketplaces: {}, failOn: ['docs'] }).exec,
+        fetch: async () => {
+          throw new Error('offline')
+        },
+        homedir: t.homedir,
+        defaultPresetsDir: join(t.cwd, 'default-presets'),
+        env: {},
+      },
+    )
+  const userRecord = async (t: { cwd: string; homedir: string }) =>
+    (await readJson<Record<string, any>>(join(t.homedir, '.agent-plugins/state.json')))[`${join(t.cwd, 'agent-plugins.yaml')}#project`]
+
+  it('adds a project server to user settings first, then removes it from .mcp.json and the Lock', async () => {
+    const t = await setup({ 'agent-plugins.yaml': atTarget })
+    await t.run()
+    t.claude.calls.length = 0
+    await t.setConfig(atUser)
+
+    const report = await t.run()
+
+    expect(report.actions).toEqual([userMcp('add', 'docs'), mcp('remove', 'docs')])
+    expect(calls(t)).toEqual([['add-json', 'user'], ['remove', 'project']])
+    expect((await t.claudeJson()).mcpServers).toEqual({ docs: { command: 'docs-mcp' } })
+    expect(await t.mcpJson()).toEqual({})
+    expect(JSON.stringify(await t.lock())).not.toContain('docs')
+    expect((await t.run('check')).inSync).toBe(true)
+  })
+
+  it('adds a User-scoped server back to .mcp.json first, then removes it from user settings', async () => {
+    const t = await setup({ 'agent-plugins.yaml': atUser })
+    await t.run()
+    t.claude.calls.length = 0
+    await t.setConfig(atTarget)
+
+    const report = await t.run()
+
+    expect(calls(t)).toEqual([['add-json', 'project'], ['remove', 'user']])
+    expect(report.conflicts).toEqual([])
+    expect(await t.mcpJson()).toEqual({ docs: { command: 'docs-mcp' } })
+    expect((await t.claudeJson()).mcpServers).toEqual({})
+    expect((await t.run('check')).inSync).toBe(true)
+  })
+
+  it('only drops its user claim when moving back while another Config still declares it', async () => {
+    const homedir = await makeTree({})
+    const a = await setup({ 'agent-plugins.yaml': atUser }, { homedir })
+    const b = await setup({ 'agent-plugins.yaml': atUser }, { homedir })
+    await a.run()
+    await b.run()
+    await a.setConfig(atTarget)
+
+    await a.run()
+
+    expect(await a.mcpJson()).toEqual({ docs: { command: 'docs-mcp' } })
+    expect((await a.claudeJson()).mcpServers).toEqual({ docs: { command: 'docs-mcp' } })
+    await b.setConfig(config('{}'))
+    expect((await b.run()).actions).toEqual([userMcp('remove', 'docs')])
+  })
+
+  it('leaves .mcp.json and the Lock untouched when adding to user settings fails', async () => {
+    const t = await setup({ 'agent-plugins.yaml': atTarget })
+    await t.run()
+    await t.setConfig(atUser)
+
+    const report = await failingRun(t)
+
+    expect(report.actions).toEqual([userMcp('add', 'docs', 'failed'), mcp('remove', 'docs', 'failed')])
+    expect(report.actions[1]!.error).toBe('"docs" is kept here until it is set up in user settings')
+    expect(await t.mcpJson()).toEqual({ docs: { command: 'docs-mcp' } })
+    expect(JSON.stringify(await t.lock())).toContain('docs')
+  })
+
+  it('leaves .mcp.json untouched while user settings have a conflicting Manual entry', async () => {
+    const t = await setup({ 'agent-plugins.yaml': atTarget })
+    await t.run()
+    const path = claudeJsonPath({ cwd: t.cwd, homedir: t.homedir })
+    await writeFile(path, JSON.stringify({ ...(await t.claudeJson()), mcpServers: { docs: { command: 'theirs' } } }))
+    await t.setConfig(atUser)
+    t.claude.calls.length = 0
+
+    const report = await t.run()
+
+    expect(report.conflicts).toEqual([expect.objectContaining({ name: 'docs', reason: 'manual-entry' })])
+    expect(t.mcpCalls()).toEqual([])
+    expect(await t.mcpJson()).toEqual({ docs: { command: 'docs-mcp' } })
+  })
+
+  it('leaves user settings and its user claim untouched when adding back to .mcp.json fails', async () => {
+    const homedir = await makeTree({})
+    const t = await setup({ 'agent-plugins.yaml': atUser }, { homedir })
+    const other = await setup({ 'agent-plugins.yaml': atUser }, { homedir })
+    await t.run()
+    await other.run()
+    await t.setConfig(atTarget)
+
+    const report = await failingRun(t)
+
+    expect(report.actions).toEqual([mcp('add', 'docs', 'failed')])
+    expect((await t.claudeJson()).mcpServers).toEqual({ docs: { command: 'docs-mcp' } })
+    expect((await userRecord(t)).mcpClaims).toEqual([{ name: 'docs', server: { command: 'docs-mcp' }, origin: 'agent-plugins.yaml' }])
+  })
+
+  it('leaves the user Scope untouched when adding back to .mcp.json fails', async () => {
+    const t = await setup({ 'agent-plugins.yaml': atUser })
+    await t.run()
+    await t.setConfig(atTarget)
+
+    const report = await failingRun(t)
+
+    expect(report.actions).toEqual([mcp('add', 'docs', 'failed'), userMcp('remove', 'docs', 'failed')])
+    expect((await t.claudeJson()).mcpServers).toEqual({ docs: { command: 'docs-mcp' } })
+    expect((await t.run('check')).inSync).toBe(false)
+  })
+})
