@@ -230,6 +230,67 @@
             ]
           ]
         },
+        "workflows": {
+          "description": "Standalone workflows (Workflow tool scripts) to copy into the scope's workflows directory (`.claude/workflows/` or `~/.claude/workflows/`). Each item is a workflow source: a string installs every workflow in it, a map either selects some of them (`workflows`) or installs all but some (`exclude`). A map may add `path`, the folder of the source that holds the workflows; otherwise it is `workflows/`. Workflows are the `*.js` files directly in that folder (not `*.test.*` or `_*`) whose `export const meta` is an object literal with a string `name`; they are named, selected and installed by that `meta.name` (as `<meta.name>.js`), not by file name. A workflow that calls a plugin's agent (`agentType: '<plugin>:<agent>'`) is never installed: declare the plugin instead. Workflows bundled in a plugin are enabled through `plugins`. `ap` never adds `Workflow(...)` permission rules.",
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/workflowSource" },
+              {
+                "title": "Workflows under a path",
+                "type": "object",
+                "required": ["source", "path"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/workflowSource" },
+                  "path": { "$ref": "#/$defs/workflowPath" }
+                }
+              },
+              {
+                "title": "Workflow selection",
+                "type": "object",
+                "required": ["source", "workflows"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/workflowSource" },
+                  "path": { "$ref": "#/$defs/workflowPath" },
+                  "workflows": {
+                    "description": "Workflows of the source to install, by `meta.name`.",
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": { "type": "string" }
+                  }
+                }
+              },
+              {
+                "title": "Workflow exclusion",
+                "type": "object",
+                "required": ["source", "exclude"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/workflowSource" },
+                  "path": { "$ref": "#/$defs/workflowPath" },
+                  "exclude": {
+                    "description": "Workflows of the source not to install, by `meta.name`; every other workflow is installed.",
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": { "type": "string" }
+                  }
+                }
+              }
+            ]
+          },
+          "examples": [
+            [
+              "acme/workflows",
+              { "source": "transilienceai/communitytools", "path": ".claude/workflows", "exclude": ["safe-pr"] },
+              { "source": "acme/workflows", "workflows": ["code-review"] },
+              "./workflows"
+            ]
+          ]
+        },
         "mcpServers": {
           "description": "MCP servers to add to Claude Code's MCP configuration of the scope (`.mcp.json` for project), by name. `true` takes the server as-is from the catalog shipped with `ap`; an object is the server configuration inline, in Claude Code's `.mcp.json` format; `false` drops a server declared by an inherited preset. Secrets must be written as `${VAR}` placeholders, which Claude Code expands at run time.",
           "type": "object",
@@ -316,6 +377,22 @@
       "description": "Folder inside the agent source that holds the agents, relative to its root; part of the source's identity in agent-plugins.lock.",
       "not": { "pattern": "^(/|\\.\\.(/|$))" },
       "examples": ["claude/agents"]
+    },
+    "workflowSource": {
+      "type": "string",
+      "description": "Where to fetch workflows from: `owner/repo[@ref]` (GitHub); `git@host:path`, `ssh://...` or an https git URL (`#ref` pins a ref); or a local directory starting with `./`, `../` or `/`, relative to the file that declares it.",
+      "anyOf": [
+        { "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(@.+)?$" },
+        { "pattern": "^(git@|ssh://|https?://)" },
+        { "pattern": "^(\\./|\\.\\./|/)" }
+      ],
+      "examples": ["transilienceai/communitytools", "https://git.example.com/team/workflows.git#v1", "./workflows"]
+    },
+    "workflowPath": {
+      "type": "string",
+      "description": "Folder inside the workflow source that holds the workflows, relative to its root (default `workflows/`); part of the source's identity in agent-plugins.lock.",
+      "not": { "pattern": "^(/|\\.\\.(/|$))" },
+      "examples": [".claude/workflows"]
     },
     "marketplaceSource": {
       "type": "string",

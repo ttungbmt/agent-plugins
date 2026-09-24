@@ -1,10 +1,10 @@
 # Thiết kế `ap sync` (v1)
 
-Thuật ngữ: xem [CONTEXT.md](../../CONTEXT.md). Quyết định kiến trúc: [ADR 0001](../adr/0001-delegate-settings-writes-to-claude-cli.md), [0002](../adr/0002-config-kind-naming.md), [0003](../adr/0003-managed-entries-per-scope-state.md), [0005](../adr/0005-ap-installs-skills-itself.md), [0006](../adr/0006-mcp-servers-inline-plus-bundled-catalog.md).
+Thuật ngữ: xem [CONTEXT.md](../../CONTEXT.md). Quyết định kiến trúc: [ADR 0001](../adr/0001-delegate-settings-writes-to-claude-cli.md), [0002](../adr/0002-config-kind-naming.md), [0003](../adr/0003-managed-entries-per-scope-state.md), [0005](../adr/0005-ap-installs-skills-itself.md), [0006](../adr/0006-mcp-servers-inline-plus-bundled-catalog.md), [0010](../adr/0010-workflow-flat-install-by-meta-name.md).
 
 ## Phạm vi
 
-- Đồng bộ `marketplaces` → `extraKnownMarketplaces`, `plugins` → `enabledPlugins` + Bản cài plugin, `skills` → Bản cài skill trong thư mục skills của scope, `agents` → Bản cài agent trong thư mục agents của scope, và `mcpServers` → Bản cài MCP server trong cấu hình MCP của scope.
+- Đồng bộ `marketplaces` → `extraKnownMarketplaces`, `plugins` → `enabledPlugins` + Bản cài plugin, `skills` → Bản cài skill trong thư mục skills của scope, `agents` → Bản cài agent trong thư mục agents của scope, `workflows` → Bản cài workflow trong thư mục workflows của scope, và `mcpServers` → Bản cài MCP server trong cấu hình MCP của scope.
 - Để sau: MCP Registry, cập nhật version plugin (`claude plugin update`), sinh marketplace cục bộ `.agent-plugins/marketplace`, cú pháp `github:owner/repo/path@ref` cho preset.
 
 ## Hành vi
@@ -110,6 +110,19 @@ Cùng khuôn với Skill (ADR 0005 áp dụng nguyên cho Agent); dưới đây 
 - Lock/State ghi mỗi Managed agent (`name`, `source`, `sha256` nội dung file, `origin`) và Danh mục nguồn dưới `agentSources`, ghim commit riêng với `skillSources` kể cả khi cùng repo. Trong một lần apply, nguồn skill và nguồn agent cùng source + commit chỉ tải một lần.
 - Sở hữu, tải khi cần, `--dry-run`/`--check`: như Skill, với `sha256` tính trên file. Xung đột: `missing-agent` (chọn tên không có), `modified-agent` (Managed agent bị sửa tay). File có sẵn không có trong Lock/State hoặc là symlink → Manual entry.
 - Thứ tự apply: Skill và Agent độc lập nhau, chạy sau marketplace/plugin.
+
+### Workflow
+
+Cùng khuôn với Agent; quyết định riêng: [ADR 0010](../adr/0010-workflow-flat-install-by-meta-name.md). Dưới đây chỉ ghi chỗ khác.
+
+- Khai báo: `spec.workflows` là list, cùng dạng với `spec.agents` — chuỗi là một Nguồn workflow (cài mọi Workflow), map `{ source, workflows: [names] }` chọn, `{ source, exclude: [names] }` loại trừ, kèm `path` tuỳ chọn. Tên là `meta.name`. Không có `as`.
+- Tìm Workflow: gốc là `path`, không thì `workflows/`; thiếu cả hai → nguồn lỗi, gợi ý khai báo `path` (không dò `.claude/workflows/`, nơi repo nguồn để workflow của chính nó). Nguồn `directory` dùng `workflows/` của nó nếu có, không thì chính nó. Chỉ `*.js` ngay trong gốc (Claude Code không tìm trong thư mục con), bỏ `*.test.*` và `_*`. File là Workflow khi `export const meta` là object literal (không spread, không khoá tính toán) với `name` là chuỗi khớp tên item; đọc bằng `acorn`, parse lỗi thì không phải Workflow. Hai file trong một nguồn cùng `meta.name` → nguồn lỗi.
+- Workflow gắn với plugin (có `agentType: '<plugin>:<agent>'` literal) vẫn nằm trong Danh mục nguồn, ghi thêm dưới `blocked`, nhưng không bao giờ được cài: chọn đích danh → `plugin-workflow`; trong "tất cả" → bỏ qua kèm thông báo.
+- Cài: copy đúng một file thành `.claude/workflows/<meta.name>.js` (scope `project`) hoặc `<claude config dir>/workflows/<meta.name>.js` (scope `user`), cài phẳng, không Namespace. Scope `local` → bỏ qua, in thông báo. Không bao giờ ghi `Workflow(<name>)` vào `permissions`.
+- Bản cài: mọi `*.js` ngay trong thư mục có `meta` hợp lệ, định danh bằng `meta.name` chứ không theo tên file. Nhiều file cùng tên gộp thành một Bản cài (ưu tiên `<name>.js`) và được thông báo, vì Claude Code chỉ chạy một. File cài tay khác tên nhưng cùng `meta.name` + nội dung → nhận quản lý, giữ tên file tới lần ghi tiếp theo; `install`/`remove` luôn tác động đúng file đó.
+- Lock/State: `workflows`, `workflowSources` (có `blocked` khi cần), `workflowClaims`. Xung đột: `missing-workflow`, `modified-workflow`, `plugin-workflow`.
+- Thông báo sau khi lập kế hoạch: `agentType` không tiền tố hoặc `workflow('<tên>')` literal không có trong khai báo, trong Bản cài ở scope `project`/`user`, hay trong agent có sẵn của Claude Code → cảnh báo, không tự cài. Có Workflow được khai báo mà workflow đang bị tắt (`CLAUDE_CODE_DISABLE_WORKFLOWS`, hoặc `disableWorkflows: true`/`enableWorkflows: false` ở file settings ưu tiên cao nhất đặt khoá đó) → cảnh báo, vẫn cài.
+- Thứ tự apply: độc lập với Skill/Agent/Rule, sau marketplace/plugin.
 
 ### MCP server
 

@@ -29,6 +29,7 @@
         "plugins": { "$ref": "preset.schema.json#/properties/spec/properties/plugins" },
         "skills": { "$ref": "preset.schema.json#/properties/spec/properties/skills" },
         "agents": { "$ref": "preset.schema.json#/properties/spec/properties/agents" },
+        "workflows": { "$ref": "preset.schema.json#/properties/spec/properties/workflows" },
         "mcpServers": { "$ref": "preset.schema.json#/properties/spec/properties/mcpServers" }
       }
     }
