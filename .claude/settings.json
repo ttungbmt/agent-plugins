@@ -1,35 +1,4 @@
 {
-  "enabledPlugins": {
-    "claude-md-management@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
-    "mattpocock-skills@claude-plugins-official": true,
-    "context7@claude-plugins-official": true,
-    "claude-code-setup@claude-plugins-official": true
-  },
-  "extraKnownMarketplaces": {
-    "claude-plugins-official": {
-      "source": {
-        "source": "github",
-        "repo": "anthropics/claude-plugins-official"
-      }
-    },
-    "last30days-skill": {
-      "source": {
-        "source": "github",
-        "repo": "mvanhorn/last30days-skill"
-      }
-    },
-    "ecc": {
-      "source": {
-        "source": "github",
-        "repo": "affaan-m/everything-claude-code"
-      }
-    },
-    "claude-code-workflows": {
-      "source": {
-        "source": "github",
-        "repo": "wshobson/agents"
-      }
-    }
-  }
+  "enabledPlugins": {},
+  "extraKnownMarketplaces": {}
 }
