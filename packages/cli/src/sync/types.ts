@@ -30,7 +30,7 @@ export type PluginClaim = { id: string; enabled: boolean; origin: string }
 export type SharedPluginClaim = PluginClaim & { config: string }
 
 /** Loại thứ `ap` tự tải từ một nguồn và copy vào thư mục của Scope (ADR 0005), theo thứ tự sync và thứ tự trong Lock/State. */
-export const ITEM_KINDS = ['skill', 'agent', 'rule'] as const
+export const ITEM_KINDS = ['skill', 'agent', 'rule', 'workflow'] as const
 export type ItemKind = (typeof ITEM_KINDS)[number]
 
 /** Một giá trị cho mỗi loại item. */
@@ -115,6 +115,8 @@ export type Conflict = {
     | 'modified-agent'
     | 'missing-rule'
     | 'modified-rule'
+    | 'missing-workflow'
+    | 'modified-workflow'
   detail: string
 }
 

@@ -10,14 +10,14 @@ import { ConfigError, describeItemSource } from '../sync/resolve.js'
 import { ITEM_KINDS, type ItemKind } from '../sync/types.js'
 
 export default class Sync extends Command {
-  static override description = 'Sync marketplaces, plugins, skills, agents, rules, MCP servers and hooks declared in agent-plugins.yaml into Claude Code'
+  static override description = 'Sync marketplaces, plugins, skills, agents, rules, workflows, MCP servers and hooks declared in agent-plugins.yaml into Claude Code'
 
   static override flags = {
     scope: Flags.option({ options: SCOPES, default: 'project' as const, description: 'settings scope to write' })(),
     'dry-run': Flags.boolean({ description: 'print the plan without changing anything', exclusive: ['check'] }),
     check: Flags.boolean({ description: 'exit non-zero if settings are out of sync', exclusive: ['dry-run'] }),
-    force: Flags.boolean({ description: 'overwrite manual entries with the same name, plugin id, skill, agent, rule or MCP server name, and skills, agents or rules edited on disk' }),
-    update: Flags.boolean({ description: 'accept changed content of remote presets and fetch the latest commit of skill, agent and rule sources' }),
+    force: Flags.boolean({ description: 'overwrite manual entries with the same name, plugin id, skill, agent, rule, workflow or MCP server name, and skills, agents, rules or workflows edited on disk' }),
+    update: Flags.boolean({ description: 'accept changed content of remote presets and fetch the latest commit of skill, agent, rule and workflow sources' }),
     verbose: Flags.boolean({ description: 'stream output of the underlying claude and git commands' }),
   }
 
@@ -51,7 +51,7 @@ export default class Sync extends Command {
     }
     for (const n of report.notices) this.log(`note    ${n}`)
     for (const c of report.conflicts) this.logToStderr(`conflict ${c.name}: ${c.detail}`)
-    if (report.inSync && report.actions.length === 0) this.log('marketplaces, plugins, skills, agents, rules, MCP servers and hooks are in sync')
+    if (report.inSync && report.actions.length === 0) this.log('marketplaces, plugins, skills, agents, rules, workflows, MCP servers and hooks are in sync')
     // dry-run chỉ báo lỗi khi có xung đột; check và apply báo lỗi khi còn lệch.
     if (mode === 'dry-run' ? report.conflicts.length > 0 : !report.inSync) this.exit(1)
   }

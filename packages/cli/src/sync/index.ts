@@ -14,6 +14,7 @@ import { RULES } from './rules.js'
 import { createGitFetcher, SKILLS, type FetchedSource, type FetchSkillSource } from './skills.js'
 import { createStore, NO_OWNED } from './store.js'
 import { byKind, ITEM_KINDS } from './types.js'
+import { WORKFLOWS } from './workflows.js'
 import type { ByKind, Claim, Conflict, ItemDeclaration, ItemKind, ItemSource, KnownEntry, ManagedEntry, ManagedItem, ManagedMcp, MarketplaceDeclaration, MarketplaceSource, Scope, SharedItemClaim, SourceCatalog } from './types.js'
 
 export type { Scope } from './types.js'
@@ -61,7 +62,7 @@ type ItemSync = {
 }
 
 /** Cách tải và cài của từng loại item. */
-const HANDLERS: ByKind<ItemHandler> = { skill: SKILLS, agent: AGENTS, rule: RULES }
+const HANDLERS: ByKind<ItemHandler> = { skill: SKILLS, agent: AGENTS, rule: RULES, workflow: WORKFLOWS }
 
 const EMPTY_PLAN: ItemPlan = { actions: [], conflicts: [], notices: [], adopted: [], forgotten: [] }
 
