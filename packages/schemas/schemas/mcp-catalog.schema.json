@@ -11,7 +11,20 @@
     "servers": {
       "type": "object",
       "propertyNames": { "$ref": "preset.schema.json#/$defs/name" },
-      "additionalProperties": { "$ref": "preset.schema.json#/$defs/mcpServer" }
+      "additionalProperties": {
+        "description": "An MCP server configuration plus a catalog-only `description`, which `ap` drops before writing the server.",
+        "type": "object",
+        "required": ["description"],
+        "properties": {
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What the server is, who ships it, and what it needs (auth, environment variables, runtime)."
+          }
+        },
+        "$ref": "preset.schema.json#/$defs/mcpServerFields",
+        "unevaluatedProperties": false
+      }
     }
   }
 }

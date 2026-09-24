@@ -12,6 +12,7 @@ const FIRECRAWL = { command: 'npx', args: ['-y', 'firecrawl-mcp@3.25.3'], env: {
 const CATALOG = `kind: McpCatalog
 servers:
   firecrawl:
+    description: Firecrawl web scraping.
     command: npx
     args: [-y, firecrawl-mcp@3.25.3]
     env: { FIRECRAWL_API_KEY: "\${FIRECRAWL_API_KEY}" }
@@ -64,7 +65,7 @@ describe('sync mcp servers', () => {
     expect(await t.run('check')).toEqual({ actions: [], conflicts: [], notices: [expect.stringContaining('approve')], inSync: true })
   })
 
-  it('takes `true` from the ap catalog as-is and rejects names the catalog does not have', async () => {
+  it('takes `true` from the ap catalog without its description and rejects names the catalog does not have', async () => {
     const t = await setup({ 'agent-plugins.yaml': config('{ firecrawl: true }') })
 
     expect((await t.run()).actions).toEqual([mcp('add', 'firecrawl')])

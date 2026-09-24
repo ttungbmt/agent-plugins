@@ -689,7 +689,12 @@
       "examples": ["context7@claude-plugins-official"]
     },
     "mcpServer": {
-      "description": "An MCP server configuration as in Claude Code's `.mcp.json`: stdio (`command`, `args`, `env`) or remote (`type: http|sse`, `url`, `headers`). `${VAR}` and `${VAR:-default}` are expanded by Claude Code.",
+      "description": "An MCP server configuration as in Claude Code's `.mcp.json`: stdio (`command`, `args`, `env`) or remote (`type: http|sse`, `url`, `headers`, `headersHelper`, `oauth`). `${VAR}` and `${VAR:-default}` are expanded by Claude Code.",
+      "$ref": "#/$defs/mcpServerFields",
+      "unevaluatedProperties": false
+    },
+    "mcpServerFields": {
+      "description": "The two shapes of `mcpServer` without its closing `unevaluatedProperties`, so the MCP catalog can add `description` on top.",
       "oneOf": [
         {
           "title": "stdio server",
@@ -707,8 +712,7 @@
               "additionalProperties": { "type": "string" },
               "description": "Environment variables; write secrets as `${VAR}`."
             }
-          },
-          "additionalProperties": false
+          }
         },
         {
           "title": "remote server",
@@ -723,10 +727,35 @@
             "headers": {
               "type": "object",
               "additionalProperties": { "type": "string" },
-              "description": "HTTP headers; write secrets as `${VAR}`."
+              "description": "HTTP headers; write secrets as `${VAR}`. An `Authorization` header turns off Claude Code's OAuth login for this server."
+            },
+            "headersHelper": {
+              "type": "string",
+              "description": "Shell command that prints a JSON object of headers, run on every connection; for credentials other than a static token or OAuth. Claude Code runs it for project and local scope only once the folder is trusted.",
+              "examples": ["/opt/bin/get-mcp-auth-headers.sh"]
+            },
+            "oauth": {
+              "type": "object",
+              "description": "OAuth settings for servers without dynamic client registration or with non-standard discovery. The client secret never goes here: Claude Code stores it only from `claude mcp add-json --client-secret`.",
+              "properties": {
+                "clientId": { "type": "string", "description": "Pre-registered OAuth client ID." },
+                "callbackPort": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65535,
+                  "description": "Fixed local port for the OAuth redirect, matching the redirect URI registered with the client."
+                },
+                "authServerMetadataUrl": {
+                  "type": "string",
+                  "pattern": "^https://",
+                  "description": "Authorization server metadata URL that replaces the `/.well-known` discovery chain."
+                },
+                "scopes": { "type": "string", "description": "Space-separated scopes to request, overriding discovered ones." }
+              },
+              "additionalProperties": false,
+              "examples": [{ "clientId": "Iv23liExample", "callbackPort": 8080 }]
             }
-          },
-          "additionalProperties": false
+          }
         }
       ]
     }

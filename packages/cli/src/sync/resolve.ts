@@ -521,7 +521,9 @@ function mcpCatalog(resolution: Resolution): Promise<Record<string, McpConfig>> 
   resolution.catalog ??= readFile(path, 'utf8').then(
     (text) => {
       try {
-        return (parse(text) as { servers?: Record<string, McpConfig> } | null)?.servers ?? {}
+        const servers = (parse(text) as { servers?: Record<string, McpConfig> } | null)?.servers ?? {}
+        // `description` chỉ để đọc danh mục, không phải field của `.mcp.json`.
+        return Object.fromEntries(Object.entries(servers).map(([name, { description: _, ...server }]) => [name, server]))
       } catch (error) {
         throw new ConfigError(`the ap catalog ${path} is not valid YAML: ${(error as Error).message}`)
       }
