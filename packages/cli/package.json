@@ -1,6 +1,6 @@
 {
   "name": "agent-plugins",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "CLI `ap`: declare Claude Code marketplaces, plugins, skills, agents and MCP servers in YAML and sync them into settings",
   "type": "module",
   "bin": {
