@@ -1,6 +1,6 @@
 ---
 title: Use es-toolkit object helpers
-labels: []
+labels: [done]
 blocked_by: [02, 03]
 ---
 

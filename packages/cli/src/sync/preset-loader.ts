@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
+import { mapValues, omit } from 'es-toolkit'
 import { parse } from 'yaml'
 import { ConfigError } from './errors.js'
 import { presetRefs, type McpCatalog, type PresetDocument } from './spec.js'
@@ -167,7 +168,7 @@ function mcpCatalog(resolution: Resolution): Promise<Record<string, McpConfig>> 
       try {
         const servers = (parse(text) as { servers?: Record<string, McpConfig> } | null)?.servers ?? {}
         // `description` is only for reading the catalog; it is not a `.mcp.json` field.
-        return Object.fromEntries(Object.entries(servers).map(([name, { description: _, ...server }]) => [name, server]))
+        return mapValues(servers, (server) => omit(server, ['description']))
       } catch (error) {
         throw new ConfigError(`the ap catalog ${path} is not valid YAML: ${(error as Error).message}`)
       }

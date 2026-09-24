@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from 'node:util'
+import { pick } from 'es-toolkit'
 import { crossScopeConflict, knownName, manualEntryConflict, sameInstall, sameSource, sharedClashConflict } from './identity.js'
 import type { Conflict, KnownEntry, ManagedEntry, MarketplaceDeclaration, ScopedEntry, SharedClaim } from './types.js'
 
@@ -71,7 +72,7 @@ export function planSync(
     } else if (isManaged || opts.force) {
       // A Managed entry must match its declaration exactly, even when an optional field was dropped.
       if (!isDeepStrictEqual(entry.extras, declaration.extras)) actions.push({ kind: 'patch', name, declaration })
-    } else if (!isDeepStrictEqual(pick(entry.extras, declaration.extras), declaration.extras)) {
+    } else if (!isDeepStrictEqual(pick(entry.extras, Object.keys(declaration.extras)), declaration.extras)) {
       conflicts.push(manualEntryConflict(entry.name, 'different fields'))
     } else if (isDeepStrictEqual(entry.extras, declaration.extras) && !opts.shared?.some((c) => c.name === entry.name)) {
       // Extra undeclared fields are left alone: adopting will remove them. If another Config claims it, the handover
@@ -93,8 +94,4 @@ export function planSync(
 
 function sameDeclaration(claim: SharedClaim, declaration: MarketplaceDeclaration) {
   return sameSource(claim.source, declaration.source) && isDeepStrictEqual(claim.extras, declaration.extras)
-}
-
-function pick(fields: Record<string, unknown>, like: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(Object.keys(like).filter((k) => k in fields).map((k) => [k, fields[k]]))
 }

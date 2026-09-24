@@ -1,6 +1,6 @@
 import { join, resolve } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
-import { union } from 'es-toolkit'
+import { omit, union } from 'es-toolkit'
 import { claudeJsonPath, installedPluginsPath, knownMarketplacesPath, readJson, SCOPES, settingsPath, writeJson, type Location } from './files.js'
 import { crossScopeConflict, manualEntryConflict, sameInstall, sameSource } from './identity.js'
 import type { Conflict, KnownEntry, MarketplaceDeclaration, MarketplaceSource, McpConfig, PluginEntry, Scope, ScopedEntry } from './types.js'
@@ -43,7 +43,7 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
 
   async function writeEntry(scope: Scope, name: string, entry: Record<string, unknown> | undefined) {
     const settings = await readSettings(scope)
-    const { [name]: _, ...rest } = settings.extraKnownMarketplaces ?? {}
+    const rest = omit(settings.extraKnownMarketplaces ?? {}, [name])
     settings.extraKnownMarketplaces = entry ? { ...rest, [name]: entry } : rest
     await writeJson(settingsPath(scope, location), settings)
   }
@@ -181,7 +181,7 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
 
   async function writePlugin(scope: Scope, id: string, value: boolean | undefined) {
     const settings = await readSettings(scope)
-    const { [id]: _, ...rest } = settings.enabledPlugins ?? {}
+    const rest = omit(settings.enabledPlugins ?? {}, [id])
     settings.enabledPlugins = value === undefined ? rest : { ...rest, [id]: value }
     await writeJson(settingsPath(scope, location), settings)
   }

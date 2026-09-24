@@ -1,4 +1,4 @@
-import { differenceWith, intersection, uniq } from 'es-toolkit'
+import { differenceWith, intersection, omit, uniq } from 'es-toolkit'
 import { describeItemSource, sameSource, withoutRef } from './identity.js'
 import type { InstalledItem, ItemHandler } from './items.js'
 import type { DesiredItem } from './plan-items.js'
@@ -185,8 +185,7 @@ export async function collectItems(
     for (const loser of group.filter((c) => !winners.includes(c) && !sameSource(c.source, winner!.source))) {
       result.notices.push(`${winner!.origin} overrides ${kind} "${name}" from ${describeItemSource(loser.source)} declared by ${loser.origin}`)
     }
-    const { declaration: _, ...desired } = winner!
-    result.desired.push(desired)
+    result.desired.push(omit(winner!, ['declaration']))
   }
   return result
 }

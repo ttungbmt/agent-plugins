@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from 'node:util'
+import { omit, omitBy } from 'es-toolkit'
 import { readJson, settingsPath, writeJson, type Location } from './files.js'
 import type { HookDeclaration, HookGroup, ManagedHook, Scope } from './types.js'
 
@@ -77,7 +78,8 @@ export function nextHooks(hooks: SettingsHooks, actions: PlannedHookAction[], ma
       continue
     }
     const { event } = action.declaration.group
-    const written = settingsGroup(action.declaration.group)
+    // As the user wrote it, minus `event`: that is the key holding the group.
+    const written = omit(action.declaration.group, ['event'])
     if (at !== -1 && record!.group.event === event) {
       groups(event)[at] = written
       continue
@@ -85,13 +87,8 @@ export function nextHooks(hooks: SettingsHooks, actions: PlannedHookAction[], ma
     if (at !== -1) groups(record!.group.event).splice(at, 1)
     groups(event).push(written)
   }
-  for (const [event, value] of Object.entries(next)) if (Array.isArray(value) && value.length === 0) delete next[event]
-  return Object.keys(next).length ? next : null
-}
-
-/** The group as written to settings: exactly as the user wrote it, minus `event`, since that is the key holding the group. */
-function settingsGroup({ event: _, ...group }: HookGroup) {
-  return group
+  const kept = omitBy(next, (value) => Array.isArray(value) && value.length === 0)
+  return Object.keys(kept).length ? kept : null
 }
 
 /** The `hooks` key in the Scope's settings. */

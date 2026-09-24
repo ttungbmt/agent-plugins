@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from 'node:util'
-import { difference, intersection, isSubset, partition, union } from 'es-toolkit'
+import { difference, intersection, isSubset, omit, partition, union } from 'es-toolkit'
 import { ConfigError } from './errors.js'
 import { describeItemSource, sameSource, withoutRef } from './identity.js'
 import { sameMcp } from './mcp.js'
@@ -154,7 +154,7 @@ function mergePlugins(contributions: PluginContribution[]) {
     const winners = group.filter((d) => !group.some((o) => o !== d && outranks(o, d)))
     allWinners.push(...winners)
     const first = winners[0]!
-    const { presets: _, shadows: __, ...winner } = winners.at(-1)!
+    const winner = omit(winners.at(-1)!, ['presets', 'shadows'])
     declarations.push(winner)
     const rival = winners.find((d) => d.scope !== first.scope)
     if (rival) {

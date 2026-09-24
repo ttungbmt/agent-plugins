@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from 'node:util'
+import { omitBy } from 'es-toolkit'
 import { manualEntryConflict, sharedClashConflict } from './identity.js'
 import type { Conflict, ManagedMcp, McpConfig, McpDeclaration, SharedMcpClaim } from './types.js'
 
@@ -21,14 +22,13 @@ export type McpPlan = {
  * since Claude Code and users may write the same server either way.
  */
 export function normalizeMcp(config: McpConfig): McpConfig {
-  const out: McpConfig = {}
-  for (const [key, value] of Object.entries(config)) {
-    if (key === 'type' && value === 'stdio') continue
-    if (Array.isArray(value) && value.length === 0) continue
-    if (value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0) continue
-    out[key] = value
-  }
-  return out
+  return omitBy(
+    config,
+    (value, key) =>
+      (key === 'type' && value === 'stdio') ||
+      (Array.isArray(value) && value.length === 0) ||
+      (!!value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0),
+  )
 }
 
 export function sameMcp(a: McpConfig | null, b: McpConfig | null): boolean {

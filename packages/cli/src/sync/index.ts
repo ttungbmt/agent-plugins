@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { difference, differenceWith, partition, uniq } from 'es-toolkit'
+import { difference, differenceWith, omit, partition, uniq } from 'es-toolkit'
 import { AGENTS } from './agents.js'
 import { collectItems, type CollectedItems } from './collect-items.js'
 import { identifies, knownName, missingMarketplaceConflict, sameSource } from './identity.js'
@@ -553,8 +553,7 @@ function claimsOf(declarations: MarketplaceDeclaration[], owned: ManagedEntry[],
 function sharedFetcher(fetch: FetchSkillSource): FetchSkillSource {
   const fetches = new Map<string, Promise<FetchedSource>>()
   return (source, commit) => {
-    const { path: _, ...repo } = source
-    const key = JSON.stringify([source.source === 'directory' ? source : repo, commit])
+    const key = JSON.stringify([source.source === 'directory' ? source : omit(source, ['path']), commit])
     if (!fetches.has(key)) fetches.set(key, fetch(source, commit))
     return fetches.get(key)!
   }

@@ -1,5 +1,6 @@
 import { access, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { omit, pickBy } from 'es-toolkit'
 import { parse, stringify } from 'yaml'
 import { readJson, writeJson, type Location } from './files.js'
 import { sameSource } from './identity.js'
@@ -101,7 +102,7 @@ export function createStore({ cwd, homedir }: Location) {
     },
     local: {
       read: async () => readJson<State>(localStatePath),
-      write: (owned) => writeJson(localStatePath, compact(ownedFields(owned))),
+      write: (owned) => writeJson(localStatePath, pickBy(ownedFields(owned), (v) => !!v?.length)),
     },
     user: {
       read: async (_, target) => (await readJson<Record<string, State>>(userStatePath))[recordKey(target)],
@@ -135,13 +136,16 @@ export function createStore({ cwd, homedir }: Location) {
             ;(state.mcpServers ??= []).push({ ...record, origin: claim.origin })
           }
         }
-        const state = compact({
-          ...ownedFields(owned),
-          claims,
-          pluginClaims,
-          ...Object.fromEntries(ITEM_KINDS.map((kind) => [keysOf(kind).claims, itemClaims[kind]])),
-          mcpClaims,
-        })
+        const state = pickBy(
+          {
+            ...ownedFields(owned),
+            claims,
+            pluginClaims,
+            ...Object.fromEntries(ITEM_KINDS.map((kind) => [keysOf(kind).claims, itemClaims[kind]])),
+            mcpClaims,
+          },
+          (v) => !!v?.length,
+        )
         if (Object.keys(state).length) states[configKey] = state
         else delete states[configKey]
         await writeJson(userStatePath, states)
@@ -154,8 +158,8 @@ export function createStore({ cwd, homedir }: Location) {
   }
 
   async function writeLock({ presets, ...stored }: Lock) {
-    const strip = (list?: ManagedItem[]) => list?.map(({ commit: _, ...item }) => item)
-    const lock: Lock = compact({ ...stored, ...Object.fromEntries(ITEM_KINDS.map((kind) => [keysOf(kind).items, strip(stored[keysOf(kind).items])])) })
+    const strip = (list?: ManagedItem[]) => list?.map((item) => omit(item, ['commit']))
+    const lock: Lock = pickBy({ ...stored, ...Object.fromEntries(ITEM_KINDS.map((kind) => [keysOf(kind).items, strip(stored[keysOf(kind).items])])) }, (v) => !!v?.length)
     if (presets && Object.keys(presets).length) lock.presets = presets
     const empty = Object.keys(lock).length === 0
     // Don't create an empty Lock for a repo that has none; empty an existing Lock so git sees the change.
@@ -244,7 +248,7 @@ function noShared() {
 
 /** The field order of the Lock/State; the per-Skill `commit` of an old Lock/State is dropped (it moved to the Source catalog). */
 function ownedFields(owned: Owned): Stored {
-  const items = (list: ManagedItem[]) => list.map(({ commit: _, ...item }) => item)
+  const items = (list: ManagedItem[]) => list.map((item) => omit(item, ['commit']))
   return {
     marketplaces: owned.marketplaces,
     plugins: owned.plugins,
@@ -257,9 +261,4 @@ function ownedFields(owned: Owned): Stored {
     mcpServers: owned.mcpServers,
     hooks: owned.hooks,
   }
-}
-
-/** Drop empty fields so the Lock/State has no stray keys. */
-function compact<T extends Record<string, unknown[] | undefined>>(fields: T): Partial<T> {
-  return Object.fromEntries(Object.entries(fields).filter(([, v]) => v?.length)) as Partial<T>
 }
