@@ -1,3 +1,4 @@
+import { partition, uniqBy } from 'es-toolkit'
 import { ledger, type Ledger } from './ledger.js'
 import type { Conflict, Scope } from './types.js'
 
@@ -41,8 +42,8 @@ export function scopeMove<D extends { scope?: 'user' }, M, A>(
   target: { scope: Scope; managed: M[] },
   user: { managed: M[]; claims: M[] } | null,
 ) {
-  const lifted = user ? declarations.filter((d) => d.scope === 'user') : []
-  const declared = { target: declarations.filter((d) => !lifted.includes(d)), user: lifted }
+  const [lifted, kept] = user ? partition(declarations, (d) => d.scope === 'user') : [[], declarations]
+  const declared = { target: kept, user: lifted }
   const plans = {
     target: kind.plan(declared.target, target.managed, 'target'),
     user: user && kind.plan(lifted, user.managed, 'user'),
@@ -56,7 +57,7 @@ export function scopeMove<D extends { scope?: 'user' }, M, A>(
     user: new Set(plans.user?.conflicts.map((c) => c.name)),
   }
   const heldBy = (other: Set<string>) => (a: A) => !(kind.isRemoval(a) && other.has(kind.key(a)))
-  const userActions = plans.user?.actions ?? []
+  const [userRemovals, userSetups] = partition(plans.user?.actions ?? [], (a) => kind.isRemoval(a))
   const scopeOf = (side: Side): Scope => (side === 'user' ? 'user' : target.scope)
   /** Keys whose setup failed, with the Scope it failed at. */
   const failed = new Map<string, Scope>()
@@ -70,9 +71,9 @@ export function scopeMove<D extends { scope?: 'user' }, M, A>(
     /** Keys of the Manual entries adopted without any action, targeted Scope first. */
     adopted: [...ledgers.target.adopted, ...(ledgers.user?.adopted ?? [])],
     steps: {
-      before: userActions.filter((a) => !kind.isRemoval(a)),
+      before: userSetups,
       target: plans.target.actions.filter(heldBy(conflicted.user)),
-      after: userActions.filter((a) => kind.isRemoval(a)).filter(heldBy(conflicted.target)),
+      after: userRemovals.filter(heldBy(conflicted.target)),
     },
 
     /** Runs one of `steps` at its side and updates that side's records; returns the action's key. */
@@ -106,11 +107,9 @@ export function scopeMove<D extends { scope?: 'user' }, M, A>(
       const claims = declared[side].filter(settled).map(kind.record)
       if (side === 'user') {
         const liftedKeys = new Set(lifted.map(kind.key))
-        const seen = new Set<string>()
-        for (const m of [...user!.managed, ...user!.claims]) {
+        for (const m of uniqBy([...user!.managed, ...user!.claims], kind.key)) {
           const key = kind.key(m)
-          if (seen.has(key) || liftedKeys.has(key)) continue
-          seen.add(key)
+          if (liftedKeys.has(key)) continue
           if (failed.get(key) === target.scope || conflicted.target.has(key)) claims.push(m)
         }
       }

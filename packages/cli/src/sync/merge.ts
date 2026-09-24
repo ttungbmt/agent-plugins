@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from 'node:util'
+import { difference, intersection, isSubset, partition, union, uniq } from 'es-toolkit'
 import { ConfigError } from './errors.js'
 import { describeItemSource, sameSource, withoutRef } from './identity.js'
 import { sameMcp } from './mcp.js'
@@ -38,8 +39,7 @@ export type Merged = {
  * selecting the same item with and without `scope: user`.
  */
 export function mergeLayers(layers: Layer[]): Merged {
-  const presetLayers = layers.filter((l): l is Layer & { presets: [string] } => l.presets[0] !== null)
-  const configLayers = layers.filter((l) => l.presets[0] === null)
+  const [presetLayers, configLayers] = partition(layers, (l): l is Layer & { presets: [string] } => l.presets[0] !== null)
   const tag = <D>(l: Layer, ds: D[]) => ds.map((d) => ({ ...d, presets: l.presets, shadows: l.shadows }))
 
   const own = configLayers.flatMap((l) => l.declarations.marketplaces)
@@ -122,7 +122,7 @@ function mergePresets(contributions: Contribution[]) {
     )
     declarations.push(winner)
 
-    for (const loser of group.filter((m) => !winners.includes(m))) {
+    for (const loser of difference(group, winners)) {
       const overrider = group.find((o) => winners.includes(o) && extendsPreset(o, loser)) ?? winners[0]!
       const d = loser.declaration
       if (!sameDeclaration(d, overrider.declaration)) {
@@ -207,7 +207,7 @@ function mergeItems(kind: ItemKind, declarations: ItemDeclaration[]) {
   const notices: string[] = []
   for (const group of groups.values()) {
     const winners = group.filter((d) => !group.some((o) => o !== d && outranks(o, d)))
-    const byScope = [...new Set(winners.map((d) => d.scope))].map((scope) => winners.filter((d) => d.scope === scope))
+    const byScope = uniq(winners.map((d) => d.scope)).map((scope) => winners.filter((d) => d.scope === scope))
     const clash = (what: string, a: ItemDeclaration, b: ItemDeclaration) => {
       const name = describeItemSource(withoutRef(a.source))
       conflicts.push({ name, reason: 'preset-clash', detail: `"${name}" is declared with different ${what} by ${a.origin} and ${b.origin}` })
@@ -243,7 +243,7 @@ function mergeItems(kind: ItemKind, declarations: ItemDeclaration[]) {
       ),
     )
     merged.push(...kept)
-    for (const loser of group.filter((d) => !winners.includes(d))) {
+    for (const loser of difference(group, winners)) {
       const same = kept.find((d) => d.scope === loser.scope)
       if (same && sameSource(loser.source, same.source) && isDeepStrictEqual(loser.select, same.select)) continue
       const winner = winners.find((d) => outranks(d, loser)) ?? kept[0]!
@@ -275,7 +275,7 @@ function mergeMcpServers(contributions: McpContribution[]) {
       continue
     }
     if (first.server) declarations.push({ name, server: first.server, ...(first.scope && { scope: first.scope }), origin: first.origin })
-    for (const loser of group.filter((d) => !winners.includes(d))) {
+    for (const loser of difference(group, winners)) {
       if (!same(loser)) notices.push(`${first.origin} overrides MCP server "${name}" declared by ${loser.origin}`)
     }
   }
@@ -284,9 +284,9 @@ function mergeMcpServers(contributions: McpContribution[]) {
 
 /** Union of two selections: select ∪ select = union of names; exclude E ∪ select S = exclude (E∖S); exclude E1 ∪ exclude E2 = exclude (E1∩E2). */
 function unionSelections(a: Selection, b: Selection): Selection {
-  if (Array.isArray(a)) return Array.isArray(b) ? [...new Set([...a, ...b])] : { exclude: b.exclude.filter((n) => !a.includes(n)) }
-  if (Array.isArray(b)) return { exclude: a.exclude.filter((n) => !b.includes(n)) }
-  return { exclude: a.exclude.filter((n) => b.exclude.includes(n)) }
+  if (Array.isArray(a)) return Array.isArray(b) ? union(a, b) : { exclude: difference(b.exclude, a) }
+  if (Array.isArray(b)) return { exclude: difference(a.exclude, b) }
+  return { exclude: intersection(a.exclude, b.exclude) }
 }
 
 /**
@@ -304,7 +304,7 @@ function selectionsOverlap(a: Selection, b: Selection): boolean {
 /** `a` wins over `b` when every Preset declaring `b` is in `a`'s `extends` tree, or `a` is the Config. */
 export function outranks(a: Pick<ItemDeclaration, 'presets' | 'shadows'>, b: Pick<ItemDeclaration, 'presets'>): boolean {
   if (b.presets.includes(null)) return false
-  return a.shadows.includes('*') || b.presets.every((p) => a.shadows.includes(p as string))
+  return a.shadows.includes('*') || isSubset(a.shadows, b.presets)
 }
 
 /** The same marketplace: the same name, or the same source when one side is a Shorthand declaration with no known name. */

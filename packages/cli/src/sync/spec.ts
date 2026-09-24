@@ -1,4 +1,5 @@
 import { posix } from 'node:path'
+import { uniq, without } from 'es-toolkit'
 import * as z from 'zod/mini'
 import { ConfigError } from './errors.js'
 import { checkMcp, normalizeMcp } from './mcp.js'
@@ -88,7 +89,7 @@ function itemEntry(kind: ItemKind) {
   const key = `${kind}s`
   const names = (field: string) => {
     const error = `\`${field}\` of {} must be a non-empty list of ${kind} names`
-    return z.optional(z.pipe(z.array(z.string({ error }), { error }).check(z.minLength(1, { error })), z.transform((n) => [...new Set(n)])))
+    return z.optional(z.pipe(z.array(z.string({ error }), { error }).check(z.minLength(1, { error })), z.transform((n) => uniq(n))))
   }
   const Entry = z.strictObject(
     {
@@ -270,7 +271,7 @@ function issueLines(issues: z.core.$ZodIssue[], spec: unknown, origin: string): 
 /** Within one entry (a marketplace, plugin, item entry, MCP server or hook), a typo like `enable` reads better as an unknown key. */
 function unknownKeysFirst(issues: z.core.$ZodIssue[]): z.core.$ZodIssue[] {
   const entry = (iss: z.core.$ZodIssue) => JSON.stringify(iss.path.slice(0, 2))
-  const entries = [...new Set(issues.map(entry))]
+  const entries = uniq(issues.map(entry))
   const unknown = (iss: z.core.$ZodIssue) => Number(iss.code !== 'unrecognized_keys')
   return issues.toSorted((a, b) => entries.indexOf(entry(a)) - entries.indexOf(entry(b)) || unknown(a) - unknown(b))
 }
@@ -306,7 +307,7 @@ export type PresetDocument = { kind?: string; metadata?: { name?: string }; spec
 
 const SPEC_KEYS = Object.keys(SpecShape.def.shape)
 /** The keys a Preset's `spec` may carry; the parser rejects any other. Hooks in Presets wait for hooks ticket 03. */
-export const PRESET_SPEC_KEYS: readonly string[] = ['extends', ...SPEC_KEYS.filter((key) => key !== 'hooks')]
+export const PRESET_SPEC_KEYS: readonly string[] = ['extends', ...without(SPEC_KEYS, 'hooks')]
 /** The keys a Config's `spec` may carry; the parser rejects any other. */
 export const CONFIG_SPEC_KEYS: readonly string[] = ['presets', ...SPEC_KEYS]
 

@@ -1,3 +1,4 @@
+import { differenceWith, intersection, uniq } from 'es-toolkit'
 import { describeItemSource, sameSource, withoutRef } from './identity.js'
 import type { InstalledItem, ItemHandler } from './items.js'
 import type { DesiredItem } from './plan-items.js'
@@ -65,8 +66,8 @@ export async function collectItems(
     /** Names selected from `names`; selection entries that match no name are kept to report as missing or until the contents are known. */
     const selected = (names: string[]) =>
       Array.isArray(select)
-        ? [...new Set(select.flatMap((entry) => (names.some((n) => covers(entry, n)) ? names.filter((n) => covers(entry, n)) : [entry])))]
-        : names.filter((n) => !select.exclude.some((entry) => covers(entry, n)))
+        ? uniq(select.flatMap((entry) => (names.some((n) => covers(entry, n)) ? names.filter((n) => covers(entry, n)) : [entry])))
+        : differenceWith(names, select.exclude, (n, entry) => covers(entry, n))
     /**
      * Selecting a name not in the source is a conflict; excluding a missing name only needs a notice. `blocked` things
      * (plugin-bound Workflows, ADR 0010) are never installed: selecting one by name is a conflict, while under "all" it is
@@ -83,7 +84,7 @@ export async function collectItems(
         } else result.notices.push(`skipped ${detail}`)
         return false
       }
-      const missing = (Array.isArray(select) ? select : select.exclude).filter((entry) => !available.some((n) => covers(entry, n)))
+      const missing = differenceWith(Array.isArray(select) ? select : select.exclude, available, covers)
       for (const name of missing) {
         if (!Array.isArray(select)) {
           result.notices.push(`${origin} excludes ${kind} "${name}" but ${describeItemSource(source)} has no such ${kind}`)
@@ -102,7 +103,7 @@ export async function collectItems(
           },
         })
       }
-      return selected(available).filter((n) => available.includes(n)).filter(usable)
+      return intersection(selected(available), available).filter(usable)
     }
     /** Things whose content comes from Lock/State without fetching; `null` when Lock/State is not enough to decide. */
     const fromRecords = (names: string[]) =>
@@ -168,7 +169,7 @@ export async function collectItems(
   }
 
   // Two sources yield the same name: resolved like duplicate marketplace declarations.
-  const names = [...new Set(candidates.map((c) => c.name))]
+  const names = uniq(candidates.map((c) => c.name))
   for (const name of names) {
     const group = candidates.filter((c) => c.name === name)
     const winners = group.filter((c) => !group.some((o) => o !== c && outranks(o.declaration, c.declaration)))

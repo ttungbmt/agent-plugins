@@ -1,6 +1,6 @@
 ---
 title: Use es-toolkit array helpers
-labels: []
+labels: [done]
 blocked_by: [02, 03]
 ---
 

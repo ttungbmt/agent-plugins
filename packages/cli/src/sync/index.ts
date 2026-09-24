@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { difference, differenceWith, partition, uniq } from 'es-toolkit'
 import { AGENTS } from './agents.js'
 import { collectItems, type CollectedItems } from './collect-items.js'
 import { identifies, knownName, missingMarketplaceConflict, sameSource } from './identity.js'
@@ -113,8 +114,7 @@ export async function sync(
   const installed = await registry.listInstalled()
   // User-scoped marketplaces (ADR 0011) are planned against the `user` Scope, with this Config's record for the
   // targeted Scope; a `user` Sync plans them like any other declaration.
-  const lifted = scope === 'user' ? [] : resolved.declarations.filter((d) => d.scope === 'user')
-  const declarations = resolved.declarations.filter((d) => !lifted.includes(d))
+  const [lifted, declarations] = scope === 'user' ? [[], resolved.declarations] : partition(resolved.declarations, (d) => d.scope === 'user')
   const user = scope === 'user' ? null : await planUserScoped()
   const plan = planSync(declarations, actual, managed, { force, blocked, shared, elsewhere, installed })
   const held = new Set([...resolved.conflicts, ...plan.conflicts, ...(user?.plan.conflicts ?? [])].map((c) => c.name))
@@ -129,7 +129,7 @@ export async function sync(
   )
   // A plugin whose marketplace is no longer declared is held like any conflict: its Managed entry stays, and so does the
   // marketplace it still uses (see `inUse`), until both are dropped from the declarations.
-  const unmatched = resolved.plugins.filter((p) => !checked.plugins.includes(p))
+  const unmatched = difference(resolved.plugins, checked.plugins)
   const desiredPlugins = [...checked.plugins, ...unmatched]
   const pluginHeld = new Set([...held, ...unmatched.map((p) => p.marketplace)])
   const pluginKind: MovableKind<PluginDeclaration, ManagedPlugin, PlannedPluginAction> = {
@@ -171,7 +171,7 @@ export async function sync(
       return run
     }
     const namespaces = handler.namespace
-      ? [...new Set([...declarations.map((d) => handler.namespace!(d.source)), ...managed.map((m) => m.name.split('/')[0]!)])]
+      ? uniq([...declarations.map((d) => handler.namespace!(d.source)), ...managed.map((m) => m.name.split('/')[0]!)])
       : []
     const installed = await handler.list(dir, namespaces)
     for (const { name, files } of installed) {
@@ -250,7 +250,7 @@ export async function sync(
   // Hook steps don't run one by one: they are folded into a single settings write (`writeHooks`).
   // Removing a marketplace also drops the `user` Scope's plugins from it; only this Config's User-scoped plugins may go.
   const ownedUserPlugins = new Set([
-    ...(user?.managedPlugins ?? []).map((m) => m.id).filter((id) => !plugins.plans.user?.forgotten.includes(id)),
+    ...difference((user?.managedPlugins ?? []).map((m) => m.id), plugins.plans.user?.forgotten ?? []),
     ...(plugins.plans.user?.actions ?? []).filter((a) => 'adopt' in a && a.adopt).map((a) => a.id),
   ])
   const userRemovals = user ? gatedRemovals(user.plan.actions, user.plugins, ownedUserPlugins) : []
@@ -354,7 +354,7 @@ export async function sync(
     deps.onProgress?.({ phase: 'end', action: actions.at(-1)!, ms: Date.now() - started })
   }
   await writeHooks()
-  await Promise.all([...new Set(itemRuns.flatMap((i) => i.collected?.fetched ?? []))].map((f) => f.cleanup()))
+  await Promise.all(uniq(itemRuns.flatMap((i) => i.collected?.fetched ?? [])).map((f) => f.cleanup()))
   // Managed skills/agents that need no re-copy still get the latest source and origin; their commit lives in the Source catalog.
   for (const kind of ITEM_KINDS) {
     for (const { name, source, sha256, origin } of items[kind].collected?.desired ?? []) {
@@ -458,8 +458,7 @@ export async function sync(
   const pluginSettled = (p: PluginDeclaration) => !held.has(p.marketplace) && !conflicts.some((c) => c.name === p.id)
   const savedPlugins = plugins.saved('target', pluginSettled)
   const itemClaims = byKind((kind) =>
-    (items[kind].collected?.desired ?? [])
-      .filter((s) => !conflicts.some((c) => c.name === s.name))
+    differenceWith(items[kind].collected?.desired ?? [], conflicts, (s, c) => s.name === c.name)
       .map(({ name, source, origin }) => ({ name, source, origin })),
   )
   const mcpSettledDeclaration = (d: McpDeclaration) => mcpSettled(d.name)

@@ -1,5 +1,6 @@
 import { join, resolve } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
+import { union } from 'es-toolkit'
 import { claudeJsonPath, installedPluginsPath, knownMarketplacesPath, readJson, SCOPES, settingsPath, writeJson, type Location } from './files.js'
 import { crossScopeConflict, manualEntryConflict, sameInstall, sameSource } from './identity.js'
 import type { Conflict, KnownEntry, MarketplaceDeclaration, MarketplaceSource, McpConfig, PluginEntry, Scope, ScopedEntry } from './types.js'
@@ -133,7 +134,7 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
     const installed = Object.keys(records).filter((id) =>
       records[id]!.some((r) => r.scope === scope && (scope === 'user' || r.projectPath === location.cwd)),
     )
-    const ids = [...new Set([...Object.keys(enabled), ...installed])]
+    const ids = union(Object.keys(enabled), installed)
     return ids.map((id) => ({
       id,
       enabled: typeof enabled[id] === 'boolean' ? (enabled[id] as boolean) : undefined,
