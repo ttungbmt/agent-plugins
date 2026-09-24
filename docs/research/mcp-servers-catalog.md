@@ -602,3 +602,18 @@ changes:
   on npm, PyPI, Docker Hub and GHCR; it only reports, and bumps stay manual.
 - **Next batch:** Azure, Google Cloud, Context7, Playwright, Linear, Stripe, Slack and Grafana
   (`mcp-servers-catalog-5.md`).
+
+## Decisions for batch 5 (2026-09-24)
+
+The append block of `mcp-servers-catalog-5.md` went in as proposed, with these answers:
+
+- `azure` stays on the stable `@azure/mcp@2.0.5` while npm `latest` is the 3.0 beta.
+- Names `microsoft-learn` and `AZURE_DEVOPS_BASIC_AUTH`; no `azure-devops-azcli`.
+- Google: `gcp-*` names, the seven managed servers only, tokens from Application Default Credentials, and
+  `GOOGLE_CLOUD_PROJECT` required. Their descriptions say the POSIX-shell `headersHelper` does not run on native
+  Windows.
+- New `context7-anonymous` entry with no key (lower rate limit).
+- Playwright keeps all three entries; `playwright` stays headed (vendor default).
+- Stripe uses `STRIPE_AGENT_API_KEY`; no `stripe-connect`.
+- No `slack-token`.
+- `GRAFANA_URL` has no default.
