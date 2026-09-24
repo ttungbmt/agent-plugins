@@ -260,7 +260,7 @@ Conclusions, which hold only as far as one experiment can support them:
 
 ### Copying files (ADR 0005/0006 style) vs relying on plugins
 
-| | `ap` copies into `.claude/workflows/` | Plugin via Khai báo plugin (existing path) |
+| | `ap` copies into `.claude/workflows/` | Plugin via Plugin declaration (existing path) |
 |---|---|---|
 | Works today in `ap` | No, a new kind is needed | **Yes.** Declare the marketplace and `name@marketplace: true`. The plugin's `workflows/` loads with it |
 | Name | bare `meta.name`, e.g. `/orch-review` | `/<plugin>:<meta.name>` |
@@ -351,15 +351,15 @@ Patterns:
 | Concept (CONTEXT.md) | Skill / Agent / Rule today | Workflow: fits or diverges |
 |---|---|---|
 | **Workflow** (new term) | Skill = dir, Agent = `.md` file with frontmatter `name`, Rule = `.md` file known by path | One `.js` file known by `meta.name`. That is closest to **Agent**: a file named by its content, not by its path. Parsing `name` means reading a JS object literal, not YAML frontmatter |
-| **Nguồn workflow** | `github`/`git`/`directory`, pinned, `path` | **Fits.** Needs its own Danh mục nguồn (`workflowSources`), like the others |
-| **Khai báo workflow** (`spec.workflows`) | string = all; map selects or excludes by name | **Fits by shape.** Select by `meta.name` (like agents). Selecting "all" pulls in `README`/tests unless discovery filters on `meta` |
+| **Workflow source** | `github`/`git`/`directory`, pinned, `path` | **Fits.** Needs its own Source catalog (`workflowSources`), like the others |
+| **Workflow declaration** (`spec.workflows`) | string = all; map selects or excludes by name | **Fits by shape.** Select by `meta.name` (like agents). Selecting "all" pulls in `README`/tests unless discovery filters on `meta` |
 | Discovery in source | `SKILL.md` / `agents/*.md` / `rules/` | **New.** Candidates: `workflows/*.js`, `.claude/workflows/*.js`, `path`. A file counts only if it starts with a literal `export const meta` holding `name`. Skip `*.test.*`, `lib/`, `_*`. `.mjs` and `<name>/workflow.js` sources exist, but installing them as-is would not work |
-| **Bản cài workflow** | copy file/dir into `<scope>/.claude/<kind>s` | File in `.claude/workflows/` or `<claudeDir>/workflows/`. **Must be flat** (subdirs aren't discovered by name, as observed), so the Rule-style **Namespace directory is not available**. The installed file name is free, since Claude Code ignores it. `<meta.name>.js` is the natural choice |
+| **Installed workflow** | copy file/dir into `<scope>/.claude/<kind>s` | File in `.claude/workflows/` or `<claudeDir>/workflows/`. **Must be flat** (subdirs aren't discovered by name, as observed), so the Rule-style **Namespace directory is not available**. The installed file name is free, since Claude Code ignores it. `<meta.name>.js` is the natural choice |
 | **Namespace** | rules: `<ns>/` directory per source | Not usable as a directory. The only namespacing Claude Code offers is the plugin prefix. A name clash across sources must be a conflict, or `ap` must rewrite `meta.name`, which would be the first content rewrite (see rules.md question 14) |
 | **Scope** | `project`, `user`; `local` → skip + notice | **Fits.** Project = `<cwd>/.claude/workflows`. User = `<claudeDir>/workflows` (documented for `CLAUDE_CONFIG_DIR`). Local = none. In a monorepo, `ap` writes at cwd, but Claude Code also loads parent `.claude/workflows/` dirs, and a closer one shadows a farther one |
 | **Managed / Manual entry** | per item, by name/hash; symlink = Manual | **Fits, with one twist.** Claude Code resolves a duplicate `meta.name` silently, so `ap` must read `meta.name` from **every** file in the dir, including Manual ones, and report a clash. A file-name comparison is not enough |
 | **Lock / State** | `ManagedItem {name, source, sha256, origin}` + `SourceCatalog` | **Fits.** Hash = file bytes (like Agent). The name comes from `meta` |
-| Plugin interplay | Agent/MCP inside plugin is not an "Agent"/"MCP server" | Same rule: a workflow inside a plugin is not a "Workflow". It comes with the Khai báo plugin. The MCP ADR warns on a name clash with a plugin's server, but workflows can't clash because plugin names are prefixed |
+| Plugin interplay | Agent/MCP inside plugin is not an "Agent"/"MCP server" | Same rule: a workflow inside a plugin is not a "Workflow". It comes with the Plugin declaration. The MCP ADR warns on a name clash with a plugin's server, but workflows can't clash because plugin names are prefixed |
 | Dependencies | none (rules: prose only) | **New concern.** `agentType` and `workflow()` references are string literals in code. `ap` could scan and warn, auto-select, or ignore |
 | Permissions / approval | MCP: `ap` never writes `enabledMcpjsonServers` | Analogous: `Workflow(<name>)` allow rules and the "don't ask again" consent are the user's approval gate. By the ADR 0006 (MCP) reasoning, `ap` should not add them, but this is a decision to make |
 | Feature gate | none | Workflows can be off (Pro default, `disableWorkflows`, env). An install is harmless but inert. `ap` could warn when it can read the setting |
@@ -368,7 +368,7 @@ Patterns:
 ### Open questions for design
 
 1. **Is a `workflows` kind worth it, given plugins already ship workflows?** Options: (a) do nothing, since plugins
-   cover it through Khai báo plugin; (b) add `spec.workflows` for loose sources (`.claude/workflows/*.js`, repos like
+   cover it through Plugin declaration; (b) add `spec.workflows` for loose sources (`.claude/workflows/*.js`, repos like
    transilienceai, lxxgg92, agentops); (c) (b), but refuse or warn on sources that are plugins.
 2. **Identity.** Use `meta.name` (what Claude Code uses) or the file stem (what some authors assume)? If `meta.name`,
    how does `ap` parse it: a JS parser such as acorn, or a restricted literal parser? It must cope with minified

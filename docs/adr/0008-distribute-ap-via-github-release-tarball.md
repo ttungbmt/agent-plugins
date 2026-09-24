@@ -12,7 +12,7 @@ Không cần clone repo, không cần mise/pnpm, không cần token. Nghiên c�
 
 - **Bundle, không để dependency lúc chạy.** Tarball không có `dependencies`; mọi dep (kể cả `presets: workspace:*`, `ink`, `react`, `cli-progress` chưa dùng nhưng giữ cho sau này) nằm ở `devDependencies`. Lý do: `pnpm pack` đổi `workspace:*` thành version cụ thể, mà `presets` và `cli` đều là tên của package khác trên npm — cài tarball sẽ lỗi `ETARGET` hoặc kéo nhầm package lạ. Bundle cũng làm mọi máy chạy đúng một bản, không resolve lại khoảng `^` lúc cài.
 - **oclif dùng explicit command map**, chung cho dev (`tsc`) và bundle (esbuild), vì bundle không quét được `./dist/commands`. oclif không hỗ trợ chính thức việc bundle, nên CI chạy smoke test `ap --help` và `ap sync --dry-run` trên bản cài từ tarball, trên Node 22 và 24. Khi bắt đầu dùng `ink`, bundle cần output ESM và stub `react-devtools-core`.
-- **Preset mặc định giữ ở package `presets` riêng.** Mọi bước build copy `packages/presets/*.yaml` vào `packages/cli/presets/` (gitignore); `defaultPresetsDir()` chỉ đọc thư mục đó, nên dev và release đi cùng một đường.
+- **Bundled preset giữ ở package `presets` riêng.** Mọi bước build copy `packages/presets/*.yaml` vào `packages/cli/presets/` (gitignore); `defaultPresetsDir()` chỉ đọc thư mục đó, nên dev và release đi cùng một đường.
 - **Tên:** package `packages/cli` là `agent-plugins`, lệnh vẫn là `ap`; package gốc đổi thành `agent-plugins-monorepo`, `private: true`.
 - **Phát hành:** semver, tag `v*` trên `master` kích hoạt workflow; CI kiểm tra tag khớp `version`. Bắt đầu từ `v0.1.0`. Pre-release (`v0.2.0-beta.1`) dùng được khi cần mà không chiếm `latest`.
 - **Cập nhật:** chạy lại lệnh cài. Không có self-update.

@@ -369,7 +369,7 @@ of rules support.
     ([index.ts:137-140](../../packages/cli/src/sync/index.ts), 277-290, 306-320).
   - Conflict reasons are an enumerated union that includes `missing-skill | modified-skill | missing-agent | modified-agent`
     ([types.ts:96-109](../../packages/cli/src/sync/types.ts)).
-- **Docs.** The domain terms are in [CONTEXT.md](../../CONTEXT.md) (Skill, Agent, Nguồn …, Danh mục nguồn, Bản cài …,
+- **Docs.** The domain terms are in [CONTEXT.md](../../CONTEXT.md) (Skill, Agent, Nguồn …, Source catalog, Bản cài …,
   Managed/Manual entry). The behaviour spec is in [docs/design/ap-sync.md:85-112](../design/ap-sync.md). Both are
   written in Vietnamese.
 

@@ -418,7 +418,7 @@ must be quoted in YAML, because it starts with `@` and `$`.
 ```yaml
 # yaml-language-server: $schema=../schemas/schemas/mcp-catalog.schema.json
 
-# Danh mục MCP: cấu hình MCP server mà Preset/Config bật bằng `<name>: true` trong `spec.mcpServers` (ADR 0006).
+# MCP catalog: cấu hình MCP server mà Preset/Config bật bằng `<name>: true` trong `spec.mcpServers` (ADR 0006).
 kind: McpCatalog
 
 servers:

@@ -1,157 +1,238 @@
 # Agent Plugins
 
-Công cụ `ap` khai báo tập marketplace/plugin mong muốn cho Claude Code bằng các file YAML, rồi đồng bộ chúng vào settings của Claude Code.
+The `ap` CLI declares the marketplaces and plugins you want in Claude Code in YAML files, then syncs them into Claude
+Code's settings.
 
-## Khai báo
+## Declarations
 
 **Config**:
-File `agent-plugins.yaml` (`kind: Config`) — điểm vào duy nhất mà `ap` đọc, chọn các Preset và có thể khai báo thêm marketplace riêng.
+The `agent-plugins.yaml` file (`kind: Config`) — the single entry point `ap` reads. It selects Presets and may declare
+extra marketplaces of its own.
 _Avoid_: Manifest, Project, profile
 
 **Preset**:
-Một khối khai báo tái sử dụng được (`kind: Preset`), có thể kế thừa Preset khác.
+A reusable block of declarations (`kind: Preset`) that can inherit from another Preset.
 _Avoid_: template, bundle
 
-**Kế thừa**:
-Quan hệ một Preset khai báo qua `spec.extends`: Preset con nhận khai báo của Preset cha và được ghi đè chúng.
-_Avoid_: include, import, chọn (dùng cho Config)
+**Inheritance**:
+The relationship a Preset declares through `spec.extends`: the child Preset receives the parent's declarations and may
+override them.
+_Avoid_: include, import, selection (that is for a Config)
 
-**Chọn Preset**:
-Việc Config liệt kê Preset qua `spec.presets`; các Preset được chọn là ngang hàng với nhau.
-_Avoid_: extends, kế thừa (dùng cho Preset)
+**Preset selection**:
+A Config listing Presets under `spec.presets`; selected Presets are peers.
+_Avoid_: extends, inheritance (that is for a Preset)
 
-**Preset mặc định**:
-Preset đi kèm `ap`, được tham chiếu bằng tên trần.
+**Bundled preset**:
+A Preset shipped with `ap`, referenced by bare name.
 _Avoid_: built-in preset, default config
 
-**Preset cục bộ**:
-Preset là file trong repo người dùng, tham chiếu bằng đường dẫn tương đối.
+**Local preset**:
+A Preset that is a file in the user's repo, referenced by relative path.
 
-**Preset từ xa**:
-Preset tải qua `https://`, được ghim theo nội dung.
+**Remote preset**:
+A Preset fetched over `https://`, pinned by content hash.
 
 ## Marketplace
 
 **Marketplace**:
-Nguồn plugin của Claude Code, định danh bằng tên khai báo trong `marketplace.json` của nó.
+A Claude Code plugin source, identified by the name declared in its `marketplace.json`.
 
-**Khai báo marketplace**:
-Một mục trong `spec.marketplaces` của Config hoặc Preset — trạng thái mong muốn.
-_Avoid_: marketplace entry (dùng cho settings)
+**Marketplace declaration**:
+An entry in `spec.marketplaces` of a Config or Preset — desired state.
+_Avoid_: marketplace entry (that is for settings)
 
-**Khai báo rút gọn**:
-Khai báo marketplace viết bằng một chuỗi nguồn (GitHub `owner/repo`, git URL, URL tới `marketplace.json`, hoặc đường dẫn cục bộ), chưa biết tên cho tới khi `claude` đọc `marketplace.json`.
-_Avoid_: shorthand, source string
+**Shorthand declaration**:
+A Marketplace declaration written as a single source string (GitHub `owner/repo`, git URL, URL to a `marketplace.json`,
+or local path). Its name is unknown until `claude` reads the `marketplace.json`.
+_Avoid_: source string
 
 **Known marketplace entry**:
-Một mục trong `extraKnownMarketplaces` của settings Claude Code — trạng thái thực tế.
+An entry in `extraKnownMarketplaces` of Claude Code's settings — actual state.
 
 ## Plugin
 
-**Khai báo plugin**:
-Một khoá `name@marketplace` trong `spec.plugins` của Config hoặc Preset, kèm giá trị bật/tắt — trạng thái mong muốn. Hậu tố `@marketplace` là tên một Marketplace được khai báo; với Khai báo rút gọn, tên chỉ biết sau lần `add` đầu tiên.
+**Plugin declaration**:
+A `name@marketplace` key in `spec.plugins` of a Config or Preset, with an enabled/disabled value — desired state. The
+`@marketplace` suffix is the name of a declared Marketplace; for a Shorthand declaration, that name is only known after
+the first `add`.
 
 **Plugin entry**:
-Một khoá trong `enabledPlugins` của settings Claude Code — trạng thái thực tế của việc bật/tắt ở một Scope.
-_Avoid_: enabled plugin (khi nói về khoá có giá trị `false`)
+A key in `enabledPlugins` of Claude Code's settings — the actual enabled/disabled state at one Scope.
+_Avoid_: enabled plugin (when the key's value is `false`)
 
-**Bản cài plugin**:
-Bản plugin đã tải về máy, ghi theo từng Scope nhưng dùng chung thư mục cache trên cả máy. Plugin entry `true` mà thiếu Bản cài plugin ở Scope đó là chưa khớp.
-_Avoid_: install (khi nói về khoá trong settings)
+**Installed plugin**:
+A plugin downloaded to the machine, recorded per Scope but sharing one cache directory across the machine. A `true`
+Plugin entry with no Installed plugin at that Scope is out of sync.
+_Avoid_: install (when talking about the settings key)
 
 ## Skill
 
 **Skill**:
-Một thư mục `<name>/SKILL.md` đứng riêng, được Claude Code nạp từ thư mục skills của một Scope; không đi qua Marketplace hay Plugin. Skill đóng gói bên trong plugin không gọi là Skill.
-_Avoid_: agent skill (khi nói về skill trong plugin)
+A standalone `<name>/SKILL.md` directory that Claude Code loads from a Scope's skills directory; it does not go through
+a Marketplace or Plugin. A skill packaged inside a plugin is not called a Skill.
+_Avoid_: agent skill (when talking about a skill inside a plugin)
 
-**Nguồn skill**:
-Nơi chứa một hoặc nhiều Skill (vd. repo GitHub `owner/repo`).
+**Skill source**:
+A place holding one or more Skills (e.g. the GitHub repo `owner/repo`).
 
-**Khai báo skill**:
-Một mục trong `spec.skills` của Config hoặc Preset — trạng thái mong muốn. Dạng chuỗi là một Nguồn skill, cài mọi Skill trong đó; dạng map hoặc kèm danh sách Skill được chọn, hoặc kèm danh sách Skill bị loại trừ (cài mọi Skill còn lại). Định danh của Skill là tên của nó; trùng tên khác nguồn theo luật trùng khai báo như Marketplace.
+**Skill declaration**:
+An entry in `spec.skills` of a Config or Preset — desired state. A string is a Skill source and installs every Skill in
+it; a map either selects Skills or excludes Skills (installing the rest). A Skill is identified by its name; the same
+name from different sources follows the same duplicate-declaration rule as Marketplaces.
 
-**Danh mục nguồn**:
-Tên mọi Skill có trong một Nguồn skill (hoặc mọi Agent trong một Nguồn agent, mọi Rule trong một Nguồn rule) ở commit đã ghim, kể cả thứ không được cài. Nguồn skill, Nguồn agent và Nguồn rule ghim riêng, kể cả khi cùng một repo. Commit không đổi nên danh mục không đổi; nhờ đó biết "tất cả" gồm những Skill hoặc Agent nào mà không cần tải lại nguồn.
+**Source catalog**:
+The names of every Skill in a Skill source (or every Agent in an Agent source, every Rule in a Rule source, every
+Workflow in a Workflow source) at the pinned commit, including ones not installed. Skill, Agent, Rule and Workflow
+sources are pinned separately, even when they share a repo. A fixed commit means a fixed catalog, which is how `ap`
+knows what "all" covers without fetching the source again.
 
-**Bản cài skill**:
-Thư mục Skill có mặt trong thư mục skills của một Scope — trạng thái thực tế. Chỉ có ở scope `project` và `user`.
+**Installed skill**:
+A Skill directory present in a Scope's skills directory — actual state. Exists only at the `project` and `user` Scopes.
 
 ## Agent
 
 **Agent**:
-Một file `<name>.md` đứng riêng (subagent), được Claude Code nạp từ thư mục agents của một Scope; không đi qua Marketplace hay Plugin. Agent đóng gói bên trong plugin không gọi là Agent — nó được bật cùng plugin qua Khai báo plugin.
-_Avoid_: subagent (khi nói về khai báo), agent trong plugin
+A standalone `<name>.md` file (subagent) that Claude Code loads from a Scope's agents directory; it does not go through
+a Marketplace or Plugin. An agent packaged inside a plugin is not called an Agent — it is enabled along with the plugin
+through its Plugin declaration.
+_Avoid_: subagent (when talking about declarations), agent inside a plugin
 
-**Nguồn agent**:
-Nơi chứa một hoặc nhiều Agent (vd. repo GitHub `owner/repo`).
+**Agent source**:
+A place holding one or more Agents (e.g. the GitHub repo `owner/repo`).
 
-**Khai báo agent**:
-Một mục trong `spec.agents` của Config hoặc Preset — trạng thái mong muốn. Cùng dạng và luật gộp với Khai báo skill: chuỗi là một Nguồn agent (cài mọi Agent), map chọn hoặc loại trừ Agent. Định danh của Agent là tên trong frontmatter của nó.
+**Agent declaration**:
+An entry in `spec.agents` of a Config or Preset — desired state. Same forms and merge rules as a Skill declaration: a
+string is an Agent source (installs every Agent), a map selects or excludes Agents. An Agent is identified by the name
+in its frontmatter.
 
-**Bản cài agent**:
-File Agent có mặt trong thư mục agents của một Scope — trạng thái thực tế. Chỉ gồm đúng một file `.md`; chỉ có ở scope `project` và `user`.
+**Installed agent**:
+An Agent file present in a Scope's agents directory — actual state. Exactly one `.md` file; exists only at the
+`project` and `user` Scopes.
 
 ## Rule
 
 **Rule**:
-Một file `.md` đứng riêng, được Claude Code nạp từ thư mục rules của một Scope; định danh bằng đường dẫn tương đối trong Nguồn rule, bỏ đuôi `.md` (vd. `web/coding-style`, `security`). Không có tên trong frontmatter. `README.md` không phải Rule.
-_Avoid_: instruction, rule group (khi nói về một file)
+A standalone `.md` file that Claude Code loads from a Scope's rules directory, identified by its path relative to the
+Rule source without the `.md` suffix (e.g. `web/coding-style`, `security`). It has no frontmatter name. `README.md` is
+not a Rule.
+_Avoid_: instruction, rule group (when talking about one file)
 
-**Nguồn rule**:
-Nơi chứa một hoặc nhiều Rule (vd. repo GitHub `owner/repo`), với gốc rules là `path` được khai báo hoặc thư mục `rules/`. Chỉ nhận Rule theo định dạng của Claude Code.
+**Rule source**:
+A place holding one or more Rules (e.g. the GitHub repo `owner/repo`), rooted at the declared `path` or at its `rules/`
+directory. Only Rules in Claude Code's format are accepted.
 
-**Khai báo rule**:
-Một mục trong `spec.rules` của Config hoặc Preset — trạng thái mong muốn. Cùng dạng với Khai báo skill (chuỗi, chọn, loại trừ), nhưng mỗi mục chọn hoặc loại trừ là một đường dẫn: trỏ tới file là một Rule, trỏ tới thư mục là mọi Rule nằm dưới nó.
+**Rule declaration**:
+An entry in `spec.rules` of a Config or Preset — desired state. Same forms as a Skill declaration (string, select,
+exclude), but each selected or excluded entry is a path: a file is one Rule, a directory is every Rule beneath it.
 
 **Namespace**:
-Thư mục con trong thư mục rules của Scope mà mọi Rule của một Nguồn rule được cài vào, giữ nguyên cấu trúc thư mục của nguồn. Mặc định là tên repo viết thường, đổi được bằng `as`. Hai nguồn khác nhau không được dùng chung một Namespace.
+The subdirectory of a Scope's rules directory that every Rule from one Rule source is installed into, keeping the
+source's directory structure. Defaults to the lowercased repo name and can be changed with `as`. Two different sources
+may not share a Namespace.
 _Avoid_: prefix, rule group
 
-**Bản cài rule**:
-File Rule có mặt trong một Namespace của thư mục rules của một Scope — trạng thái thực tế. Chỉ có ở scope `project` và `user`.
+**Installed rule**:
+A Rule file present in a Namespace of a Scope's rules directory — actual state. Exists only at the `project` and `user`
+Scopes.
 
 ## MCP server
 
 **MCP server**:
-Một server MCP đứng riêng mà Claude Code nạp từ cấu hình MCP của một Scope (`.mcp.json` với `project`, `~/.claude.json` với `local`/`user`); không đi qua Marketplace hay Plugin. MCP server đóng gói bên trong plugin (hiện dưới tên `plugin:<plugin>:<server>`) không gọi là MCP server — nó được bật cùng plugin qua Khai báo plugin.
-_Avoid_: MCP (khi nói về server trong plugin)
+A standalone MCP server that Claude Code loads from a Scope's MCP config (`.mcp.json` for `project`, `~/.claude.json`
+for `local`/`user`); it does not go through a Marketplace or Plugin. A server packaged inside a plugin (shown as
+`plugin:<plugin>:<server>`) is not called an MCP server — it is enabled along with the plugin through its Plugin
+declaration.
+_Avoid_: MCP (when talking about a server inside a plugin)
 
-**Khai báo MCP server**:
-Một khoá tên trong `spec.mcpServers` của Config hoặc Preset — trạng thái mong muốn. Giá trị `true` lấy nguyên cấu hình từ Danh mục MCP; map là cấu hình inline đúng định dạng của Claude Code; `false` bỏ MCP server đã kế thừa. Định danh là tên. Secret chỉ được viết dạng placeholder `${VAR}`.
+**MCP server declaration**:
+A named key in `spec.mcpServers` of a Config or Preset — desired state. `true` takes the config verbatim from the MCP
+catalog; a map is an inline config in Claude Code's exact format; `false` drops an inherited MCP server. Identified by
+name. Secrets may only be written as `${VAR}` placeholders.
 
-**Danh mục MCP**:
-Tập cấu hình MCP server đi kèm `ap`, tra bằng tên qua giá trị `true`. Người dùng không khai báo danh mục riêng; muốn dùng lại thì viết một Preset chỉ chứa `mcpServers`.
-_Avoid_: registry, catalog (khi nói về MCP Registry)
+**MCP catalog**:
+The set of MCP server configs shipped with `ap`, looked up by name through the value `true`. Users do not declare
+catalogs of their own; to reuse configs, write a Preset containing only `mcpServers`.
+_Avoid_: registry, catalog (when talking about the MCP Registry)
 
-**Bản cài MCP server**:
-Cấu hình MCP server có mặt trong cấu hình MCP của một Scope — trạng thái thực tế. Bản cài ở `.mcp.json` chỉ chạy sau khi người dùng duyệt; `ap` không duyệt thay.
+**Installed MCP server**:
+An MCP server config present in a Scope's MCP config — actual state. One in `.mcp.json` only runs after the user
+approves it; `ap` never approves on the user's behalf.
 
-## Sở hữu
+## Workflow
+
+**Workflow**:
+A standalone `.js` file that Claude Code loads from a Scope's workflows directory, starting with a literal
+`export const meta = { name, … }`; it does not go through a Marketplace or Plugin. Identified by `meta.name`, not by
+file name. A workflow packaged inside a plugin (run as `<plugin>:<name>`) is not called a Workflow — it is enabled along
+with the plugin through its Plugin declaration.
+_Avoid_: workflow script (when talking about declarations), workflow inside a plugin, GitHub Actions workflow
+
+**Workflow source**:
+A place holding one or more Workflows (e.g. the GitHub repo `owner/repo`), rooted at the declared `path` or at its
+`workflows/` directory. Only `*.js` files directly in the root count, skipping `*.test.*` and files starting with `_`;
+a file without a literal `meta` carrying a valid `name` is not a Workflow.
+
+**Workflow declaration**:
+An entry in `spec.workflows` of a Config or Preset — desired state. Same forms and merge rules as an Agent declaration:
+a string is a Workflow source (installs every Workflow), a map selects or excludes Workflows by `meta.name`. A Workflow
+tied to a plugin (calling an `agentType` of the form `<plugin>:<agent>`) is never installed: selecting it by name is a
+conflict, and when it falls under "all" it is skipped with a notice.
+
+**Installed workflow**:
+A `<meta.name>.js` file present in a Scope's workflows directory — actual state. Installed flat, with no Namespace.
+Exists only at the `project` and `user` Scopes.
+
+## Hook
+
+**Hook**:
+A standalone matcher group (event, matcher, handlers) under the `hooks` key of a Scope's settings; it does not go
+through a Marketplace or Plugin. A hook packaged in a plugin or declared in a Skill's or Agent's frontmatter is not
+called a Hook — it travels with whatever contains it.
+_Avoid_: hook handler (when talking about the whole group), hook inside a plugin
+
+**Hook declaration**:
+A named key in `spec.hooks` of a Config or Preset — desired state. The value is a Hook in Claude Code's exact format;
+`false` drops an inherited Hook. Identified by name, which exists only inside `ap` and never appears in settings. Only
+self-contained Hooks are accepted; a Hook that needs a bundled script belongs in a plugin.
+
+**Installed hook**:
+A Hook present in a Scope's settings — actual state. An Installed hook created by `ap` is always its own matcher group
+for exactly one Hook declaration, never shared with the user's Hooks; it is recognised by content, since settings carry
+no identifier for Hooks. Exists at all three Scopes.
+
+## Ownership
 
 **Managed entry**:
-Known marketplace entry, Plugin entry, Bản cài skill, Bản cài agent hoặc Bản cài rule do `ap` tạo và được ghi nhận trong Lock/State; `ap` được phép sửa hoặc gỡ nó.
+A Known marketplace entry, Plugin entry, Installed skill, Installed agent, Installed rule, Installed workflow or
+Installed hook that `ap` created and recorded in Lock/State; `ap` may change or remove it.
 
 **Manual entry**:
-Known marketplace entry, Plugin entry, Bản cài skill, Bản cài agent hoặc Bản cài rule người dùng tự thêm; `ap` không bao giờ sửa hay gỡ nó. Khi nó khớp đúng một khai báo, `ap` nhận quản lý và nó thành Managed entry.
+A Known marketplace entry, Plugin entry, Installed skill, Installed agent, Installed rule, Installed workflow or
+Installed hook the user added; `ap` never changes or removes it. When it matches exactly one declaration, `ap` adopts it
+and it becomes a Managed entry.
 
-## Đồng bộ
+## Syncing
 
 **Sync**:
-Đưa Known marketplace entry, Plugin entry, Bản cài plugin, Bản cài skill, Bản cài agent và Bản cài rule của một Scope về khớp với các khai báo đã phân giải.
+Bringing a Scope's Known marketplace entries, Plugin entries, Installed plugins, Installed skills, Installed agents,
+Installed rules, Installed workflows and Installed hooks in line with the resolved declarations.
 
 **Scope**:
-Tầng settings của Claude Code mà Sync nhắm tới: `project`, `local` hoặc `user`.
+The Claude Code settings layer a Sync targets: `project`, `local` or `user`.
 
 **Lock**:
-File `agent-plugins.lock` được commit, ghi các Managed entry ở scope `project`, Danh mục nguồn của các Nguồn skill, Nguồn agent và Nguồn rule đã ghim và mã băm của Preset từ xa.
+The committed `agent-plugins.lock` file, recording Managed entries at the `project` Scope, the Source catalogs of the
+pinned Skill, Agent, Rule and Workflow sources, and the hashes of Remote presets.
 
 **State**:
-Bản ghi Managed entry và Danh mục nguồn của scope `local` hoặc `user`, không được commit.
-_Avoid_: lock (cho scope cá nhân)
+The record of Managed entries and Source catalogs for the `local` or `user` Scope; never committed.
+_Avoid_: lock (for a personal Scope)
 
-## Phân phối
+## Distribution
 
 **Release tarball**:
-File `ap.tgz` (và `ap-<ver>.tgz`) đính vào GitHub Release, chứa `ap` đã bundle thành một file, không có dependency lúc chạy; người dùng cài bằng `npm i -g <url>`. Xem [ADR 0008](docs/adr/0008-distribute-ap-via-github-release-tarball.md).
-_Avoid_: npm package, bản build (khi nói về thứ người dùng cài)
+The `ap.tgz` file (and `ap-<ver>.tgz`) attached to a GitHub Release, containing `ap` bundled into one file with no
+runtime dependencies; users install it with `npm i -g <url>`. See
+[ADR 0008](docs/adr/0008-distribute-ap-via-github-release-tarball.md).
+_Avoid_: npm package, build (when talking about what users install)
