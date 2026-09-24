@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../../schemas/schemas/mcp-catalog.schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ttungbmt/agent-plugins/master/packages/schemas/schemas/mcp-catalog.schema.json
 
 # MCP catalog: server configurations a Preset or Config enables with `<name>: true` under `spec.mcpServers` (ADR 0006).
 # Sources and the reasoning behind each entry: docs/research/mcp-servers-catalog.md and mcp-servers-catalog-{2,3,4,5}.md.

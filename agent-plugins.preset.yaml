@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../../schemas/schemas/preset.schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ttungbmt/agent-plugins/master/packages/schemas/schemas/preset.schema.json
 
 kind: Preset
 
@@ -26,7 +26,9 @@ spec:
   rules:
 
   mcpServers:
+    github: true
     firecrawl: true
     deepwiki: true
+    
 
   # lspServers:
