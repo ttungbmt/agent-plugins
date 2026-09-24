@@ -31,8 +31,9 @@ Run from the repo root; `mise install` provides Node and pnpm.
 
 ## Architecture
 
-`packages/cli/src/sync/index.ts` orchestrates: `resolve.ts` loads the Config, applies `extends` and preset selection,
-and validates by hand → `plan*.ts`, `mcp.ts` and `hooks.ts` compute actions → apply → `store.ts` writes Lock/State.
+`packages/cli/src/sync/index.ts` orchestrates: `resolve.ts` loads the Config and its Presets (`preset-loader.ts`),
+reads each one with `spec.ts` and merges them by Inheritance and Preset selection (`merge.ts`) → `plan*.ts`, `mcp.ts`
+and `hooks.ts` compute actions → apply → `store.ts` writes Lock/State.
 Every side effect goes through the `deps` argument (`exec`, `fetch`, `fetchSkillSource`, `homedir`), which is what
 keeps the tests offline.
 

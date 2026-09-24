@@ -1,6 +1,6 @@
 ---
 title: Split `resolve.ts` into a preset loader, a spec reader and a merge module
-labels: [ready-for-agent]
+labels: [done]
 ---
 
 Terms: [CONTEXT.md](../../CONTEXT.md) (Config, Preset, Inheritance, Preset selection, Bundled/Local/Remote preset,

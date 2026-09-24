@@ -1,6 +1,6 @@
 ---
 title: Add `preset-loader.ts` and reduce `resolveConfig` to orchestration
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [03]
 ---
 
