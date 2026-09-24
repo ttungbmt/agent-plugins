@@ -1,6 +1,6 @@
 ---
 title: Raise the TypeScript `lib` to ES2025
-labels: []
+labels: [done]
 blocked_by: []
 ---
 
