@@ -189,6 +189,8 @@ export function createStore({ cwd, homedir }: Location) {
     const state = await owners[scope].read(lock, target)
     const shared = scope === 'user' ? await sharedClaims(target) : noShared()
     return {
+      /** Whether this Config already has a record for the Scope, even one holding only claims. */
+      recorded: state !== undefined,
       managed: state?.marketplaces ?? [],
       managedPlugins: state?.plugins ?? [],
       managedItems: byKind((kind) => state?.[keysOf(kind).items] ?? []),

@@ -1,6 +1,6 @@
 ---
 title: "Sync User-scoped plugins to `user` from any Scope"
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [01]
 ---
 

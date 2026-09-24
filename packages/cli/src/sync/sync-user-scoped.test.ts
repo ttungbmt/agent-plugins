@@ -1,5 +1,5 @@
-import { readFile, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { fakeClaude } from './fake-claude.js'
 import { readJson, settingsPath } from './files.js'
@@ -259,5 +259,201 @@ describe('moving an entry between the targeted Scope and user', () => {
 
     expect(report.conflicts).toEqual([expect.objectContaining({ name: OFFICIAL.name, reason: 'cross-scope' })])
     expect(report.actions).toEqual([])
+  })
+})
+
+/** User-scoped plugins (ADR 0012): installed, enabled and removed at the `user` Scope whatever Scope the Sync targets. */
+describe('a User-scoped plugin', () => {
+  const CS = 'commit-commands@claude-plugins-official'
+  const userPlugin = (value = '{ enabled: true, scope: user }') => config('scope: user', `  plugins:\n    ${CS}: ${value}\n`)
+  const empty = 'kind: Config\nmetadata: { name: demo }\nspec: {}\n'
+  const userState = async (homedir: string) => readJson<Record<string, any>>(join(homedir, '.agent-plugins/state.json'))
+  const writeUserSettings = async (t: { cwd: string; homedir: string }, settings: object) => {
+    const path = settingsPath('user', t)
+    await mkdir(dirname(path), { recursive: true })
+    await writeFile(path, JSON.stringify(settings))
+  }
+
+  it.each(['project', 'local'] as const)('is installed in user settings by a %s Sync, not in the Lock', async (scope) => {
+    const t = await setup({ 'agent-plugins.yaml': userPlugin() })
+
+    const report = await sync({ cwd: t.cwd, scope, mode: 'apply' }, t.deps)
+    const again = await sync({ cwd: t.cwd, scope, mode: 'check' }, t.deps)
+
+    expect(report.conflicts).toEqual([])
+    expect(report.actions).toEqual([
+      expect.objectContaining({ target: 'marketplace', kind: 'add', scope: 'user', status: 'done' }),
+      expect.objectContaining({ target: 'plugin', kind: 'install', name: CS, scope: 'user', status: 'done' }),
+    ])
+    expect(t.claude.calls.at(-1)).toEqual(['claude', 'plugin', 'install', CS, '--scope', 'user', '--json'])
+    expect((await t.settings('user')).enabledPlugins).toEqual({ [CS]: true })
+    expect((await t.settings(scope)).enabledPlugins).toBeUndefined()
+    expect(await t.lock()).not.toContain(CS)
+    const record = (await userState(t.homedir))[`${join(t.cwd, 'agent-plugins.yaml')}#${scope}`]
+    expect(record.plugins).toEqual([{ id: CS, enabled: true, origin: 'agent-plugins.yaml' }])
+    expect(record.pluginClaims).toEqual([{ id: CS, enabled: true, origin: 'agent-plugins.yaml' }])
+    expect(again.inSync).toBe(true)
+  })
+
+  it('is an ordinary declaration in a user Sync', async () => {
+    const t = await setup({ 'agent-plugins.yaml': userPlugin() })
+
+    const report = await sync({ cwd: t.cwd, scope: 'user', mode: 'apply' }, t.deps)
+
+    expect(report.actions.map(({ target, kind, scope }) => ({ target, kind, scope }))).toEqual([
+      { target: 'marketplace', kind: 'add', scope: undefined },
+      { target: 'plugin', kind: 'install', scope: undefined },
+    ])
+    expect((await t.settings('user')).enabledPlugins).toEqual({ [CS]: true })
+  })
+
+  it('is planned with its Scope in dry-run and check, without calling claude', async () => {
+    const t = await setup({ 'agent-plugins.yaml': userPlugin() })
+
+    for (const mode of ['dry-run', 'check'] as const) {
+      const report = await sync({ cwd: t.cwd, scope: 'project', mode }, t.deps)
+      expect(report.inSync).toBe(false)
+      expect(report.actions.at(-1)).toEqual({
+        target: 'plugin',
+        kind: 'install',
+        name: CS,
+        source: null,
+        scope: 'user',
+        status: 'planned',
+      })
+    }
+    expect(t.claude.calls).toEqual([])
+  })
+
+  it('is uninstalled from user settings once no Config declares it, before its marketplace is removed', async () => {
+    const t = await setup({ 'agent-plugins.yaml': userPlugin() })
+    await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+    await writeFile(join(t.cwd, 'agent-plugins.yaml'), empty)
+
+    const report = await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+
+    expect(report.conflicts).toEqual([])
+    expect(report.actions.map(({ target, kind, scope }) => [target, kind, scope])).toEqual([
+      ['plugin', 'uninstall', 'user'],
+      ['marketplace', 'remove', 'user'],
+    ])
+    expect((await t.settings('user')).enabledPlugins).toEqual({})
+  })
+
+  it('stays in user settings while another Config still declares it', async () => {
+    const t = await setup({ 'agent-plugins.yaml': userPlugin() })
+    const other = await makeTree({ 'agent-plugins.yaml': userPlugin() })
+    const otherDeps = {
+      ...t.deps,
+      exec: fakeClaude({ cwd: other, homedir: t.homedir, marketplaces: { 'anthropics/claude-plugins-official': OFFICIAL } }).exec,
+    }
+    await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+    await sync({ cwd: other, scope: 'project', mode: 'apply' }, otherDeps)
+    await writeFile(join(t.cwd, 'agent-plugins.yaml'), empty)
+
+    const report = await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+    await writeFile(join(other, 'agent-plugins.yaml'), empty)
+    const last = await sync({ cwd: other, scope: 'project', mode: 'apply' }, otherDeps)
+
+    expect(report.actions).toEqual([])
+    expect(last.actions.map(({ target, kind }) => [target, kind])).toEqual([
+      ['plugin', 'uninstall'],
+      ['marketplace', 'remove'],
+    ])
+  })
+
+  it('drops the claim of a Config that only claimed it, so the owner removes it right away', async () => {
+    const t = await setup({ 'agent-plugins.yaml': userPlugin() })
+    const other = await makeTree({ 'agent-plugins.yaml': userPlugin() })
+    const otherDeps = {
+      ...t.deps,
+      exec: fakeClaude({ cwd: other, homedir: t.homedir, marketplaces: { 'anthropics/claude-plugins-official': OFFICIAL } }).exec,
+    }
+    await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+    await sync({ cwd: other, scope: 'project', mode: 'apply' }, otherDeps)
+    await writeFile(join(other, 'agent-plugins.yaml'), empty)
+    await sync({ cwd: other, scope: 'project', mode: 'apply' }, otherDeps)
+    await writeFile(join(t.cwd, 'agent-plugins.yaml'), empty)
+
+    const report = await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+
+    expect(Object.keys(await userState(t.homedir))).toEqual([])
+    expect(report.actions.map(({ target, kind }) => [target, kind])).toEqual([
+      ['plugin', 'uninstall'],
+      ['marketplace', 'remove'],
+    ])
+  })
+
+  it('is opted out by one Config while another Config keeps it in user settings', async () => {
+    const t = await setup({ 'agent-plugins.yaml': userPlugin() })
+    const other = await makeTree({ 'agent-plugins.yaml': userPlugin() })
+    const otherDeps = {
+      ...t.deps,
+      exec: fakeClaude({ cwd: other, homedir: t.homedir, marketplaces: { 'anthropics/claude-plugins-official': OFFICIAL } }).exec,
+    }
+    await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+    await sync({ cwd: other, scope: 'project', mode: 'apply' }, otherDeps)
+    await writeFile(join(t.cwd, 'agent-plugins.yaml'), userPlugin('false'))
+
+    const report = await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+
+    expect(report.conflicts).toEqual([])
+    expect((await t.settings('project')).enabledPlugins).toEqual({ [CS]: false })
+    expect((await t.settings('user')).enabledPlugins).toEqual({ [CS]: true })
+    const state = await userState(t.homedir)
+    expect(state[`${join(t.cwd, 'agent-plugins.yaml')}#project`].pluginClaims).toBeUndefined()
+    expect(state[`${join(other, 'agent-plugins.yaml')}#project`].plugins).toEqual([
+      { id: CS, enabled: true, origin: 'agent-plugins.yaml' },
+    ])
+  })
+
+  it('adopts a matching Manual entry in user settings', async () => {
+    const t = await setup({ 'agent-plugins.yaml': userPlugin() })
+    await writeUserSettings(t, { enabledPlugins: { [CS]: true } })
+
+    const report = await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+
+    expect(report.conflicts).toEqual([])
+    expect(report.notices).toContain(`ap now manages "${CS}", which was set up by hand`)
+  })
+
+  it('refuses to flip a Manual entry in user settings unless forced', async () => {
+    const t = await setup({ 'agent-plugins.yaml': userPlugin() })
+    await writeUserSettings(t, { enabledPlugins: { [CS]: false } })
+
+    const report = await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+
+    expect(report.conflicts).toEqual([expect.objectContaining({ name: CS, reason: 'manual-entry' })])
+    expect((await t.settings('user')).enabledPlugins).toEqual({ [CS]: false })
+  })
+
+  it('is opted out by a Config redeclaring it false, which drops the user claim', async () => {
+    const t = await setup({ 'agent-plugins.yaml': userPlugin() })
+    await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+    await writeFile(join(t.cwd, 'agent-plugins.yaml'), userPlugin('false'))
+
+    const report = await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+
+    expect(report.conflicts).toEqual([])
+    expect((await t.settings('project')).enabledPlugins).toEqual({ [CS]: false })
+    expect((await t.settings('user')).enabledPlugins).toEqual({})
+    const record = (await userState(t.homedir))[`${join(t.cwd, 'agent-plugins.yaml')}#project`]
+    expect(record.pluginClaims).toBeUndefined()
+  })
+
+  it('fails as not ready when adding its marketplace to user settings fails', async () => {
+    const t = await setup({ 'agent-plugins.yaml': userPlugin() }, ['anthropics/claude-plugins-official'])
+
+    const report = await sync({ cwd: t.cwd, scope: 'project', mode: 'apply' }, t.deps)
+
+    expect(report.actions).toEqual([
+      expect.objectContaining({ target: 'marketplace', kind: 'add', scope: 'user', status: 'failed' }),
+      expect.objectContaining({
+        target: 'plugin',
+        scope: 'user',
+        status: 'failed',
+        error: 'marketplace "claude-plugins-official" is not ready in user settings',
+      }),
+    ])
   })
 })

@@ -17,7 +17,7 @@ import { createGitFetcher, SKILLS, type FetchedSource, type FetchSkillSource } f
 import { createStore, NO_OWNED } from './store.js'
 import { byKind, ITEM_KINDS } from './types.js'
 import { missingDependencyNotices, WORKFLOWS, workflowsSwitchedOff } from './workflows.js'
-import type { ByKind, Claim, Conflict, ItemDeclaration, ItemKind, ItemSource, KnownEntry, ManagedEntry, ManagedItem, ManagedMcp, MarketplaceDeclaration, MarketplaceSource, Scope, SharedItemClaim, SourceCatalog } from './types.js'
+import type { ByKind, Claim, Conflict, ItemDeclaration, ItemKind, ItemSource, KnownEntry, ManagedEntry, ManagedItem, ManagedMcp, MarketplaceDeclaration, MarketplaceSource, PluginDeclaration, Scope, SharedItemClaim, SourceCatalog } from './types.js'
 
 export type { Scope } from './types.js'
 export type SyncMode = 'apply' | 'dry-run' | 'check'
@@ -31,7 +31,7 @@ export type SyncAction = {
   source: MarketplaceSource | null
   status: 'planned' | 'done' | 'failed'
   error?: string
-  /** Set only for an action outside the targeted Scope: a User-scoped marketplace (ADR 0011). */
+  /** Set only for an action outside the targeted Scope: a User-scoped marketplace or plugin (ADR 0011, ADR 0012). */
   scope?: 'user'
 }
 
@@ -48,9 +48,9 @@ export type SyncProgress =
   | { phase: 'end'; action: SyncAction; ms: number }
 
 type Step =
-  /** `scope` is set only for a User-scoped marketplace synced outside the targeted Scope (ADR 0011). */
+  /** `scope` is set only for a User-scoped marketplace or plugin synced outside the targeted Scope (ADR 0011, 0012). */
   | { target: 'marketplace'; action: PlannedAction; scope?: 'user' }
-  | { target: 'plugin'; action: PlannedPluginAction }
+  | { target: 'plugin'; action: PlannedPluginAction; scope?: 'user' }
   | { target: ItemKind; action: PlannedItemAction }
   | { target: 'mcp'; action: PlannedMcpAction }
   | { target: 'hook'; action: PlannedHookAction }
@@ -128,14 +128,29 @@ export async function sync(
   // A plugin whose marketplace is no longer declared is held like any conflict: its Managed entry stays, and so does the
   // marketplace it still uses (see `inUse`), until both are dropped from the declarations.
   const unmatched = resolved.plugins.filter((p) => !checked.plugins.includes(p))
-  const pluginPlan = planPlugins([...checked.plugins, ...unmatched], actualPlugins, managedPlugins, {
-    force,
-    held: new Set([...held, ...unmatched.map((p) => p.marketplace)]),
-    shared: sharedPlugins,
-  })
+  const desiredPlugins = [...checked.plugins, ...unmatched]
+  // User-scoped plugins (ADR 0012) are planned against the `user` Scope, like User-scoped marketplaces.
+  const liftedPlugins = scope === 'user' ? [] : desiredPlugins.filter((p) => p.scope === 'user')
+  const pluginHeld = new Set([...held, ...unmatched.map((p) => p.marketplace)])
+  const pluginPlan = planPlugins(
+    desiredPlugins.filter((p) => !liftedPlugins.includes(p)),
+    actualPlugins,
+    managedPlugins,
+    { force, held: pluginHeld, shared: sharedPlugins },
+  )
+  const userPluginPlan =
+    user &&
+    planPlugins(liftedPlugins, user.plugins, user.managedPlugins, { force, held: pluginHeld, shared: user.sharedPlugins })
   const inUse = new Set(resolved.plugins.map((p) => p.marketplace))
-  const conflicts = [...resolved.conflicts, ...plan.conflicts, ...(user?.plan.conflicts ?? []), ...checked.conflicts, ...pluginPlan.conflicts]
-  const notices = [...resolved.notices, ...checked.notices, ...pluginPlan.notices]
+  const conflicts = [
+    ...resolved.conflicts,
+    ...plan.conflicts,
+    ...(user?.plan.conflicts ?? []),
+    ...checked.conflicts,
+    ...pluginPlan.conflicts,
+    ...(userPluginPlan?.conflicts ?? []),
+  ]
+  const notices = [...resolved.notices, ...checked.notices, ...pluginPlan.notices, ...(userPluginPlan?.notices ?? [])]
 
   const fetchSource = mode === 'apply' ? sharedFetcher(deps.fetchSkillSource ?? createGitFetcher(deps.exec, cwd)) : null
   const blockedSources = new Set(resolved.conflicts.filter((c) => c.reason === 'preset-clash').map((c) => c.name))
@@ -216,22 +231,34 @@ export async function sync(
     return manual.length === 0
   })
   // Hook steps don't run one by one: they are folded into a single settings write (`writeHooks`).
-  // Removing a marketplace also drops the `user` Scope's plugins from it, and no user-scope plugin is this Sync's to drop.
+  // Removing a marketplace also drops the `user` Scope's plugins from it; only this Config's User-scoped plugins may go.
+  const ownedUserPlugins = new Set([
+    ...(user?.managedPlugins ?? []).map((m) => m.id).filter((id) => !userPluginPlan?.forgotten.includes(id)),
+    ...(userPluginPlan?.actions ?? []).filter((a) => 'adopt' in a && a.adopt).map((a) => a.id),
+  ])
   const userRemovals = (user?.plan.actions ?? []).filter((a) => {
     if (a.kind === 'remove' && inUse.has(a.name) && !moving.has(a.name)) return false
     if (a.kind !== 'remove' || force || moving.has(a.name)) return a.kind === 'remove'
-    const manual = manualPluginsOf(a.name, user!.plugins, new Set())
+    const manual = manualPluginsOf(a.name, user!.plugins, ownedUserPlugins)
     if (manual.length) conflicts.push(pluginsInUseConflict(a.name, manual))
     return manual.length === 0
   })
   const userSteps = (removing: boolean) =>
     (removing ? userRemovals : (user?.plan.actions ?? []).filter((a) => a.kind !== 'remove'))
       .map((action) => ({ target: 'marketplace' as const, action, scope: 'user' as const }))
+  // A User-scoped plugin is installed or enabled before the targeted Scope's plugins and dropped after them, so a plugin
+  // moving between the two Scopes is never missing from both.
+  const userPluginSteps = (removing: boolean) =>
+    (userPluginPlan?.actions ?? [])
+      .filter((a) => (a.kind === 'uninstall' || a.kind === 'unset') === removing)
+      .map((action) => ({ target: 'plugin' as const, action, scope: 'user' as const }))
   const steps: Exclude<Step, { target: 'hook' }>[] = [
     // User-scope entries first, so the plugins of the targeted Scope find their marketplace (ADR 0011).
     ...userSteps(false),
     ...plan.actions.filter((a) => a.kind !== 'remove').map((action) => ({ target: 'marketplace' as const, action })),
+    ...userPluginSteps(false),
     ...pluginPlan.actions.map((action) => ({ target: 'plugin' as const, action })),
+    ...userPluginSteps(true),
     ...removals.map((action) => ({ target: 'marketplace' as const, action })),
     ...userSteps(true),
     ...itemRuns.flatMap(({ handler, plan }) => plan.actions.map((action) => ({ target: handler.kind, action }))),
@@ -274,6 +301,9 @@ export async function sync(
   const pluginRecords = new Map(managedPlugins.map((m) => [m.id, m]))
   const releasedPlugins = managedPlugins.filter((m) => pluginPlan.forgotten.includes(m.id))
   for (const id of pluginPlan.forgotten) pluginRecords.delete(id)
+  const userPluginRecords = new Map((user?.managedPlugins ?? []).map((m) => [m.id, m]))
+  const userReleasedPlugins = (user?.managedPlugins ?? []).filter((m) => userPluginPlan?.forgotten.includes(m.id))
+  for (const id of userPluginPlan?.forgotten ?? []) userPluginRecords.delete(id)
   const mcpRecords = new Map(loaded.managedMcp.map((m) => [m.name, m]))
   const releasedMcp = loaded.managedMcp.filter((m) => mcpPlan.forgotten.includes(m.name))
   for (const name of mcpPlan.forgotten) mcpRecords.delete(name)
@@ -295,9 +325,12 @@ export async function sync(
       adoptedNotice(`"${name}"`)
     }
   }
-  for (const { id, enabled, origin } of pluginPlan.adopted) {
-    pluginRecords.set(id, { id, enabled, origin })
-    adoptedNotice(`"${id}"`)
+  const adoptedPlugins = [[pluginPlan.adopted, pluginRecords], [userPluginPlan?.adopted ?? [], userPluginRecords]] as const
+  for (const [adopted, into] of adoptedPlugins) {
+    for (const { id, enabled, origin } of adopted) {
+      into.set(id, { id, enabled, origin })
+      adoptedNotice(`"${id}"`)
+    }
   }
   for (const { name, server, origin } of mcpPlan.adopted) {
     mcpRecords.set(name, { name, server, origin })
@@ -328,7 +361,7 @@ export async function sync(
         step.target === 'marketplace'
           ? await applyMarketplace(step.action, step.scope)
           : step.target === 'plugin'
-            ? await applyPlugin(step.action)
+            ? await applyPlugin(step.action, step.scope)
             : step.target === 'mcp'
               ? await applyMcp(step.action)
               : await applyItem(step.target, step.action)
@@ -370,11 +403,13 @@ export async function sync(
     return name
   }
 
-  async function applyPlugin(action: PlannedPluginAction): Promise<string> {
+  /** `at` is set for a User-scoped plugin, which lives in the `user` Scope and its own records. */
+  async function applyPlugin(action: PlannedPluginAction, at?: 'user'): Promise<string> {
     const { id } = action
+    const [target, owned, entries] = at ? [at, userPluginRecords, user!.plugins] : [scope, pluginRecords, actualPlugins]
     if (!('declaration' in action)) {
-      await (action.kind === 'uninstall' ? registry.uninstallPlugin(id, scope) : registry.unsetPlugin(id, scope))
-      pluginRecords.delete(id)
+      await (action.kind === 'uninstall' ? registry.uninstallPlugin(id, target) : registry.unsetPlugin(id, target))
+      owned.delete(id)
       return id
     }
     const { marketplace, enabled, origin } = action.declaration
@@ -388,10 +423,10 @@ export async function sync(
       throw new ConflictError(missingMarketplaceConflict(action.declaration))
     }
     const run = { install: registry.installPlugin, enable: registry.enablePlugin, disable: registry.disablePlugin }[action.kind]
-    await run(id, scope)
+    await run(id, target)
     if (action.adopt) {
-      if (!pluginRecords.has(id) && actualPlugins.some((e) => e.id === id && e.enabled !== undefined)) adoptedNotice(`"${id}"`)
-      pluginRecords.set(id, { id, enabled, origin })
+      if (!owned.has(id) && entries.some((e) => e.id === id && e.enabled !== undefined)) adoptedNotice(`"${id}"`)
+      owned.set(id, { id, enabled, origin })
     }
     return id
   }
@@ -446,9 +481,11 @@ export async function sync(
   }
 
   const claims = claimsOf(declarations, [...records.values()], actual, conflicts)
-  const pluginClaims = resolved.plugins
-    .filter((p) => !held.has(p.marketplace) && !conflicts.some((c) => c.name === p.id))
-    .map(({ id, enabled, origin }) => ({ id, enabled, origin }))
+  const claimsOfPlugins = (plugins: PluginDeclaration[]) =>
+    plugins
+      .filter((p) => !held.has(p.marketplace) && !conflicts.some((c) => c.name === p.id))
+      .map(({ id, enabled, origin }) => ({ id, enabled, origin }))
+  const pluginClaims = claimsOfPlugins(resolved.plugins.filter((p) => !liftedPlugins.includes(p)))
   const itemClaims = byKind((kind) =>
     (items[kind].collected?.desired ?? [])
       .filter((s) => !conflicts.some((c) => c.name === s.name))
@@ -487,17 +524,18 @@ export async function sync(
       },
     },
   )
-  if (user && (lifted.length || user.managed.length)) {
+  // A record holding only claims is saved too, so dropping the last User-scoped declaration drops those claims.
+  if (user && (user.recorded || lifted.length || liftedPlugins.length)) {
     await store.save(
       'user',
-      { ...NO_OWNED, marketplaces: [...userRecords.values()] },
+      { ...NO_OWNED, marketplaces: [...userRecords.values()], plugins: [...userPluginRecords.values()] },
       resolved.pins,
       {
         claims: claimsOf(lifted, [...userRecords.values()], user.actual, conflicts),
-        pluginClaims: [],
+        pluginClaims: claimsOfPlugins(liftedPlugins),
         itemClaims: byKind(() => []),
         mcpClaims: [],
-        released: { ...NO_OWNED, marketplaces: userReleased },
+        released: { ...NO_OWNED, marketplaces: userReleased, plugins: userReleasedPlugins },
       },
       { target: scope },
     )
@@ -510,13 +548,17 @@ export async function sync(
     inSync: conflicts.length === 0 && actions.every((a) => a.status === 'done'),
   }
 
-  /** Plans the User-scoped marketplaces against the `user` Scope's settings, this Config's record there and the claims of the rest. */
+  /**
+   * Plans the User-scoped marketplaces against the `user` Scope's settings, this Config's record there and the claims of
+   * the rest; returns what the User-scoped plugins are planned against too.
+   */
   async function planUserScoped() {
-    const { managed, shared } = await store.load('user', { target: scope })
+    const { recorded, managed, shared, managedPlugins, sharedPlugins } = await store.load('user', { target: scope })
     const actual = await registry.list('user')
     const elsewhere = { cwd, entries: await registry.listElsewhere('user') }
     const plan = planSync(lifted, actual, managed, { force, blocked, shared, elsewhere, installed })
-    return { managed, actual, plan, plugins: await registry.listPlugins('user') }
+    const plugins = await registry.listPlugins('user')
+    return { recorded, managed, actual, plan, plugins, managedPlugins, sharedPlugins }
   }
 }
 
@@ -559,7 +601,10 @@ async function reportFetch(kind: ItemKind, source: ItemSource, run: () => Promis
 }
 
 function describe(step: Step): Omit<SyncAction, 'status' | 'error'> {
-  if (step.target === 'plugin') return { target: step.target, kind: step.action.kind, name: step.action.id, source: null }
+  if (step.target === 'plugin') {
+    const at = step.scope ? { scope: step.scope } : {}
+    return { target: step.target, kind: step.action.kind, name: step.action.id, source: null, ...at }
+  }
   if (step.target === 'mcp' || step.target === 'hook') return { target: step.target, kind: step.action.kind, name: step.action.name, source: null }
   if (step.target === 'marketplace') {
     const { target, action } = step
