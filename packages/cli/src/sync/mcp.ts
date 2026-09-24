@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from 'node:util'
-import { omitBy } from 'es-toolkit'
+import { isEmptyObject, omitBy } from 'es-toolkit'
 import { manualEntryConflict, sharedClashConflict } from './identity.js'
 import type { Conflict, ManagedMcp, McpConfig, McpDeclaration, SharedMcpClaim } from './types.js'
 
@@ -27,7 +27,7 @@ export function normalizeMcp(config: McpConfig): McpConfig {
     (value, key) =>
       (key === 'type' && value === 'stdio') ||
       (Array.isArray(value) && value.length === 0) ||
-      (!!value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0),
+      isEmptyObject(value),
   )
 }
 

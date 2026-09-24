@@ -1,5 +1,6 @@
 import { stat } from 'node:fs/promises'
 import { isAbsolute, normalize, resolve } from 'node:path'
+import { trimEnd } from 'es-toolkit'
 import { ConfigError } from './errors.js'
 import type { MarketplaceSource } from './types.js'
 
@@ -28,7 +29,7 @@ function web(text: string): MarketplaceSource {
   const [body, ref] = splitOnce(text, '#')
   const url = new URL(body)
   if (!url.pathname.endsWith('.git') && !GIT_HOSTS.has(url.hostname)) return { source: 'url', url: text }
-  url.pathname = url.pathname.replace(/\/+$/, '')
+  url.pathname = trimEnd(url.pathname, '/')
   if (!url.pathname.endsWith('.git')) url.pathname += '.git'
   return withRef({ source: 'git', url: url.href }, ref)
 }
@@ -53,7 +54,7 @@ async function local(text: string, dir: string, origin: string, what: string): P
 
 /** `./a/../b/` → `./b`; a leading `../` is kept. */
 function relativePath(text: string): string {
-  const path = normalize(text).replace(/\/+$/, '')
+  const path = trimEnd(normalize(text), '/')
   return path === '..' || path.startsWith('../') ? path : `./${path}`
 }
 

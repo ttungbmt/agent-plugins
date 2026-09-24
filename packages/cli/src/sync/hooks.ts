@@ -1,6 +1,7 @@
 import { isDeepStrictEqual } from 'node:util'
 import { omit, omitBy } from 'es-toolkit'
 import { readJson, settingsPath, writeJson, type Location } from './files.js'
+import { isRecord } from './guards.js'
 import type { HookDeclaration, HookGroup, ManagedHook, Scope } from './types.js'
 
 /** The settings `hooks` key: event → matcher groups. User groups may contain anything, so they stay opaque. */
@@ -29,7 +30,7 @@ export function sameHook(a: HookGroup, b: HookGroup): boolean {
 /** Index of the group in settings that matches exactly one Managed hook, or -1. */
 function locate(hooks: SettingsHooks, record: ManagedHook): number {
   return groupsOf(hooks, record.group.event).findIndex(
-    (g) => g !== null && typeof g === 'object' && !Array.isArray(g) && sameHook({ event: record.group.event, ...(g as Omit<HookGroup, 'event'>) }, record.group),
+    (g) => isRecord(g) && sameHook({ event: record.group.event, ...(g as Omit<HookGroup, 'event'>) }, record.group),
   )
 }
 
@@ -107,5 +108,5 @@ export async function writeSettingsHooks(scope: Scope, location: Location, actio
 }
 
 function hooksOf({ hooks }: { hooks?: unknown }): SettingsHooks {
-  return hooks && typeof hooks === 'object' && !Array.isArray(hooks) ? (hooks as SettingsHooks) : {}
+  return isRecord(hooks) ? hooks : {}
 }

@@ -1,7 +1,8 @@
 import { posix } from 'node:path'
-import { uniq, without } from 'es-toolkit'
+import { isEmptyObject, trimEnd, uniq, without } from 'es-toolkit'
 import * as z from 'zod/mini'
 import { ConfigError } from './errors.js'
+import { isRecord } from './guards.js'
 import { checkMcp, normalizeMcp } from './mcp.js'
 import { parseShorthand } from './shorthand.js'
 import { byKind, ITEM_KINDS } from './types.js'
@@ -75,7 +76,7 @@ const PATH_ERROR = '`path` of {} must be a relative path inside the source'
 /** The `path` of an item source, normalized (`./a/b/` → `a/b`); `null` for the source root. */
 const ItemsPath = z.pipe(
   z
-    .pipe(z.string({ error: PATH_ERROR }), z.transform((raw) => posix.normalize(raw).replace(/\/+$/, '')))
+    .pipe(z.string({ error: PATH_ERROR }), z.transform((raw) => trimEnd(posix.normalize(raw), '/')))
     .check(z.refine((p) => !!p && !posix.isAbsolute(p) && p !== '..' && !p.startsWith('../'), { error: PATH_ERROR })),
   z.transform((p) => (p === '.' ? null : p)),
 )
@@ -128,7 +129,7 @@ const McpValue = z.union(
     z.pipe(
       z.looseObject({ scope: scope('MCP server {}') }),
       z.transform(({ scope, ...inline }) =>
-        scope && Object.keys(inline).length === 0
+        scope && isEmptyObject(inline)
           ? ({ kind: 'catalog', scope } as const)
           : ({ kind: 'inline', inline: inline as McpConfig, ...(scope && { scope }) } as const),
       ),
@@ -235,7 +236,7 @@ export async function readDeclarations(
     items[kind] = await settle(
       (spec[`${kind}s`] ?? []).map(async ({ source, subdir, select, scope }): Promise<ItemPart> => {
         // A `directory` source folds `path` into its own path; other sources keep it as a field.
-        const shorthand = subdir && isLocal(source) ? `${source.replace(/\/+$/, '')}/${subdir}` : source
+        const shorthand = subdir && isLocal(source) ? `${trimEnd(source, '/')}/${subdir}` : source
         const parsed = await parseShorthand(shorthand, dir, origin, kind)
         if (parsed.source !== 'github' && parsed.source !== 'git' && parsed.source !== 'directory') {
           throw new ConfigError(`${origin}: ${kind} source "${source}" must be owner/repo, a git URL or a directory`)
@@ -297,7 +298,7 @@ function fill(message: string, path: PropertyKey[], spec: unknown): string {
   let subject: unknown = at
   if (Array.isArray(container)) {
     const entry = container[at as number]
-    subject = entry && typeof entry === 'object' ? (entry as { source?: unknown }).source : entry
+    subject = isRecord(entry) ? entry.source : entry
   }
   const n = path.findLast((p) => typeof p === 'number')
   return message.replaceAll('{}', `"${String(subject)}"`).replaceAll('{n}', String(Number(n) + 1))

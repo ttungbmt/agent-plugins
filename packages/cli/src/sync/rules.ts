@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { copyFile, lstat, mkdir, readdir, readFile, rm, rmdir } from 'node:fs/promises'
 import { basename, dirname, join, posix, relative } from 'node:path'
+import { trimEnd } from 'es-toolkit'
 import { claudeDir, type Location } from './files.js'
 import { ITEM_NAME, type FoundItem, type InstalledItem, type ItemHandler } from './items.js'
 import type { ItemSource, Scope } from './types.js'
@@ -24,7 +25,7 @@ export function rulesDir(scope: Scope, location: Location): string | null {
 /** Default Namespace: the repo name (`github`), last URL segment sans `.git` (`git`) or directory name (`directory`), lowercased. */
 export function defaultNamespace(source: ItemSource): string {
   const where = String(source.source === 'github' ? source.repo : source.source === 'git' ? source.url : source.path)
-  const name = basename(where.replace(/\/+$/, '').replace(/\.git$/, '')).toLowerCase()
+  const name = basename(trimEnd(where, '/').replace(/\.git$/, '')).toLowerCase()
   if (!ITEM_NAME.test(name)) throw new Error(`cannot name a rules namespace after "${where}"`)
   return name
 }

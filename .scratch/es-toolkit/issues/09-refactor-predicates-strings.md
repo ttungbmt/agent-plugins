@@ -1,6 +1,6 @@
 ---
 title: Use `isRecord`, es-toolkit predicates and `trimEnd`
-labels: []
+labels: [done]
 blocked_by: [02, 03]
 ---
 

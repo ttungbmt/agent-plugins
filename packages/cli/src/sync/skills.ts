@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { cp, lstat, mkdir, mkdtemp, readdir, readFile, readlink, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join, relative, resolve } from 'node:path'
+import { asyncNoop, trimEnd } from 'es-toolkit'
 import { claudeDir, type Location } from './files.js'
 import type { Exec } from './registry.js'
 import { frontmatterName, ITEM_NAME, type FoundItem, type InstalledItem, type ItemHandler } from './items.js'
@@ -36,7 +37,7 @@ export function createGitFetcher(exec: Exec, cwd: string): FetchSkillSource {
   }
 
   return async (source, commit) => {
-    if (source.source === 'directory') return { dir: resolve(cwd, source.path as string), commit: null, cleanup: async () => {} }
+    if (source.source === 'directory') return { dir: resolve(cwd, source.path as string), commit: null, cleanup: asyncNoop }
     const url = source.source === 'github' ? `https://github.com/${source.repo}.git` : (source.url as string)
     const dir = await mkdtemp(join(tmpdir(), 'ap-skills-'))
     const cleanup = () => rm(dir, { recursive: true, force: true })
@@ -89,7 +90,7 @@ export function sourceRoot(fetched: FetchedSource, source: ItemSource): string {
 /** Fallback name for a Skill at the root of its containing directory: the `path` directory, repo or source directory name. */
 export function sourceBasename(source: ItemSource): string {
   const where = String(source.source === 'directory' ? source.path : (source.path ?? source.repo ?? source.url))
-  return basename(where.replace(/\.git$/, '').replace(/\/+$/, ''))
+  return basename(trimEnd(where.replace(/\.git$/, ''), '/'))
 }
 
 /** Installed skills in a skills directory; a symlinked directory hashes the content it points to. */

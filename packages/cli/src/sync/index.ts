@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { difference, differenceWith, omit, partition, uniq } from 'es-toolkit'
+import { difference, differenceWith, isNotNil, omit, partition, uniq } from 'es-toolkit'
 import { AGENTS } from './agents.js'
 import { collectItems, type CollectedItems } from './collect-items.js'
 import { identifies, knownName, missingMarketplaceConflict, sameSource } from './identity.js'
@@ -124,7 +124,7 @@ export async function sync(
   ]
   const checked = checkMarketplaces(
     resolved.plugins,
-    new Set([...names.filter((n): n is string => n !== null), ...held]),
+    new Set([...names.filter(isNotNil), ...held]),
     names.includes(null),
   )
   // A plugin whose marketplace is no longer declared is held like any conflict: its Managed entry stays, and so does the
@@ -236,7 +236,7 @@ export async function sync(
   ])
   // A name still declared on the other side of this Sync is moving between the targeted Scope and `user` (ADR 0011):
   // only its entry goes, so its plugins stay.
-  const moving = new Set(names.filter((n): n is string => n !== null))
+  const moving = new Set(names.filter(isNotNil))
   /** The removals of `actions` that may run: not a marketplace still in use, nor one with Manual plugin entries. */
   const gatedRemovals = (actions: PlannedAction[], entries: PluginEntry[], owned: Set<string>) =>
     actions.filter((a) => {
@@ -606,7 +606,7 @@ async function workflowDependencies(items: ByKind<ItemSync>, location: Location)
   const { workflow, agent } = items
   if (!workflow.dir || !workflow.collected?.desired.length) return []
   const installedIn = async (handler: ItemHandler) => {
-    const dirs = (['project', 'user'] as const).map((s) => handler.dir(s, location)).filter((d): d is string => d !== null)
+    const dirs = (['project', 'user'] as const).map((s) => handler.dir(s, location)).filter(isNotNil)
     return (await Promise.all(dirs.map((d) => handler.list(d, [])))).flat()
   }
   const installedWorkflows = await installedIn(WORKFLOWS)
