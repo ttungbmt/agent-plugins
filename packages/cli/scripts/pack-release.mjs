@@ -1,5 +1,5 @@
-// Dựng Release tarball (ADR 0008): bundle `ap` thành một file, lắp package không có dependency trong
-// `release/staging`, rồi `npm pack` ra `release/ap-<ver>.tgz` và bản sao tên cố định `release/ap.tgz`.
+// Build the Release tarball (ADR 0008): bundle `ap` into one file, assemble a dependency-free package in
+// `release/staging`, then `npm pack` it to `release/ap-<ver>.tgz` plus a fixed-name copy `release/ap.tgz`.
 import { execFileSync } from 'node:child_process'
 import { copyFile, cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { build } from 'esbuild'
@@ -23,7 +23,7 @@ await build({
   legalComments: 'none',
   alias: { 'react-devtools-core': new URL('scripts/react-devtools-stub.js', root).pathname },
   define: { 'process.env.NODE_ENV': '"production"' },
-  // Dependency CommonJS trong bundle ESM vẫn gọi `require` cho module có sẵn của Node.
+  // CommonJS dependencies inside the ESM bundle still call `require` for Node built-ins.
   banner: { js: "import { createRequire as __apCreateRequire } from 'node:module'; const require = __apCreateRequire(import.meta.url);" },
   logLevel: 'warning',
 })

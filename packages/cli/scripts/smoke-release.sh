@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Cài Release tarball vào prefix tạm và chạy thử `ap` (ADR 0008). Không đụng global prefix hay ~/.claude thật.
-# Dùng: scripts/smoke-release.sh [đường dẫn .tgz]   (mặc định release/ap.tgz)
+# Install the Release tarball into a temporary prefix and smoke-test `ap` (ADR 0008). Leaves the global prefix and
+# the real ~/.claude untouched.
+# Usage: scripts/smoke-release.sh [path to .tgz]   (default: release/ap.tgz)
 set -euo pipefail
 
 tarball=$(realpath "${1:-$(dirname "$0")/../release/ap.tgz}")

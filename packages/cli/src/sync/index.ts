@@ -24,9 +24,9 @@ export type SyncMode = 'apply' | 'dry-run' | 'check'
 
 export type SyncAction = {
   target: 'marketplace' | 'plugin' | ItemKind | 'mcp' | 'hook'
-  /** `fetch`: tải một Nguồn skill/Nguồn agent; chỉ có trong báo cáo khi thất bại. */
+  /** `fetch`: fetching a Skill source/Agent source; appears in the report only on failure. */
   kind: PlannedAction['kind'] | PlannedPluginAction['kind'] | PlannedItemAction['kind'] | PlannedMcpAction['kind'] | PlannedHookAction['kind'] | 'fetch'
-  /** Tên marketplace, id `name@marketplace` của plugin, hoặc tên Skill/Agent/MCP server/Khai báo hook; null khi chưa biết. */
+  /** Marketplace name, plugin id `name@marketplace`, or Skill/Agent/MCP server/Hook declaration name; null when unknown. */
   name: string | null
   source: MarketplaceSource | null
   status: 'planned' | 'done' | 'failed'
@@ -40,7 +40,7 @@ export type SyncReport = {
   inSync: boolean
 }
 
-/** Báo tiến độ từng action khi apply, vì mỗi action gọi `claude` hoặc `git` và có thể phải clone. */
+/** Reports progress per action during apply, since each action calls `claude` or `git` and may need to clone. */
 export type SyncProgress =
   | { phase: 'start'; action: Omit<SyncAction, 'status' | 'error'> }
   | { phase: 'end'; action: SyncAction; ms: number }
@@ -52,10 +52,10 @@ type Step =
   | { target: 'mcp'; action: PlannedMcpAction }
   | { target: 'hook'; action: PlannedHookAction }
 
-/** Việc đồng bộ Skill hoặc Agent của một Scope: khai báo, trạng thái đã ghi và kế hoạch của loại đó. */
+/** Syncing Skills or Agents for one Scope: the declarations, the recorded state and the plan for that kind. */
 type ItemSync = {
   handler: ItemHandler
-  /** Thư mục của loại này ở Scope; null ở scope `local`. */
+  /** This kind's directory in the Scope; null for the `local` scope. */
   dir: string | null
   managed: ManagedItem[]
   catalogs: SourceCatalog[]
@@ -63,25 +63,25 @@ type ItemSync = {
   plan: ItemPlan
 }
 
-/** Cách tải và cài của từng loại item. */
+/** How each kind of item is fetched and installed. */
 const HANDLERS: ByKind<ItemHandler> = { skill: SKILLS, agent: AGENTS, rule: RULES, workflow: WORKFLOWS }
 
 const EMPTY_PLAN: ItemPlan = { actions: [], conflicts: [], notices: [], adopted: [], forgotten: [] }
 
-/** Đồng bộ Khai báo marketplace, Khai báo plugin, Khai báo skill, Khai báo agent, Khai báo MCP server và Khai báo hook của Config vào một Scope. */
+/** Syncs the Config's Marketplace, Plugin, Skill, Agent, MCP server and Hook declarations into one Scope. */
 export async function sync(
   opts: { cwd: string; scope: Scope; mode: SyncMode; force?: boolean; update?: boolean },
   deps: {
     exec: Exec
     fetch: Fetch
     homedir: string
-    /** Thư mục config của Claude Code (`CLAUDE_CONFIG_DIR`), mặc định `~/.claude`. */
+    /** Claude Code's config directory (`CLAUDE_CONFIG_DIR`), `~/.claude` by default. */
     claudeDir?: string
     defaultPresetsDir: string
-    /** Tải Nguồn skill/Nguồn agent; mặc định dùng `git` qua `exec` (ADR 0005). */
+    /** Fetches a Skill source/Agent source; defaults to `git` via `exec` (ADR 0005). */
     fetchSkillSource?: FetchSkillSource
     onProgress?: (event: SyncProgress) => void
-    /** Môi trường để cảnh báo `${VAR}` chưa đặt trong cấu hình MCP server; mặc định `process.env`. */
+    /** Environment used to warn about unset `${VAR}` in MCP server configs; defaults to `process.env`. */
     env?: Record<string, string | undefined>
   },
 ): Promise<SyncReport> {
@@ -175,12 +175,12 @@ export async function sync(
     held: new Set(resolved.mcpConflicts.map((c) => c.name)),
     shared: loaded.sharedMcp,
   })
-  // Giữ riêng khỏi `conflicts` (vốn dùng chung tên cho marketplace/plugin/Skill/Agent), chỉ gộp vào báo cáo.
+  // Kept apart from `conflicts` (which shares names across marketplace/plugin/Skill/Agent), merged only into the report.
   const mcpConflicts = [...resolved.mcpConflicts, ...mcpPlan.conflicts]
   const mcpSettled = (name: string) => !mcpConflicts.some((c) => c.name === name)
   const hookPlan = planHooks(resolved.hooks, await readSettingsHooks(scope, location), loaded.managedHooks)
 
-  // Gỡ marketplace kéo theo mọi Plugin entry của nó: còn Manual plugin entry thì không gỡ.
+  // Removing a marketplace takes all its Plugin entries with it, so a marketplace with Manual plugin entries is kept.
   const ownedPlugins = new Set([
     ...managedPlugins.map((m) => m.id),
     ...pluginPlan.actions.filter((a) => 'adopt' in a && a.adopt).map((a) => a.id),
@@ -191,7 +191,7 @@ export async function sync(
     if (manual.length) conflicts.push(pluginsInUseConflict(a.name, manual))
     return manual.length === 0
   })
-  // Bước hook không chạy riêng từng bước: chúng gộp thành một lần ghi settings (`writeHooks`).
+  // Hook steps don't run one by one: they are folded into a single settings write (`writeHooks`).
   const steps: Exclude<Step, { target: 'hook' }>[] = [
     ...plan.actions.filter((a) => a.kind !== 'remove').map((action) => ({ target: 'marketplace' as const, action })),
     ...pluginPlan.actions.map((action) => ({ target: 'plugin' as const, action })),
@@ -201,13 +201,13 @@ export async function sync(
   ]
   const hookSteps: Step[] = hookPlan.actions.map((action) => ({ target: 'hook' as const, action }))
 
-  /** Chạy sau bước plugin (Q8 của ADR 0006): cảnh báo trùng tên với MCP của plugin, và liệt kê server `.mcp.json` chờ duyệt. */
+  /** Runs after the plugin step (Q8 of ADR 0006): warns about name clashes with plugin MCP servers, and lists `.mcp.json` servers awaiting approval. */
   const mcpNotices = async () => {
     const mine = resolved.mcpServers.filter((d) => mcpSettled(d.name)).map((d) => d.name)
     for (const { plugin, name } of await registry.pluginMcpServers(scope)) {
       if (mine.includes(name)) notices.push(`MCP server "${name}" has the same name as one plugin ${plugin} provides (plugin:${plugin}:${name}); both will run`)
     }
-    // Chỉ server đã thật sự có trong `.mcp.json` (ở dry-run: sẽ được thêm) mới chờ duyệt; `add-json` lỗi thì không.
+    // Only servers actually in `.mcp.json` (in dry-run: about to be added) await approval; not when `add-json` failed.
     const present = mode === 'apply' ? await registry.listMcp(scope) : null
     const pending = scope === 'project' ? await registry.pendingMcp(mine.filter((n) => !present || n in present)) : []
     if (pending.length) {
@@ -245,7 +245,7 @@ export async function sync(
     for (const name of plan.forgotten) records.delete(name)
     return records
   })
-  // Manual entry khớp đúng khai báo: nhận quản lý, báo một lần duy nhất.
+  // A Manual entry that matches the declaration exactly: adopt it, reported only once.
   const adoptedNotice = (what: string) => notices.push(`ap now manages ${what}, which was set up by hand`)
   for (const { name, declaration } of plan.adopted) {
     records.set(name, record(name, declaration))
@@ -298,7 +298,7 @@ export async function sync(
   }
   await writeHooks()
   await Promise.all([...new Set(itemRuns.flatMap((i) => i.collected?.fetched ?? []))].map((f) => f.cleanup()))
-  // Managed skill/agent không cần copy lại vẫn nhận nguồn và origin mới nhất; commit của nó nằm ở Danh mục nguồn.
+  // Managed skills/agents that need no re-copy still get the latest source and origin; their commit lives in the Source catalog.
   for (const kind of ITEM_KINDS) {
     for (const { name, source, sha256, origin } of items[kind].collected?.desired ?? []) {
       const record = itemRecords[kind].get(name)
@@ -333,7 +333,8 @@ export async function sync(
     }
     const { marketplace, enabled, origin } = action.declaration
     if (failedMarketplaces.has(marketplace)) throw new Error(`marketplace "${marketplace}" is not ready in ${scope} settings`)
-    // Hậu tố chưa khớp tên nào trước khi `add` các marketplace dạng rút gọn: giờ đã biết tên thì kiểm tra lại.
+    // `@marketplace` suffixes that matched no name before Shorthand declarations were `add`ed: check again now that
+    // the names are known.
     if (checked.pending.has(id) && !records.has(marketplace) && !actual.some((e) => e.name === marketplace)) {
       if (failedMarketplaces.size) throw new Error(`marketplace "${marketplace}" is not ready in ${scope} settings`)
       throw new ConflictError(missingMarketplaceConflict(action.declaration))
@@ -360,7 +361,7 @@ export async function sync(
     return name
   }
 
-  /** Mọi bước hook của Scope là một lần ghi settings (ADR 0007), rồi mới báo tiến độ và ghi nhận từng bước. */
+  /** All hook steps of a Scope are one settings write (ADR 0007), then progress is reported and each step recorded. */
   async function writeHooks() {
     if (!hookPlan.actions.length) return
     let error: Error | undefined
@@ -447,7 +448,7 @@ export async function sync(
   }
 }
 
-/** Tên Config này khai báo và đã khớp được; tên đang xung đột không được claim để Config khác không bị chặn theo. */
+/** Names this Config declares and has matched; conflicting names are not claimed, so other Configs are not blocked by them. */
 function claimsOf(declarations: MarketplaceDeclaration[], owned: ManagedEntry[], actual: KnownEntry[], conflicts: Conflict[]): Claim[] {
   return declarations.flatMap((d) => {
     const name =
@@ -458,8 +459,8 @@ function claimsOf(declarations: MarketplaceDeclaration[], owned: ManagedEntry[],
 }
 
 /**
- * Mỗi nguồn (bỏ `path`, vì `path` chỉ chọn thư mục bên trong) chỉ được tải một lần cho mỗi commit trong một lần sync,
- * để Nguồn skill và Nguồn agent cùng repo không phải clone hai lần.
+ * Each source (ignoring `path`, which only picks a directory inside it) is fetched only once per commit in a sync,
+ * so a Skill source and an Agent source from the same repo are not cloned twice.
  */
 function sharedFetcher(fetch: FetchSkillSource): FetchSkillSource {
   const fetches = new Map<string, Promise<FetchedSource>>()
@@ -471,7 +472,7 @@ function sharedFetcher(fetch: FetchSkillSource): FetchSkillSource {
   }
 }
 
-/** Tải nguồn cũng là một bước chậm (clone), nên báo tiến độ như một action. */
+/** Fetching a source is also a slow step (clone), so progress is reported as for an action. */
 async function reportFetch(kind: ItemKind, source: ItemSource, run: () => Promise<void>, onProgress: (event: SyncProgress) => void) {
   const action = { target: kind, kind: 'fetch' as const, name: null, source }
   const started = Date.now()
@@ -503,8 +504,8 @@ function record(name: string, declaration: MarketplaceDeclaration): ManagedEntry
 }
 
 /**
- * Cảnh báo phụ thuộc thiếu của các Workflow sẽ có ở Scope. Agent và Workflow ở scope `user` cũng chạy được trong
- * project, nên thứ đã cài ở cả hai thư mục đều được tính.
+ * Warns about missing dependencies of the Workflows the Scope will have. Agents and Workflows in the `user` scope also run
+ * in a project, so things installed in either directory count.
  */
 async function workflowDependencies(items: ByKind<ItemSync>, location: Location): Promise<string[]> {
   const { workflow, agent } = items

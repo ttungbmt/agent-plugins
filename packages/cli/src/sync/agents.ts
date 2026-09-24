@@ -14,16 +14,17 @@ export const AGENTS: ItemHandler = {
   remove: removeAgent,
 }
 
-/** Thư mục agents Claude Code đọc cho từng Scope; scope `local` không có thư mục riêng. */
+/** Agents directory Claude Code reads for each Scope; the `local` scope has no directory of its own. */
 export function agentsDir(scope: Scope, location: Location): string | null {
   if (scope === 'local') return null
   return scope === 'project' ? join(location.cwd, '.claude/agents') : join(claudeDir(location), 'agents')
 }
 
 /**
- * Tìm Agent trong một nguồn đã tải, không đệ quy, dừng ở chỗ đầu tiên có Agent: `agents/*.md` → `.claude/agents/*.md`
- * → `*.md`. Chỉ file có `name` trong frontmatter là Agent (để bỏ `README.md`, `CLAUDE.md`…); riêng khi nguồn khai báo
- * `path` (`explicit`), file thiếu `name` vẫn là Agent, tên lấy từ tên file.
+ * Find the Agents in a fetched source, non-recursively, stopping at the first place that has any: `agents/*.md` →
+ * `.claude/agents/*.md` → `*.md`. Only files with `name` in their frontmatter are Agents (to skip `README.md`,
+ * `CLAUDE.md`…); but when the source declares `path` (`explicit`), a file without `name` is still an Agent, named after
+ * the file.
  */
 export async function findAgents(root: string, explicit: boolean): Promise<FoundItem[]> {
   for (const dir of [join(root, 'agents'), join(root, '.claude/agents'), root]) {
@@ -45,7 +46,7 @@ export async function findAgents(root: string, explicit: boolean): Promise<Found
   return []
 }
 
-/** Bản cài agent của một thư mục agents: mỗi file `<name>.md`; file là symlink thì băm nội dung nó trỏ tới. */
+/** Installed agents in an agents directory: one `<name>.md` file each; a symlinked file hashes the content it points to. */
 export async function listInstalledAgents(dir: string): Promise<InstalledItem[]> {
   const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
   const agents: InstalledItem[] = []
@@ -57,7 +58,7 @@ export async function listInstalledAgents(dir: string): Promise<InstalledItem[]>
   return agents
 }
 
-/** Copy đúng file Agent vào `<dir>/<name>.md`, không kéo theo file nào khác nó nhắc tới. */
+/** Copy exactly the Agent file to `<dir>/<name>.md`, without pulling in any other file it references. */
 export async function installAgent(from: string, dir: string, name: string): Promise<void> {
   const target = join(dir, `${name}.md`)
   await rm(target, { force: true })

@@ -1,5 +1,5 @@
-// Copy Preset mặc định từ package `presets` vào `presets/` của package này, để bản dev và Release tarball
-// đọc preset từ cùng một chỗ (ADR 0008).
+// Copy the Bundled presets from the `presets` package into this package's `presets/`, so the dev build and the
+// Release tarball read presets from the same place (ADR 0008).
 import { cp, readdir, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'

@@ -2,7 +2,7 @@ import { manualEntryConflict, missingMarketplaceConflict, sharedClashConflict } 
 import type { Conflict, ManagedPlugin, PluginDeclaration, PluginEntry, SharedPluginClaim } from './types.js'
 
 export type PlannedPluginAction =
-  /** `adopt` false: chỉ cài cho một Manual entry đã khớp, không nhận sở hữu nó. */
+  /** `adopt` false: only install for a Manual entry that already matches, without taking ownership of it. */
   | { kind: 'install' | 'enable' | 'disable'; id: string; declaration: PluginDeclaration; adopt: boolean }
   | { kind: 'uninstall' | 'unset'; id: string }
 
@@ -10,16 +10,17 @@ export type PluginPlan = {
   actions: PlannedPluginAction[]
   conflicts: Conflict[]
   notices: string[]
-  /** Manual entry khớp đúng khai báo, không cần action: nhận quản lý. */
+  /** Manual entry that matches its declaration exactly and needs no action: adopted. */
   adopted: PluginDeclaration[]
-  /** Managed plugin entry chỉ cần xoá khỏi Lock/State: đã biến khỏi settings, hoặc Config khác vẫn claim nó. */
+  /** Managed plugin entry to drop from Lock/State only: gone from settings, or another Config still claims it. */
   forgotten: string[]
 }
 
 /**
- * Tính các bước đưa Plugin entry và Bản cài plugin của một scope về khớp khai báo, cùng luật sở hữu với marketplace (ADR 0003).
- * `held` là các marketplace đang xung đột: plugin của chúng được giữ nguyên.
- * `shared` là claim của các Config khác ở scope user.
+ * Compute the steps that bring one scope's Plugin entries and Installed plugins in line with the declarations, under the
+ * same ownership rules as marketplaces (ADR 0003).
+ * `held` holds the marketplaces in conflict: their plugins are left untouched.
+ * `shared` holds other Configs' claims at the user scope.
  */
 export function planPlugins(
   desired: PluginDeclaration[],
@@ -53,7 +54,7 @@ export function planPlugins(
         conflicts.push(manualEntryConflict(id, `the value ${value}`))
         continue
       }
-      // Khớp đúng khai báo thì nhận quản lý; Config khác đang claim thì để luật bàn giao xử lý.
+      // An exact match with the declaration is adopted; if another Config claims it, the handover rule deals with it.
       if (value === enabled && opts.shared?.some((c) => c.id === id)) adopt = false
     }
 
@@ -77,9 +78,9 @@ export function planPlugins(
 }
 
 /**
- * Kiểm tra hậu tố `@marketplace` với tên các marketplace đã khai báo (`names`: dạng map, và dạng rút gọn đã biết tên).
- * Còn khai báo rút gọn chưa biết tên (`unnamed`, vd. máy mới chưa `add`) thì plugin không khớp tên nào được để `pending`:
- * vẫn lập kế hoạch, và chỉ kiểm tra lại sau khi `add` xong.
+ * Check the `@marketplace` suffix against the declared marketplace names (`names`: map form, plus Shorthand declarations
+ * whose name is known). While some Shorthand declarations have no known name yet (`unnamed`, e.g. a fresh machine before
+ * `add`), a plugin matching no name is left `pending`: it is still planned, and only checked again once `add` is done.
  */
 export function checkMarketplaces(plugins: PluginDeclaration[], names: Set<string>, unnamed: boolean) {
   const pending = new Set<string>()
@@ -99,8 +100,8 @@ export function checkMarketplaces(plugins: PluginDeclaration[], names: Set<strin
 }
 
 /**
- * `claude plugin marketplace remove` xoá mọi khoá `*@<marketplace>` của scope. Còn Manual plugin entry dùng
- * marketplace đó thì không gỡ nó (xung đột `manual-entry`), trừ khi `--force`.
+ * `claude plugin marketplace remove` deletes every `*@<marketplace>` key at the scope. While a Manual plugin entry still
+ * uses that marketplace, the marketplace is not removed (a `manual-entry` conflict) unless `--force`.
  */
 export function manualPluginsOf(marketplace: string, actual: PluginEntry[], owned: Set<string>): string[] {
   return actual.filter((e) => e.enabled !== undefined && e.id.endsWith(`@${marketplace}`) && !owned.has(e.id)).map((e) => e.id)

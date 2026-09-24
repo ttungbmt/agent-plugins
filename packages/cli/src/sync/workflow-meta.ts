@@ -1,13 +1,13 @@
 import { parse, type AnyNode, type Expression, type Node, type Program } from 'acorn'
 import { ITEM_NAME } from './items.js'
 
-/** Tên literal một script workflow nhắc tới: `agentType: '<x>'` và `workflow('<x>', …)`. */
+/** Literal names a workflow script refers to: `agentType: '<x>'` and `workflow('<x>', …)`. */
 export type WorkflowRefs = { agentTypes: string[]; workflows: string[] }
 
 /**
- * `meta.name` của một script workflow, đúng như Claude Code đọc: `export const meta = { name: '…', … }` là object
- * literal (không spread, không khoá tính toán), `name` là chuỗi khớp `ITEM_NAME` (dùng được làm tên file). Ngược lại,
- * hoặc script không parse được, thì không phải Workflow: `undefined`.
+ * The `meta.name` of a workflow script, exactly as Claude Code reads it: `export const meta = { name: '…', … }` is an
+ * object literal (no spread, no computed keys) and `name` is a string matching `ITEM_NAME` (usable as a file name).
+ * Otherwise, or if the script can't be parsed, it is not a Workflow: `undefined`.
  */
 export function workflowName(text: string): string | undefined {
   const program = parseScript(text)
@@ -24,7 +24,7 @@ export function workflowName(text: string): string | undefined {
   return undefined
 }
 
-/** Các `agentType` và tên `workflow()` viết bằng chuỗi literal; giá trị tạo lúc chạy bị bỏ qua. Không trùng lặp. */
+/** The `agentType`s and `workflow()` names written as string literals; runtime-built values are skipped. No duplicates. */
 export function workflowRefs(text: string): WorkflowRefs {
   const agentTypes = new Set<string>()
   const workflows = new Set<string>()
@@ -45,14 +45,14 @@ export function workflowRefs(text: string): WorkflowRefs {
   return { agentTypes: [...agentTypes], workflows: [...workflows] }
 }
 
-/** Workflow gắn với plugin: gọi agent có tiền tố `<plugin>:`, nên không chạy được khi đứng riêng ngoài plugin đó. */
+/** A plugin-bound Workflow: it calls an agent with a `<plugin>:` prefix, so it can't run on its own outside that plugin. */
 export function isPluginBound(refs: WorkflowRefs): boolean {
   return refs.agentTypes.some((type) => type.includes(':'))
 }
 
 function parseScript(text: string): Program | undefined {
   try {
-    // Thân script dùng `await` và `return` ở top-level (Workflow tool bọc nó trong một hàm async).
+    // The script body uses top-level `await` and `return` (the Workflow tool wraps it in an async function).
     return parse(text, {
       ecmaVersion: 'latest',
       sourceType: 'module',

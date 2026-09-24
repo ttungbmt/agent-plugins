@@ -28,8 +28,8 @@ import type {
 } from './types.js'
 
 /**
- * Managed entry của một scope: Known marketplace entry, Plugin entry, Bản cài của từng loại item, Bản cài MCP server và Bản cài hook,
- * kèm Danh mục nguồn của mỗi loại item (ghim riêng, kể cả khi cùng repo).
+ * A scope's Managed entries: Known marketplace entries, Plugin entries, installs of each item kind, Installed MCP servers and
+ * Installed hooks, plus the Source catalogs of each item kind (pinned separately, even when they share a repo).
  */
 export type Owned = {
   marketplaces: ManagedEntry[]
@@ -39,13 +39,13 @@ export type Owned = {
   mcpServers: ManagedMcp[]
   hooks: ManagedHook[]
 }
-/** Khoá của một loại item trong Lock/State, vd. `skills`, `skillSources`, `skillClaims`. */
+/** The keys of an item kind in the Lock/State, e.g. `skills`, `skillSources`, `skillClaims`. */
 type ItemsKey = `${ItemKind}s`
 type SourcesKey = `${ItemKind}Sources`
 type ClaimsKey = `${ItemKind}Claims`
 const keysOf = (kind: ItemKind) =>
   ({ items: `${kind}s`, sources: `${kind}Sources`, claims: `${kind}Claims` }) as { items: ItemsKey; sources: SourcesKey; claims: ClaimsKey }
-/** Danh mục nguồn như ghi trong Lock/State: tên nằm dưới khoá của loại item (`skills`, `agents`, …). */
+/** A Source catalog as recorded in the Lock/State: the names sit under the item kind's key (`skills`, `agents`, …). */
 type SourceRecord = { source: ItemSource; commit: string; blocked?: string[] } & { [K in ItemsKey]?: string[] }
 type Stored = {
   marketplaces?: ManagedEntry[]
@@ -59,7 +59,7 @@ type State = Stored & {
   pluginClaims?: PluginClaim[]
   mcpClaims?: McpClaim[]
 } & { [K in ClaimsKey]?: ItemClaim[] }
-/** Chỉ dùng ở scope user: claim của Config này và các Managed entry nó vừa bỏ sở hữu. */
+/** Used only at the user scope: this Config's claims and the Managed entries it just gave up ownership of. */
 export type Sharing = {
   claims: Claim[]
   pluginClaims: PluginClaim[]
@@ -71,9 +71,9 @@ export const NO_OWNED: Owned = { marketplaces: [], plugins: [], items: byKind(()
 const NO_SHARING: Sharing = { claims: [], pluginClaims: [], itemClaims: byKind(() => []), mcpClaims: [], released: NO_OWNED }
 
 /**
- * Lock (`agent-plugins.lock`: Managed entry của scope project + mã băm Preset từ xa) và State (scope local/user) — ADR 0003.
- * State của scope user nằm trong home nên được chia theo đường dẫn Config, kèm claim của mỗi Config
- * để một repo không gỡ entry mà repo khác vẫn khai báo.
+ * Lock (`agent-plugins.lock`: the project scope's Managed entries + Remote preset hashes) and State (local/user scopes) —
+ * ADR 0003. The user scope's State lives in home, so it is keyed by Config path and carries each Config's claims, so one
+ * repo does not remove an entry another repo still declares.
  */
 export function createStore({ cwd, homedir }: Location) {
   const lockPath = join(cwd, 'agent-plugins.lock')
@@ -81,14 +81,14 @@ export function createStore({ cwd, homedir }: Location) {
   const userStatePath = join(homedir, '.agent-plugins/state.json')
   const configKey = join(cwd, 'agent-plugins.yaml')
 
-  /** Cách mỗi Scope lưu Managed entry của nó. */
+  /** How each Scope stores its Managed entries. */
   const owners: Record<
     Scope,
     { read(lock: Lock): Promise<State | undefined>; write(owned: Owned, sharing: Sharing): Promise<void> }
   > = {
     project: {
       read: async (lock) => lock,
-      write: async () => {}, // nằm trong Lock, ghi cùng mã băm ở `save`
+      write: async () => {}, // lives in the Lock, written along with the hashes in `save`
     },
     local: {
       read: async () => readJson<State>(localStatePath),
@@ -98,7 +98,7 @@ export function createStore({ cwd, homedir }: Location) {
       read: async () => (await readJson<Record<string, State>>(userStatePath))[configKey],
       write: async (owned, { claims, pluginClaims, itemClaims, mcpClaims, released }) => {
         const states = await readJson<Record<string, State>>(userStatePath)
-        // Entry vừa bỏ sở hữu được giao cho các Config khác đang claim cùng khai báo, để repo cuối cùng khai báo nó sẽ gỡ nó.
+        // Hand entries just released to the other Configs claiming the same declaration, so the last repo declaring it removes it.
         for (const [key, state] of Object.entries(states)) {
           if (key === configKey) continue
           for (const claim of state.claims ?? []) {
@@ -148,12 +148,12 @@ export function createStore({ cwd, homedir }: Location) {
     const lock: Lock = compact({ ...stored, ...Object.fromEntries(ITEM_KINDS.map((kind) => [keysOf(kind).items, strip(stored[keysOf(kind).items])])) })
     if (presets && Object.keys(presets).length) lock.presets = presets
     const empty = Object.keys(lock).length === 0
-    // Không tạo Lock rỗng cho repo chưa có; Lock đã có thì làm rỗng để git thấy thay đổi.
+    // Don't create an empty Lock for a repo that has none; empty an existing Lock so git sees the change.
     if (empty && !(await readFile(lockPath, 'utf8').then(() => true, () => false))) return
     await writeFile(lockPath, empty ? '' : stringify(lock, { aliasDuplicateObjects: false }))
   }
 
-  /** Claim của các Config khác ở scope user; Config đã bị xoá khỏi đĩa thì bỏ qua. */
+  /** Claims of the other Configs at the user scope; Configs deleted from disk are skipped. */
   async function sharedClaims() {
     const states = await readJson<Record<string, State>>(userStatePath)
     const shared = noShared()
@@ -209,7 +209,7 @@ function noShared() {
   }
 }
 
-/** Thứ tự các mục của Lock/State; `commit` trên từng Skill của Lock/State cũ được bỏ (đã chuyển về Danh mục nguồn). */
+/** The field order of the Lock/State; the per-Skill `commit` of an old Lock/State is dropped (it moved to the Source catalog). */
 function ownedFields(owned: Owned): Stored {
   const items = (list: ManagedItem[]) => list.map(({ commit: _, ...item }) => item)
   return {
@@ -226,7 +226,7 @@ function ownedFields(owned: Owned): Stored {
   }
 }
 
-/** Bỏ các mục rỗng để Lock/State không có key thừa. */
+/** Drop empty fields so the Lock/State has no stray keys. */
 function compact<T extends Record<string, unknown[] | undefined>>(fields: T): Partial<T> {
   return Object.fromEntries(Object.entries(fields).filter(([, v]) => v?.length)) as Partial<T>
 }

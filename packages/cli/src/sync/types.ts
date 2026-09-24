@@ -1,9 +1,9 @@
 export type Scope = 'project' | 'local' | 'user'
 
-/** Giá trị `source` trong `extraKnownMarketplaces`, ví dụ `{ source: 'github', repo: 'owner/repo' }`. */
+/** A `source` value in `extraKnownMarketplaces`, e.g. `{ source: 'github', repo: 'owner/repo' }`. */
 export type MarketplaceSource = { source: string; [field: string]: unknown }
 
-/** Khai báo marketplace đã phân giải. `name` là null khi khai báo dạng rút gọn `owner/repo`. */
+/** A resolved Marketplace declaration. `name` is null for a Shorthand declaration such as `owner/repo`. */
 export type MarketplaceDeclaration = {
   name: string | null
   source: MarketplaceSource
@@ -11,7 +11,7 @@ export type MarketplaceDeclaration = {
   origin: string
 }
 
-/** Khai báo plugin đã gộp: `id` là `name@marketplace`, `marketplace` là hậu tố của nó. */
+/** A merged Plugin declaration: `id` is `name@marketplace`, `marketplace` is its suffix. */
 export type PluginDeclaration = {
   id: string
   marketplace: string
@@ -19,38 +19,38 @@ export type PluginDeclaration = {
   origin: string
 }
 
-/** Plugin entry của một Scope (khoá trong `enabledPlugins`), kèm việc Scope đó có Bản cài plugin hay không. */
+/** A Scope's Plugin entry (a key in `enabledPlugins`), plus whether that Scope has an Installed plugin. */
 export type PluginEntry = { id: string; enabled: boolean | undefined; installed: boolean }
 
-/** Plugin entry do `ap` quản lý, ghi trong Lock/State. */
+/** A Plugin entry managed by `ap`, recorded in the Lock/State. */
 export type ManagedPlugin = { id: string; enabled: boolean; origin: string }
 
-/** Plugin entry một Config khai báo ở scope user, và claim đó của Config khác. */
+/** A Plugin entry a Config declares at the user scope, and the same claim made by another Config. */
 export type PluginClaim = { id: string; enabled: boolean; origin: string }
 export type SharedPluginClaim = PluginClaim & { config: string }
 
-/** Loại thứ `ap` tự tải từ một nguồn và copy vào thư mục của Scope (ADR 0005), theo thứ tự sync và thứ tự trong Lock/State. */
+/** Kinds of item `ap` fetches from a source and copies into a Scope's directory (ADR 0005), in Sync order and Lock/State order. */
 export const ITEM_KINDS = ['skill', 'agent', 'rule', 'workflow'] as const
 export type ItemKind = (typeof ITEM_KINDS)[number]
 
-/** Một giá trị cho mỗi loại item. */
+/** One value per item kind. */
 export type ByKind<T> = Record<ItemKind, T>
 
 export function byKind<T>(make: (kind: ItemKind) => T): ByKind<T> {
   return Object.fromEntries(ITEM_KINDS.map((kind) => [kind, make(kind)])) as ByKind<T>
 }
 
-/** Nguồn skill, Nguồn agent hoặc Nguồn rule đã đọc: `github`, `git` (kèm `ref` nếu có) hoặc `directory`. */
+/** A parsed Skill source, Agent source or Rule source: `github`, `git` (with `ref` if any) or `directory`. */
 export type ItemSource = MarketplaceSource
 export type SkillSource = ItemSource
 
-/** Tên các Skill/Agent được chọn, hoặc mọi thứ trong nguồn trừ các tên trong `exclude` (`exclude: []` là tất cả). */
+/** The selected Skill/Agent names, or everything in the source except the names in `exclude` (`exclude: []` means all). */
 export type Selection = string[] | { exclude: string[] }
 
 /**
- * Khai báo skill hoặc Khai báo agent đã gộp theo nguồn.
- * `presets` là Preset đã khai báo nó (`null` là Config), `shadows` là các Preset nó thắng (`'*'`: mọi Preset),
- * để phân xử khi hai nguồn khác nhau cho ra cùng một tên.
+ * A Skill declaration or Agent declaration merged by source.
+ * `presets` are the Presets that declared it (`null` is the Config), `shadows` are the Presets it wins over (`'*'`: every
+ * Preset), used to settle the case where two different sources yield the same name.
  */
 export type ItemDeclaration = {
   source: ItemSource
@@ -61,37 +61,41 @@ export type ItemDeclaration = {
 }
 
 /**
- * Bản cài skill/agent do `ap` quản lý và `sha256` nội dung của nó. Commit đã cài nằm ở Danh mục nguồn; `commit` trên
- * từng mục chỉ có ở Lock/State cũ, được đọc để biết commit đã ghim và bỏ đi khi ghi lại.
+ * An Installed skill/agent managed by `ap` and the `sha256` of its content. The installed commit lives in the Source
+ * catalog; a per-item `commit` only appears in an old Lock/State, and is read to learn the pinned commit and dropped when
+ * written back.
  */
 export type ManagedItem = { name: string; source: ItemSource; sha256: string; origin: string; commit?: string | null }
 
-/** Danh mục nguồn: tên mọi Skill (hoặc Agent) trong một nguồn `github`/`git` ở commit đã ghim, kể cả thứ không được cài. */
-/** `blocked`: tên có trong nguồn nhưng không cài được khi đứng riêng (Workflow gắn với plugin, ADR 0010). */
+/**
+ * Source catalog: the names of every item of one kind in a `github`/`git` source at the pinned commit, including ones
+ * not installed. `blocked`: names present in the source that cannot be installed standalone (plugin-bound Workflows,
+ * ADR 0010).
+ */
 export type SourceCatalog = { source: ItemSource; commit: string; names: string[]; blocked?: string[] }
 
-/** Skill/Agent một Config khai báo ở scope user, và claim đó của Config khác. */
+/** A Skill/Agent a Config declares at the user scope, and the same claim made by another Config. */
 export type ItemClaim = { name: string; source: ItemSource; origin: string }
 export type SharedItemClaim = ItemClaim & { config: string }
 
-/** Một mục trong `extraKnownMarketplaces` của settings. */
+/** An entry in the settings' `extraKnownMarketplaces`. */
 export type KnownEntry = {
   name: string
   source: MarketplaceSource
   extras: Record<string, unknown>
 }
 
-/** Known marketplace entry của một Scope khác Scope đang sync. */
+/** A Known marketplace entry of a Scope other than the one being synced. */
 export type ScopedEntry = KnownEntry & { scope: Scope }
 
-/** Managed entry ghi trong Lock/State. */
+/** A Managed entry recorded in the Lock/State. */
 export type ManagedEntry = {
   name: string
   source: MarketplaceSource
   origin: string
 }
 
-/** Tên một Config khai báo ở scope user, kể cả khi nó không sở hữu entry (ADR 0003). */
+/** A name a Config declares at the user scope, even when it does not own the entry (ADR 0003). */
 export type Claim = {
   name: string
   source: MarketplaceSource
@@ -99,7 +103,7 @@ export type Claim = {
   origin: string
 }
 
-/** Claim của một Config khác cùng dùng settings của scope user. */
+/** A claim by another Config that shares the user scope's settings. */
 export type SharedClaim = Claim & { config: string }
 
 export type Conflict = {
@@ -122,27 +126,27 @@ export type Conflict = {
   detail: string
 }
 
-/** Cấu hình một MCP server đúng định dạng `.mcp.json` của Claude Code (`command`/`args`/`env` hoặc `type` + `url`/`headers`). */
+/** An MCP server config in Claude Code's exact `.mcp.json` format (`command`/`args`/`env` or `type` + `url`/`headers`). */
 export type McpConfig = Record<string, unknown>
 
-/** Khai báo MCP server đã phân giải (tra Danh mục MCP nếu là `true`) và đã gộp. */
+/** An MCP server declaration, resolved (looked up in the MCP catalog when `true`) and merged. */
 export type McpDeclaration = { name: string; server: McpConfig; origin: string }
 
-/** Bản cài MCP server do `ap` quản lý, ghi trong Lock/State. */
+/** An Installed MCP server managed by `ap`, recorded in the Lock/State. */
 export type ManagedMcp = { name: string; server: McpConfig; origin: string }
 
-/** MCP server một Config khai báo ở scope user, và claim đó của Config khác. */
+/** An MCP server a Config declares at the user scope, and the same claim made by another Config. */
 export type McpClaim = { name: string; server: McpConfig; origin: string }
 export type SharedMcpClaim = McpClaim & { config: string }
 
-/** Một handler trong nhóm matcher, đúng định dạng của Claude Code; mọi field ngoài `type` được giữ nguyên văn. */
+/** A handler in a matcher group, in Claude Code's exact format; every field besides `type` is kept verbatim. */
 export type HookHandler = { type: string; [field: string]: unknown }
 
-/** Một Hook: nhóm matcher (`matcher`, `hooks`) cùng event chứa nó trong khoá `hooks` của settings. */
+/** A Hook: a matcher group (`matcher`, `hooks`) together with the event that holds it under the settings' `hooks` key. */
 export type HookGroup = { event: string; matcher?: string; hooks: HookHandler[] }
 
-/** Khai báo hook đã phân giải: `group` giữ đúng như người dùng viết, để ghi ra settings nguyên văn. */
+/** A resolved Hook declaration: `group` is kept exactly as the user wrote it, so it is written to settings verbatim. */
 export type HookDeclaration = { name: string; group: HookGroup; origin: string }
 
-/** Bản cài hook do `ap` quản lý, ghi trong Lock/State: nhóm đã chuẩn hoá, để nhận ra nó trong settings bằng nội dung. */
+/** An Installed hook managed by `ap`, recorded in the Lock/State: the normalized group, so it can be recognized in settings by content. */
 export type ManagedHook = { name: string; group: HookGroup; origin: string }

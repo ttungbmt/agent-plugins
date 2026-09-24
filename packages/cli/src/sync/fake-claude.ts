@@ -6,16 +6,18 @@ import type { MarketplaceSource, Scope } from './types.js'
 type InstallRecord = { scope: Scope; projectPath?: string }
 
 /**
- * Giả lập `claude plugin marketplace add|remove` và `claude plugin install|enable|uninstall` như CLI thật (2.1.280):
- * - `marketplace add` ghi `extraKnownMarketplaces` — key là tên trong marketplace.json (tra ở `marketplaces`),
- *   chỉ ghi `source`, `directory` thành đường dẫn tuyệt đối. Bản cài dùng chung cả máy theo tên
- *   (`known_marketplaces.json`): `add` thay bản cài, `remove` chỉ xoá bản cài khi không scope nào còn khai báo tên đó.
- * - `marketplace remove X --scope S` xoá luôn mọi khoá `*@X` trong `enabledPlugins` của S và Bản cài của chúng.
- * - `install` cài theo scope và ghi `true`; `enable` chỉ ghi `true`, báo `already_in_goal_state` nếu đã `true`;
- *   `uninstall` xoá khoá và Bản cài của scope đó, báo `not_installed_at_scope` nếu scope không có Bản cài.
- * - `mcp add-json <name> <json> --scope S` ghi nguyên văn vào `.mcp.json` (`project`), `projects[<cwd>].mcpServers` (`local`)
- *   hoặc `mcpServers` (`user`) của `.claude.json`; lỗi nếu tên đã có ở scope đó. `mcp remove` lỗi nếu chưa có.
- * `confirm` là các plugin cần `-y` (nguồn `command`), `install` của chúng luôn lỗi.
+ * Fakes `claude plugin marketplace add|remove` and `claude plugin install|enable|uninstall` like the real CLI (2.1.280):
+ * - `marketplace add` writes `extraKnownMarketplaces` — keyed by the name in marketplace.json (looked up in `marketplaces`),
+ *   writing only `source`, with `directory` made absolute. The install is shared machine-wide by name
+ *   (`known_marketplaces.json`): `add` replaces it, and `remove` deletes it only when no scope still declares that name.
+ * - `marketplace remove X --scope S` also deletes every `*@X` key in S's `enabledPlugins` and their Installed plugins.
+ * - `install` installs per scope and writes `true`; `enable` only writes `true`, reporting `already_in_goal_state` if
+ *   already `true`;
+ *   `uninstall` deletes the key and that scope's Installed plugin, reporting `not_installed_at_scope` if the scope has none.
+ * - `mcp add-json <name> <json> --scope S` writes verbatim to `.mcp.json` (`project`), `projects[<cwd>].mcpServers` (`local`)
+ *   or `mcpServers` (`user`) of `.claude.json`; fails if the name already exists at that scope. `mcp remove` fails if it
+ *   does not exist.
+ * `confirm` lists the plugins that need `-y` (`command` source); their `install` always fails.
  */
 export function fakeClaude(opts: Location & {
   marketplaces: Record<string, { name: string; source: MarketplaceSource }>

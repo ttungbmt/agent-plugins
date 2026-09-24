@@ -3,14 +3,14 @@ import type { InstalledItem } from './items.js'
 import type { Conflict, ItemKind, ItemSource, ManagedItem, SharedItemClaim } from './types.js'
 
 /**
- * Một Skill/Agent cần có ở scope. `sha256`/`from` là null ở `--dry-run`/`--check` khi chưa biết nội dung
- * (nguồn chưa từng tải, hoặc nguồn đã đổi so với Lock/State).
+ * A Skill/Agent that must exist at the scope. `sha256`/`from` are null under `--dry-run`/`--check` when the content is
+ * not known yet (the source was never fetched, or it changed since Lock/State).
  */
 export type DesiredItem = {
   name: string
   source: ItemSource
   sha256: string | null
-  /** Thư mục Skill hoặc file Agent trong nguồn đã tải, để copy. */
+  /** The Skill directory or Agent file in the fetched source, to copy. */
   from: string | null
   origin: string
 }
@@ -23,15 +23,16 @@ export type ItemPlan = {
   actions: PlannedItemAction[]
   conflicts: Conflict[]
   notices: string[]
-  /** Bản tự cài tay có nội dung khớp nguồn: nhận quản lý. */
+  /** A hand-installed copy whose content matches the source: adopted. */
   adopted: DesiredItem[]
-  /** Managed skill/agent chỉ cần xoá khỏi Lock/State: đã biến khỏi đĩa, bị thay bằng symlink, hoặc Config khác vẫn claim nó. */
+  /** Managed skill/agent to drop from Lock/State only: gone from disk, replaced by a symlink, or claimed by another Config. */
   forgotten: string[]
 }
 
 /**
- * Tính các bước đưa Bản cài skill (hoặc Bản cài agent) của một scope về khớp khai báo, cùng luật sở hữu với marketplace
- * (ADR 0003, 0005). `held` là tên đang xung đột hoặc thuộc nguồn chưa tải được: Bản cài của chúng được giữ nguyên.
+ * Compute the steps that bring one scope's Installed skills (or Installed agents) in line with the declarations, under the
+ * same ownership rules as marketplaces (ADR 0003, 0005). `held` holds names in conflict or from a source that could not be
+ * fetched: their installs are left untouched.
  */
 export function planItems(
   kind: ItemKind,
@@ -44,7 +45,7 @@ export function planItems(
   const conflicts: Conflict[] = []
   const notices: string[] = []
   const adopted: DesiredItem[] = []
-  /** Bản cài cùng tên, hoặc thư mục symlink chứa nó (Namespace của Rule là symlink, ADR 0009). */
+  /** An install with the same name, or the symlinked directory containing it (a Rule Namespace that is a symlink, ADR 0009). */
   const entryOf = (name: string) =>
     installed.find((e) => e.name === name) ?? installed.find((e) => e.symlink && name.startsWith(`${e.name}/`))
 
@@ -73,12 +74,12 @@ export function planItems(
       continue
     }
 
-    // Manual entry: thư mục người dùng tự tạo, hoặc symlink do công cụ khác tạo.
+    // Manual entry: a directory the user created by hand, or a symlink created by another tool.
     if (opts.shared?.some((c) => c.name === name)) continue
     if (item.sha256 === null) {
       notices.push(`${kind} "${name}" already exists and is not managed by ap; run \`ap sync\` to compare it with its source`)
     } else if (entry.sha256 === item.sha256) {
-      // Symlink thuộc công cụ khác: khớp thì để nguyên, không nhận quản lý.
+      // A symlink owned by another tool: left alone if it matches, never adopted.
       if (!entry.symlink) adopted.push(item)
     } else if (opts.force) {
       actions.push({ kind: 'install', name, desired: item })

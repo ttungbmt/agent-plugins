@@ -1,5 +1,5 @@
 packages:
   - "packages/*"
 allowBuilds:
-  # esbuild lấy binary qua optionalDependencies theo nền tảng, không cần postinstall.
+  # esbuild gets its platform binary through optionalDependencies; no postinstall needed.
   esbuild: false

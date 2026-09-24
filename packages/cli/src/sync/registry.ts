@@ -12,7 +12,7 @@ export class ConflictError extends Error {
   }
 }
 
-/** Known marketplace entry, Plugin entry và Bản cài MCP server của từng Scope; ghi qua CLI `claude` (ADR 0001, ADR 0006). */
+/** Each Scope's Known marketplace entries, Plugin entries and Installed MCP servers; written through the `claude` CLI (ADR 0001, ADR 0006). */
 export function createRegistry({ exec, ...location }: { exec: Exec } & Location) {
   const readSettings = (scope: Scope) => readJson<Record<string, any>>(settingsPath(scope, location))
 
@@ -26,7 +26,7 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
     return Object.entries(known).map(([name, { source, ...extras }]: [string, any]) => ({ name, source, extras }))
   }
 
-  /** Entry của các scope còn lại: chúng dùng chung bản cài với scope đang sync. */
+  /** Entries of the other scopes: they share the install with the scope being synced. */
   async function listElsewhere(scope: Scope): Promise<ScopedEntry[]> {
     const others = SCOPES.filter((s) => s !== scope)
     return (await Promise.all(others.map(async (s) => (await list(s)).map((e) => ({ ...e, scope: s }))))).flat()
@@ -39,16 +39,17 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
     await writeJson(settingsPath(scope, location), settings)
   }
 
-  /** Cài lại một entry có sẵn: `add` lại nguồn của nó để bản cài chung trỏ về đó, rồi ghi lại entry nguyên dạng. */
+  /** Reinstall an existing entry: `add` its source again so the shared install points back to it, then rewrite the entry as it was. */
   async function reinstall(scope: Scope, entry: KnownEntry) {
     await runMarketplaceCommand('add', sourceArgument(entry.source), '--scope', scope)
     await writeEntry(scope, entry.name, { source: entry.source, ...entry.extras })
   }
 
   /**
-   * Khai báo marketplace qua `claude plugin marketplace add`. Tên do claude resolve; nếu tên đó đè lên
-   * một entry khác source mà `mayReplace` không cho phép, hoặc trùng tên khác source với entry của scope khác
-   * (dạng rút gọn chỉ biết tên sau `add`), entry cũ và bản cài của nó được khôi phục rồi ném ConflictError.
+   * Declare a marketplace through `claude plugin marketplace add`. claude resolves the name; if that name overwrites an
+   * entry with a different source that `mayReplace` does not allow, or matches the name of another scope's entry with a
+   * different source (a Shorthand declaration's name is only known after `add`), the old entry and its install are
+   * restored and a ConflictError is thrown.
    */
   async function put(
     declaration: MarketplaceDeclaration,
@@ -78,7 +79,7 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
     return { name }
   }
 
-  /** Ghi entry đúng như khai báo: `source` (giữ `path` tương đối) và đúng các field phụ đã khai báo. */
+  /** Write the entry exactly as declared: `source` (keeping a relative `path`) and exactly the declared extra fields. */
   async function patch(declaration: MarketplaceDeclaration, name: string, scope: Scope): Promise<void> {
     await writeEntry(scope, name, { source: declaration.source, ...declaration.extras })
   }
@@ -104,8 +105,8 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
   }
 
   /**
-   * Plugin entry của một scope, kèm Bản cài plugin của scope đó (`installed_plugins.json`; `project`/`local` theo repo).
-   * Không dùng `claude plugin list --json`: `enabled` ở đó là giá trị đã gộp mọi scope và plugin chưa cài bị bỏ qua.
+   * A scope's Plugin entries, plus that scope's Installed plugins (`installed_plugins.json`; `project`/`local` per repo).
+   * Does not use `claude plugin list --json`: its `enabled` is merged across every scope and it skips plugins not installed.
    */
   async function listPlugins(scope: Scope): Promise<PluginEntry[]> {
     const enabled: Record<string, unknown> = (await readSettings(scope)).enabledPlugins ?? {}
@@ -123,7 +124,7 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
     }))
   }
 
-  /** Chạy `claude plugin <action> --json`; trả về `failureCode` khi lỗi, các code nằm trong `accept` coi như thành công. */
+  /** Run `claude plugin <action> --json`; returns the `failureCode` on failure, treating codes in `accept` as success. */
   async function runPluginCommand(action: string, id: string, scope: Scope, accept: string[] = []) {
     const result = await exec('claude', ['plugin', action, id, '--scope', scope, '--json'])
     if (result.code === 0) return undefined
@@ -132,7 +133,7 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
     throw new Error(outcome.message ?? (result.stderr.trim() || `claude plugin ${action} ${id} exited with ${result.code}`))
   }
 
-  /** Cài và bật; lỗi (vd. plugin cần `-y`) kèm lệnh để người dùng tự chạy, vì `ap` không tự chấp nhận lệnh của marketplace. */
+  /** Install and enable; an error (e.g. the plugin needs `-y`) includes the command for the user to run, since `ap` never accepts a marketplace's commands on its own. */
   async function installPlugin(id: string, scope: Scope) {
     try {
       await runPluginCommand('install', id, scope)
@@ -145,12 +146,12 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
     await runPluginCommand('enable', id, scope, ['already_in_goal_state'])
   }
 
-  /** `claude plugin disable` không tạo được `false` khi scope chưa có khoá, nên `ap` tự ghi. */
+  /** `claude plugin disable` cannot create `false` when the scope has no key yet, so `ap` writes it itself. */
   async function disablePlugin(id: string, scope: Scope) {
     await writePlugin(scope, id, false)
   }
 
-  /** Gỡ Bản cài và khoá của scope; không có Bản cài thì `uninstall` để lại khoá, nên `ap` tự xoá. */
+  /** Remove the Installed plugin and the scope's key; without an Installed plugin `uninstall` leaves the key, so `ap` deletes it itself. */
   async function uninstallPlugin(id: string, scope: Scope) {
     const code = await runPluginCommand('uninstall', id, scope, ['not_installed_at_scope'])
     if (code) await writePlugin(scope, id, undefined)
@@ -168,8 +169,9 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
   }
 
   /**
-   * Bản cài MCP server của một scope: `.mcp.json` (`project`), `projects[<cwd>].mcpServers` (`local`) hoặc `mcpServers`
-   * (`user`) của `.claude.json`. Đọc thẳng file vì `claude mcp get/list` không có output JSON; chỉ ghi qua `claude mcp`.
+   * A scope's Installed MCP servers: `.mcp.json` (`project`), or `projects[<cwd>].mcpServers` (`local`) or `mcpServers`
+   * (`user`) of `.claude.json`. Reads the files directly since `claude mcp get/list` has no JSON output; writes only
+   * through `claude mcp`.
    */
   async function listMcp(scope: Scope): Promise<Record<string, McpConfig>> {
     if (scope === 'project') return (await readJson<Record<string, any>>(join(location.cwd, '.mcp.json'))).mcpServers ?? {}
@@ -191,8 +193,8 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
   }
 
   /**
-   * Các tên trong `.mcp.json` người dùng chưa duyệt hay từ chối: không có trong `enabledMcpjsonServers`/`disabledMcpjsonServers`
-   * của `.claude.json` (theo repo) hay của settings, và không bật `enableAllProjectMcpServers`. `ap` không duyệt thay (ADR 0006).
+   * Names in `.mcp.json` the user has neither approved nor rejected: absent from `enabledMcpjsonServers`/`disabledMcpjsonServers`
+   * of `.claude.json` (per repo) and of settings, with `enableAllProjectMcpServers` not on. `ap` never approves on the user's behalf (ADR 0006).
    */
   async function pendingMcp(names: string[]): Promise<string[]> {
     const project = (await readJson<Record<string, any>>(claudeJsonPath(location))).projects?.[location.cwd] ?? {}
@@ -203,9 +205,9 @@ export function createRegistry({ exec, ...location }: { exec: Exec } & Location)
   }
 
   /**
-   * Tên MCP server của các plugin đang bật và đã cài ở scope này, đọc từ manifest của Bản cài plugin:
-   * `.mcp.json` ở gốc plugin (có hoặc không có khoá `mcpServers`) và `mcpServers` của `.claude-plugin/plugin.json`
-   * (map, hoặc đường dẫn tới một file cùng dạng với `.mcp.json`).
+   * MCP server names of the plugins enabled and installed at this scope, read from the Installed plugin's manifests:
+   * `.mcp.json` at the plugin root (with or without an `mcpServers` key) and `mcpServers` in `.claude-plugin/plugin.json`
+   * (a map, or a path to a file shaped like `.mcp.json`).
    */
   async function pluginMcpServers(scope: Scope): Promise<Array<{ plugin: string; name: string }>> {
     const enabled: Record<string, unknown> = (await readSettings(scope)).enabledPlugins ?? {}
@@ -263,7 +265,7 @@ function parseOutcome(stdout: string): { failureCode?: string; message?: string 
   }
 }
 
-/** Ghim ref theo cú pháp của `claude plugin marketplace add`: `owner/repo@ref`, `<git-url>#ref`. */
+/** Pin a ref using the syntax of `claude plugin marketplace add`: `owner/repo@ref`, `<git-url>#ref`. */
 function withRef(base: string, separator: string, ref: unknown): string {
   return typeof ref === 'string' ? `${base}${separator}${ref}` : base
 }

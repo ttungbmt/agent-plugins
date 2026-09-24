@@ -2,8 +2,8 @@ import Init from './init.js'
 import Sync from './sync.js'
 
 /**
- * Command map cho explicit strategy của oclif: bản bundle không quét được thư mục `commands/` (ADR 0008).
- * Command mới phải được thêm vào đây; `commands.test.ts` báo đỏ nếu quên.
+ * Command map for oclif's explicit strategy: the bundle cannot scan the `commands/` directory (ADR 0008).
+ * New commands must be added here; `commands.test.ts` fails if one is forgotten.
  */
 export const COMMANDS = {
   init: Init,

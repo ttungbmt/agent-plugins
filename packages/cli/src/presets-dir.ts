@@ -3,8 +3,8 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /**
- * Thư mục Preset mặc định: `presets/` ở gốc package `ap`, do bước build copy vào (ADR 0008).
- * Đi ngược lên từ file đang chạy tới `package.json` gần nhất, nên đúng cho cả `src/`, `dist/` lẫn bản bundle.
+ * Bundled preset directory: `presets/` at the root of the `ap` package, copied in by the build step (ADR 0008).
+ * Walks up from the running file to the nearest `package.json`, so it works for `src/`, `dist/` and the bundle alike.
  */
 export function defaultPresetsDir(from: string = import.meta.url): string {
   let dir = dirname(fileURLToPath(from))

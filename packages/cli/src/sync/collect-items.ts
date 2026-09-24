@@ -7,25 +7,26 @@ import type { Conflict, ItemDeclaration, ItemSource, ManagedItem, SourceCatalog 
 
 export type CollectedItems = {
   desired: DesiredItem[]
-  /** Tên đang xung đột hoặc thuộc nguồn chưa tải được: Bản cài của chúng được giữ nguyên. */
+  /** Names in conflict or belonging to a source that could not be fetched: their installed copies are kept as is. */
   held: Set<string>
   conflicts: Conflict[]
   notices: string[]
-  /** `--dry-run`/`--check`: nguồn chưa từng tải nên chưa biết có gì. */
+  /** `--dry-run`/`--check`: the source was never fetched, so its contents are unknown. */
   unknown: ItemSource[]
-  /** Nguồn không tải được khi apply. */
+  /** Sources that failed to fetch during apply. */
   failures: { source: ItemSource; error: string }[]
   fetched: FetchedSource[]
-  /** Danh mục nguồn cần ghi lại: của nguồn vừa tải, hoặc giữ nguyên với nguồn không cần tải, đang xung đột hay tải lỗi. */
+  /** Source catalogs to record: from sources just fetched, or kept as is for sources that needed no fetch, conflict or failed. */
   catalogs: SourceCatalog[]
 }
 
 /**
- * Xác định các Skill (hoặc Agent) cần có từ Khai báo skill (Khai báo agent). Nguồn `github`/`git` đã có Danh mục nguồn
- * thì chỉ được tải lại khi Lock/State không đủ: `--update`, có thứ cần cài mà chưa có trên đĩa hoặc là bản cài tay,
- * hay `--force` ghi đè bản bị sửa tay.
- * Khi tải thì lấy đúng commit đã ghim (mới nhất với `--update`). Nguồn `directory` luôn được đọc lại. Ở `--dry-run`/`--check`
- * (`fetch` null) thì không tải gì. `blocked` là nhãn các nguồn đang preset-clash: Managed entry của chúng được giữ nguyên.
+ * Determines the Skills (or Agents) needed from the Skill declarations (Agent declarations). A `github`/`git` source that
+ * already has a Source catalog is only fetched again when Lock/State is not enough: `--update`, something to install is
+ * missing on disk or is a manual install, or `--force` overwrites a manually edited copy.
+ * A fetch takes exactly the pinned commit (the latest with `--update`). `directory` sources are always re-read. In
+ * `--dry-run`/`--check` (`fetch` null) nothing is fetched. `blocked` labels sources in a preset clash: their Managed
+ * entries are kept as is.
  */
 export async function collectItems(
   handler: ItemHandler,
@@ -53,22 +54,23 @@ export async function collectItems(
   const candidates: (DesiredItem & { declaration: ItemDeclaration })[] = []
   for (const declaration of declarations) {
     const { source, origin, select } = declaration
-    // Rule: định danh trên đĩa có Namespace ở trước, còn Danh mục nguồn và lựa chọn dùng tên trong nguồn (ADR 0009).
+    // Rules: the on-disk identity is prefixed with the Namespace, while the Source catalog and selection use the name in the source (ADR 0009).
     const namespace = handler.namespace?.(source)
     const onDisk = (name: string) => (namespace ? `${namespace}/${name}` : name)
     const inSource = (name: string) => (namespace ? name.slice(namespace.length + 1) : name)
     const records = managed.filter((m) => sameSource(m.source, source))
     const catalog = opts.catalogs.find((c) => sameSource(c.source, source))
-    /** Mục chọn/loại trừ là đúng tên đó, hoặc thư mục chứa nó (Rule: `web` là mọi Rule dưới `web/`, ADR 0009). */
+    /** A selection/exclusion entry is that exact name, or a folder containing it (Rules: `web` means every Rule under `web/`, ADR 0009). */
     const covers = (entry: string, name: string) => name === entry || name.startsWith(`${entry}/`)
-    /** Tên được chọn trong `names`; mục chọn không khớp tên nào được giữ nguyên để báo thiếu hoặc chờ biết nội dung. */
+    /** Names selected from `names`; selection entries that match no name are kept to report as missing or until the contents are known. */
     const selected = (names: string[]) =>
       Array.isArray(select)
         ? [...new Set(select.flatMap((entry) => (names.some((n) => covers(entry, n)) ? names.filter((n) => covers(entry, n)) : [entry])))]
         : names.filter((n) => !select.exclude.some((entry) => covers(entry, n)))
     /**
-     * Chọn tên không có trong nguồn là xung đột; loại trừ tên không có chỉ cần báo. Thứ `blocked` (Workflow gắn với
-     * plugin, ADR 0010) không bao giờ được cài: chọn đích danh là xung đột, còn trong "tất cả" thì bỏ qua kèm thông báo.
+     * Selecting a name not in the source is a conflict; excluding a missing name only needs a notice. `blocked` things
+     * (plugin-bound Workflows, ADR 0010) are never installed: selecting one by name is a conflict, while under "all" it is
+     * skipped with a notice.
      */
     const checkNames = (available: string[], blocked: Map<string, string | undefined> = new Map()) => {
       const usable = (name: string) => {
@@ -92,7 +94,7 @@ export async function collectItems(
       }
       return selected(available).filter((n) => available.includes(n)).filter(usable)
     }
-    /** Thứ lấy nội dung từ Lock/State, không cần tải; `null` khi Lock/State không đủ để quyết định. */
+    /** Things whose content comes from Lock/State without fetching; `null` when Lock/State is not enough to decide. */
     const fromRecords = (names: string[]) =>
       names.map(onDisk).map((name) => {
         const record = records.find((r) => r.name === name)
@@ -155,7 +157,7 @@ export async function collectItems(
     }
   }
 
-  // Hai nguồn cùng cho ra một tên: phân xử như trùng khai báo marketplace.
+  // Two sources yield the same name: resolved like duplicate marketplace declarations.
   const names = [...new Set(candidates.map((c) => c.name))]
   for (const name of names) {
     const group = candidates.filter((c) => c.name === name)

@@ -11,36 +11,36 @@ import { byKind, ITEM_KINDS } from './types.js'
 import type { ByKind, Conflict, HookDeclaration, HookGroup, ItemDeclaration, ItemKind, ItemSource, MarketplaceDeclaration, MarketplaceSource, McpConfig, McpDeclaration, PluginDeclaration, Selection } from './types.js'
 
 export type Fetch = (url: string) => Promise<string>
-/** URL Preset từ xa → sha256 nội dung đã chấp nhận. */
+/** Remote preset URL → sha256 of its accepted content. */
 export type PresetPins = Record<string, string>
 
 export type ResolveContext = {
   fetch: Fetch
-  /** Mã băm đã ghim trong Lock. */
+  /** Hashes pinned in the Lock. */
   pins: PresetPins
   update: boolean
   cacheDir: string
-  /** false ở `--dry-run`/`--check`: không ghi cache Preset từ xa xuống đĩa. */
+  /** false under `--dry-run`/`--check`: don't write the Remote preset cache to disk. */
   writeCache?: boolean
   defaultPresetsDir: string
 }
 
 export type ResolvedConfig = {
   declarations: MarketplaceDeclaration[]
-  /** Khai báo plugin đã gộp; hậu tố `@marketplace` chưa được kiểm tra. */
+  /** Merged Plugin declarations; the `@marketplace` suffix is not checked yet. */
   plugins: PluginDeclaration[]
-  /** Khai báo skill, Khai báo agent, … đã gộp theo nguồn. */
+  /** Skill declarations, Agent declarations, … merged by source. */
   items: ByKind<ItemDeclaration[]>
-  /** Khai báo MCP server đã phân giải (tra Danh mục MCP) và đã gộp; tên bị `false` đã được bỏ. */
+  /** MCP server declarations, resolved (looked up in the MCP catalog) and merged; names set to `false` are dropped. */
   mcpServers: McpDeclaration[]
   /**
-   * Xung đột giữa các Khai báo MCP server, tách riêng khỏi `conflicts` vì MCP server có không gian tên riêng: một
-   * marketplace, plugin hay Skill cùng tên không bị chặn theo, và ngược lại.
+   * Conflicts between MCP server declarations, kept apart from `conflicts` because MCP servers have their own namespace:
+   * a marketplace, plugin or Skill with the same name is not blocked along with it, and vice versa.
    */
   mcpConflicts: Conflict[]
-  /** Khai báo hook của Config; tên bị `false` đã được bỏ. */
+  /** The Config's Hook declarations; names set to `false` are dropped. */
   hooks: HookDeclaration[]
-  /** Mã băm của mọi Preset từ xa đã dùng lần này, để ghi lại vào Lock. */
+  /** Hashes of every Remote preset used this run, to write back to the Lock. */
   pins: PresetPins
   conflicts: Conflict[]
   notices: string[]
@@ -52,7 +52,7 @@ type PresetDocument = { kind?: string; metadata?: { name?: string }; spec?: { pr
 type LoadedPreset = { id: string; label: string; doc: PresetDocument; dir: string }
 type Resolution = ResolveContext & { root: string; usedPins: PresetPins; catalog?: Promise<Record<string, McpConfig>> }
 
-/** Phân giải Config thành tập Khai báo marketplace, theo docs/design/ap-sync.md. */
+/** Resolve a Config into its set of Marketplace declarations, per docs/design/ap-sync.md. */
 export async function resolveConfig(configPath: string, ctx: ResolveContext): Promise<ResolvedConfig> {
   const configLabel = basename(configPath)
   const text = await readFile(configPath, 'utf8').catch(() => {
@@ -105,27 +105,28 @@ export async function resolveConfig(configPath: string, ctx: ResolveContext): Pr
   }
 }
 
-/** Khai báo của một Preset, kèm Preset đó để so thứ tự ưu tiên. */
+/** A Preset's declaration, together with that Preset for comparing precedence. */
 type Contribution = { declaration: MarketplaceDeclaration; presetId: string }
 type PresetGraph = {
-  /** Preset → mọi Preset nằm trong cây `extends` của nó (trực tiếp hoặc gián tiếp). */
+  /** Preset → every Preset in its `extends` tree (directly or indirectly). */
   ancestors: Map<string, Set<string>>
   contributions: Contribution[]
-  /** Khai báo plugin theo thứ tự nạp: Preset cha trước, con sau. */
+  /** Plugin declarations in load order: parent Preset first, child after. */
   plugins: PluginDeclaration[]
-  /** Khai báo của từng loại item theo thứ tự nạp, mỗi mục của một Preset. */
+  /** Declarations of each item kind in load order, each entry from one Preset. */
   items: ByKind<ItemDeclaration[]>
-  /** Khai báo MCP server theo thứ tự nạp. */
+  /** MCP server declarations in load order. */
   mcpServers: McpContribution[]
 }
 
-/** Khai báo MCP server của một Preset hoặc Config; `server` null là `false` (bỏ server kế thừa). */
+/** An MCP server declaration from a Preset or Config; a null `server` is `false` (drops an inherited server). */
 type McpContribution = { name: string; server: McpConfig | null; origin: string } & Pick<ItemDeclaration, 'presets' | 'shadows'>
 
 /**
- * Gộp khai báo giữa các Preset (ADR 0004):
- * - Preset thắng mọi Preset trong cây `extends` của nó, thay cả entry;
- * - còn lại là ngang hàng: cùng source thì gộp field phụ (khai báo sau thắng), khác source thì là preset-clash.
+ * Merge declarations across Presets (ADR 0004):
+ * - a Preset wins over every Preset in its `extends` tree, replacing the whole entry;
+ * - the rest are peers: the same source merges extra fields (the later declaration wins), a different source is a
+ *   preset-clash.
  */
 function mergePresets({ ancestors, contributions }: PresetGraph) {
   const groups: Contribution[][] = []
@@ -169,8 +170,9 @@ function mergePresets({ ancestors, contributions }: PresetGraph) {
 }
 
 /**
- * Gộp khai báo plugin theo thứ tự (Preset cha, Preset con, Config): trùng khoá thì khai báo sau thắng.
- * Hậu tố `@marketplace` được kiểm tra khi sync, vì tên của marketplace khai báo dạng rút gọn nằm trong Lock/State/settings.
+ * Merge Plugin declarations in order (parent Preset, child Preset, Config): on a duplicate key the later declaration wins.
+ * The `@marketplace` suffix is checked during Sync, since the name of a marketplace from a Shorthand declaration lives in
+ * the Lock/State/settings.
  */
 function mergePlugins(declarations: PluginDeclaration[]): PluginDeclaration[] {
   const merged = new Map<string, PluginDeclaration>()
@@ -179,9 +181,10 @@ function mergePlugins(declarations: PluginDeclaration[]): PluginDeclaration[] {
 }
 
 /**
- * Gộp Khai báo skill (hoặc Khai báo agent) theo nguồn (bỏ qua `ref`), cùng luật với marketplace: khai báo thắng mọi
- * khai báo nó `shadows` (Preset con thắng Preset cha, Config thắng mọi Preset) và thay cả danh sách tên được chọn; các
- * khai báo ngang hàng thì lấy hợp tập (xem `unionSelections`), khác `ref` thì là preset-clash.
+ * Merge Skill declarations (or Agent declarations) by source (ignoring `ref`), with the same rules as marketplaces: a
+ * declaration wins over every declaration it `shadows` (a child Preset beats its parent, the Config beats every Preset)
+ * and replaces the whole list of selected names; peer declarations are unioned (see `unionSelections`), and a different
+ * `ref` is a preset-clash.
  */
 function mergeItems(kind: ItemKind, declarations: ItemDeclaration[]) {
   const groups = new Map<string, ItemDeclaration[]>()
@@ -222,8 +225,9 @@ function mergeItems(kind: ItemKind, declarations: ItemDeclaration[]) {
 }
 
 /**
- * Gộp Khai báo MCP server theo tên (ADR 0004, ADR 0006): khai báo thắng mọi khai báo nó `shadows` và thay cả cấu hình;
- * các khai báo ngang hàng phải giống hệt nhau sau khi phân giải (kể cả `false`), khác thì là preset-clash.
+ * Merge MCP server declarations by name (ADR 0004, ADR 0006): a declaration wins over every declaration it `shadows` and
+ * replaces the whole config; peer declarations must be identical after resolution (including `false`), otherwise it is
+ * a preset-clash.
  */
 function mergeMcpServers(contributions: McpContribution[]) {
   const groups = new Map<string, McpContribution[]>()
@@ -248,14 +252,14 @@ function mergeMcpServers(contributions: McpContribution[]) {
   return { declarations, conflicts, notices }
 }
 
-/** Hợp hai tập tên: chọn ∪ chọn = hợp tên; trừ E ∪ chọn S = trừ (E∖S); trừ E1 ∪ trừ E2 = trừ (E1∩E2). */
+/** Union of two selections: select ∪ select = union of names; exclude E ∪ select S = exclude (E∖S); exclude E1 ∪ exclude E2 = exclude (E1∩E2). */
 function unionSelections(a: Selection, b: Selection): Selection {
   if (Array.isArray(a)) return Array.isArray(b) ? [...new Set([...a, ...b])] : { exclude: b.exclude.filter((n) => !a.includes(n)) }
   if (Array.isArray(b)) return { exclude: a.exclude.filter((n) => !b.includes(n)) }
   return { exclude: a.exclude.filter((n) => b.exclude.includes(n)) }
 }
 
-/** `a` thắng `b` khi mọi Preset khai báo `b` nằm trong cây `extends` của `a`, hoặc `a` là Config. */
+/** `a` wins over `b` when every Preset declaring `b` is in `a`'s `extends` tree, or `a` is the Config. */
 export function outranks(a: Pick<ItemDeclaration, 'presets' | 'shadows'>, b: Pick<ItemDeclaration, 'presets'>): boolean {
   if (b.presets.includes(null)) return false
   return a.shadows.includes('*') || b.presets.every((p) => a.shadows.includes(p as string))
@@ -272,7 +276,7 @@ export function withoutRef({ ref: _, ...source }: ItemSource): ItemSource {
   return source
 }
 
-/** `path` của một Nguồn skill/Nguồn agent, chuẩn hoá (`./a/b/` → `a/b`); `null` khi là gốc nguồn. */
+/** The `path` of a Skill source/Agent source, normalized (`./a/b/` → `a/b`); `null` for the source root. */
 function itemsPath(raw: unknown, source: string, origin: string): string | null {
   const path = typeof raw === 'string' ? posix.normalize(raw).replace(/\/+$/, '') : ''
   if (!path || posix.isAbsolute(path) || path === '..' || path.startsWith('../')) {
@@ -285,7 +289,7 @@ function isLocal(source: string): boolean {
   return source.startsWith('./') || source.startsWith('../') || source.startsWith('/')
 }
 
-/** Cùng một marketplace: cùng tên, hoặc cùng source khi một bên là dạng rút gọn chưa biết tên. */
+/** The same marketplace: the same name, or the same source when one side is a Shorthand declaration with no known name. */
 function sameMarketplace(a: MarketplaceDeclaration, b: MarketplaceDeclaration): boolean {
   if (a.name && b.name) return a.name === b.name
   return sameSource(a.source, b.source)
@@ -299,7 +303,7 @@ function describeSource(source: MarketplaceSource): unknown {
   return source.repo ?? source.url ?? source.path
 }
 
-/** Nạp một Preset và cây `extends` của nó; mỗi Preset chỉ nạp một lần. Trả về id của Preset. */
+/** Load a Preset and its `extends` tree; each Preset is loaded only once. Returns the Preset's id. */
 async function collect(ref: string, from: string, stack: LoadedPreset[], graph: PresetGraph, resolution: Resolution) {
   const preset = await load(ref, from, resolution)
   if (stack.some((p) => p.id === preset.id)) {
@@ -340,7 +344,7 @@ function extendsRefs(preset: LoadedPreset): string[] {
   return list(preset.doc.spec?.extends)
 }
 
-/** Đường dẫn tương đối trong một Preset được tính theo file Preset đó, rồi quy về thư mục Config. */
+/** A relative path in a Preset is resolved against that Preset's file, then rebased onto the Config directory. */
 function rebasePath(source: MarketplaceSource, preset: LoadedPreset, root: string): MarketplaceSource {
   if ((source.source !== 'directory' && source.source !== 'file') || typeof source.path !== 'string') return source
   if (isAbsolute(source.path)) return source
@@ -406,7 +410,7 @@ async function loadDefaultPreset(ref: string, ctx: ResolveContext): Promise<Load
   return { id: path, label: ref, doc, dir: ctx.defaultPresetsDir }
 }
 
-/** Preset từ xa chỉ được tải qua https. */
+/** Remote presets are only fetched over https. */
 function isRemote(location: string): boolean {
   return location.startsWith('https://')
 }
@@ -415,13 +419,13 @@ function sha256(text: string): string {
   return createHash('sha256').update(text).digest('hex')
 }
 
-/** `extends`/`presets` nhận một tham chiếu hoặc một list. */
+/** `extends`/`presets` take a single reference or a list. */
 function list(refs: unknown): string[] {
   if (refs === undefined || refs === null) return []
   return Array.isArray(refs) ? refs : [refs as string]
 }
 
-/** `dir` là thư mục file khai báo; đường dẫn cục bộ trong Khai báo rút gọn được tính theo nó. */
+/** `dir` is the declaring file's directory; local paths in Shorthand declarations are resolved against it. */
 async function readMarketplaces(raw: unknown, origin: string, dir: string): Promise<MarketplaceDeclaration[]> {
   if (!raw) return []
   if (Array.isArray(raw)) {
@@ -437,7 +441,7 @@ async function readMarketplaces(raw: unknown, origin: string, dir: string): Prom
   }))
 }
 
-/** `plugins` là map `name@marketplace: bool`, hoặc list `name@marketplace` viết tắt cho toàn bộ `true`. */
+/** `plugins` is a map of `name@marketplace: bool`, or a list of `name@marketplace` as shorthand for all `true`. */
 function readPlugins(raw: unknown, origin: string): PluginDeclaration[] {
   if (!raw) return []
   const entries: [string, unknown][] = Array.isArray(raw) ? raw.map((id) => [id, true]) : Object.entries(raw)
@@ -450,9 +454,9 @@ function readPlugins(raw: unknown, origin: string): PluginDeclaration[] {
 }
 
 /**
- * `skills` (hoặc `agents`) là list; mỗi mục là một nguồn (mọi Skill/Agent trong đó), `{ source, skills }` (`{ source, agents }`)
- * chọn một số tên, hoặc `{ source, exclude }` lấy mọi thứ trừ một số. Dạng map có thể kèm `path`: thư mục trong nguồn
- * chứa chúng, là một phần của nguồn (với nguồn `directory` thì được gộp vào đường dẫn của nó).
+ * `skills` (or `agents`) is a list; each entry is a source (every Skill/Agent in it), `{ source, skills }` (`{ source, agents }`)
+ * selecting some names, or `{ source, exclude }` taking everything but some. The map form may add `path`: the directory
+ * in the source holding them, which is part of the source (for a `directory` source it is folded into its path).
  */
 async function readItems(kind: ItemKind, raw: unknown, origin: string, dir: string): Promise<Pick<ItemDeclaration, 'source' | 'select'>[]> {
   const key = `${kind}s`
@@ -487,8 +491,8 @@ async function readItems(kind: ItemKind, raw: unknown, origin: string, dir: stri
 }
 
 /**
- * `mcpServers` là map theo tên: `true` lấy nguyên cấu hình trong Danh mục MCP (kể cả khi Preset cha đã định nghĩa
- * inline cùng tên), map là cấu hình inline, `false` bỏ MCP server kế thừa (ADR 0006).
+ * `mcpServers` is a map by name: `true` takes the config verbatim from the MCP catalog (even when a parent Preset defined
+ * the same name inline), a map is an inline config, `false` drops an inherited MCP server (ADR 0006).
  */
 async function readMcpServers(raw: unknown, origin: string, resolution: Resolution) {
   if (!raw) return []
@@ -517,14 +521,14 @@ async function readMcpServers(raw: unknown, origin: string, resolution: Resoluti
   )
 }
 
-/** Danh mục MCP đi kèm `ap` (`mcp-servers.yaml` cạnh các Preset mặc định), nạp một lần khi có `true` đầu tiên. */
+/** The MCP catalog shipped with `ap` (`mcp-servers.yaml` next to the Bundled presets), loaded once on the first `true`. */
 function mcpCatalog(resolution: Resolution): Promise<Record<string, McpConfig>> {
   const path = join(resolution.defaultPresetsDir, 'mcp-servers.yaml')
   resolution.catalog ??= readFile(path, 'utf8').then(
     (text) => {
       try {
         const servers = (parse(text) as { servers?: Record<string, McpConfig> } | null)?.servers ?? {}
-        // `description` chỉ để đọc danh mục, không phải field của `.mcp.json`.
+        // `description` is only for reading the catalog; it is not a `.mcp.json` field.
         return Object.fromEntries(Object.entries(servers).map(([name, { description: _, ...server }]) => [name, server]))
       } catch (error) {
         throw new ConfigError(`the ap catalog ${path} is not valid YAML: ${(error as Error).message}`)
@@ -538,7 +542,7 @@ function mcpCatalog(resolution: Resolution): Promise<Record<string, McpConfig>> 
   return resolution.catalog
 }
 
-/** `hooks` là map theo tên: mỗi tên là một nhóm matcher đúng định dạng của Claude Code, `false` bỏ Hook kế thừa (ADR 0007). */
+/** `hooks` is a map by name: each name is a matcher group in Claude Code's exact format, `false` drops an inherited Hook (ADR 0007). */
 function readHookDeclarations(raw: unknown, origin: string): HookDeclaration[] {
   if (raw === undefined || raw === null) return []
   if (typeof raw !== 'object' || Array.isArray(raw)) {

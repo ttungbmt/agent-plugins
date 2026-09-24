@@ -1,7 +1,7 @@
 {
   "name": "agent-plugins",
   "version": "0.1.0",
-  "description": "CLI `ap`: khai báo marketplace, plugin, skill, agent và MCP server cho Claude Code bằng YAML rồi đồng bộ vào settings",
+  "description": "CLI `ap`: declare Claude Code marketplaces, plugins, skills, agents and MCP servers in YAML and sync them into settings",
   "type": "module",
   "bin": {
     "ap": "./bin/run.js"

@@ -19,8 +19,8 @@ function config(skills: string, presets = '') {
 }
 
 /**
- * Nguồn skill giả: mỗi repo là một chuỗi commit, `publish` thêm commit mới. Tải không có commit thì lấy commit mới nhất,
- * như `git clone --depth 1`.
+ * Fake Skill source: each repo is a chain of commits and `publish` adds a new one. Fetching without a commit takes the
+ * latest, like `git clone --depth 1`.
  */
 async function fakeSources(initial: Record<string, Record<string, string>>) {
   const history: Record<string, { commit: string; dir: string }[]> = {}

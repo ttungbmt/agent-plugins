@@ -9,22 +9,23 @@ export type PlannedAction =
 export type Plan = {
   actions: PlannedAction[]
   conflicts: Conflict[]
-  /** Manual entry khớp đúng khai báo: nhận quản lý mà không cần sửa settings. */
+  /** Manual entry that matches its declaration exactly: adopted without touching settings. */
   adopted: Array<{ name: string; declaration: MarketplaceDeclaration }>
   /**
-   * Managed entry không còn được khai báo mà không cần gỡ khỏi settings, vì nó đã không còn ở đó
-   * hoặc Config khác vẫn claim nó: chỉ cần xoá khỏi Lock/State.
+   * Managed entry no longer declared that needs no removal from settings, because it is already gone from there
+   * or another Config still claims it: it only has to be dropped from Lock/State.
    */
   forgotten: string[]
 }
 
 /**
- * Tính các bước đưa settings của một scope về khớp khai báo, theo luật sở hữu của ADR 0003.
- * `blocked` là các tên đang vướng xung đột khai báo: Managed entry của chúng được giữ nguyên.
- * `shared` là claim của các Config khác ở scope user: tên còn được claim thì không bị gỡ,
- * và khai báo khác claim đó là xung đột, `--force` cũng không vượt qua để hai Config không ghi đè nhau mãi.
- * `elsewhere` là entry ở các scope khác: Claude Code chỉ cài một marketplace mỗi tên cho cả máy, nên cùng tên
- * mà khác source thì `add` sẽ thay bản cài của scope kia — xung đột, `--force` không vượt qua.
+ * Compute the steps that bring one scope's settings in line with the declarations, under the ownership rules of ADR 0003.
+ * `blocked` holds names caught in a declaration conflict: their Managed entries are left untouched.
+ * `shared` holds other Configs' claims at the user scope: a name that is still claimed is not removed, and a different
+ * declaration of that claim is a conflict even `--force` does not override, so two Configs never keep overwriting each other.
+ * `elsewhere` holds entries at other scopes: Claude Code installs only one marketplace per name for the whole machine, so
+ * the same name with a different source would make `add` replace the other scope's install — a conflict `--force` does
+ * not override.
  */
 export function planSync(
   desired: MarketplaceDeclaration[],
@@ -38,7 +39,7 @@ export function planSync(
   const claimed = new Set(opts.blocked)
 
   for (const declaration of desired) {
-    // Dạng rút gọn chưa biết tên: nhận ra qua source trong Lock/State, rồi trong settings.
+    // A Shorthand declaration whose name is not known yet: recognize it by source in Lock/State, then in settings.
     const name = knownName(declaration, managed, actual)
     if (name) claimed.add(name)
 
@@ -64,12 +65,13 @@ export function planSync(
       if (isManaged || opts.force) actions.push({ kind: 'add', name, declaration })
       else conflicts.push(manualEntryConflict(entry.name))
     } else if (isManaged || opts.force) {
-      // Managed entry phải khớp đúng khai báo, kể cả khi một field phụ bị bỏ đi.
+      // A Managed entry must match its declaration exactly, even when an optional field was dropped.
       if (!isDeepStrictEqual(entry.extras, declaration.extras)) actions.push({ kind: 'patch', name, declaration })
     } else if (!isDeepStrictEqual(pick(entry.extras, declaration.extras), declaration.extras)) {
       conflicts.push(manualEntryConflict(entry.name, 'different fields'))
     } else if (isDeepStrictEqual(entry.extras, declaration.extras) && !opts.shared?.some((c) => c.name === entry.name)) {
-      // Có thêm field chưa khai báo thì để nguyên: nhận quản lý sẽ gỡ chúng. Config khác đang claim thì để luật bàn giao xử lý.
+      // Extra undeclared fields are left alone: adopting will remove them. If another Config claims it, the handover
+      // rule deals with it.
       adopted.push({ name: entry.name, declaration })
     }
   }

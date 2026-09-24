@@ -2,7 +2,7 @@ import { isDeepStrictEqual } from 'node:util'
 import { readJson, settingsPath, writeJson, type Location } from './files.js'
 import type { HookDeclaration, HookGroup, ManagedHook, Scope } from './types.js'
 
-/** Khoá `hooks` của settings: event → các nhóm matcher. Nhóm của người dùng có thể có bất cứ gì, nên để mờ. */
+/** The settings `hooks` key: event → matcher groups. User groups may contain anything, so they stay opaque. */
 export type SettingsHooks = Record<string, unknown>
 
 export type PlannedHookAction =
@@ -11,11 +11,11 @@ export type PlannedHookAction =
 
 export type HookPlan = {
   actions: PlannedHookAction[]
-  /** Managed hook không còn được khai báo và đã không còn trong settings: chỉ cần xoá khỏi Lock/State. */
+  /** A Managed hook no longer declared and already gone from settings: only needs removing from Lock/State. */
   forgotten: string[]
 }
 
-/** Field bắt buộc của từng loại handler (docs/research/hooks.md §1). */
+/** Required fields for each handler type (docs/research/hooks.md §1). */
 const REQUIRED: Record<string, string[]> = {
   command: ['command'],
   http: ['url'],
@@ -25,7 +25,7 @@ const REQUIRED: Record<string, string[]> = {
 }
 const GROUP_KEYS = ['event', 'matcher', 'hooks']
 
-/** Kiểm tra một nhóm matcher của Khai báo hook. Trả về thông báo lỗi, hoặc null khi hợp lệ. */
+/** Validates one matcher group of a Hook declaration. Returns an error message, or null when valid. */
 export function checkHook(name: string, group: Record<string, unknown>): string | null {
   const unknown = Object.keys(group).find((k) => !GROUP_KEYS.includes(k))
   if (unknown) return `hook "${name}" has unknown key \`${unknown}\`; a hook has only event, matcher and hooks`
@@ -45,17 +45,17 @@ export function checkHook(name: string, group: Record<string, unknown>): string 
   return null
 }
 
-/** Dạng chuẩn để so và để ghi vào Lock/State: `matcher` rỗng, `"*"` hay vắng mặt đều là khớp mọi thứ nên được bỏ. */
+/** Canonical form for comparing and writing to Lock/State: an empty, `"*"` or absent `matcher` matches everything, so it is dropped. */
 export function normalizeHook({ event, matcher, hooks, ...rest }: HookGroup): HookGroup {
   return { event, ...(matcher === undefined || matcher === '' || matcher === '*' ? {} : { matcher }), hooks, ...rest }
 }
 
-/** Hai nhóm có cùng nội dung không: so theo giá trị sâu, không theo thứ tự khoá. */
+/** Whether two groups have the same content: compared by deep value, not key order. */
 export function sameHook(a: HookGroup, b: HookGroup): boolean {
   return isDeepStrictEqual(normalizeHook(a), normalizeHook(b))
 }
 
-/** Vị trí nhóm trong settings khớp đúng một Managed hook, hoặc -1. */
+/** Index of the group in settings that matches exactly one Managed hook, or -1. */
 function locate(hooks: SettingsHooks, record: ManagedHook): number {
   return groupsOf(hooks, record.group.event).findIndex(
     (g) => g !== null && typeof g === 'object' && !Array.isArray(g) && sameHook({ event: record.group.event, ...(g as Omit<HookGroup, 'event'>) }, record.group),
@@ -68,10 +68,10 @@ function groupsOf(hooks: SettingsHooks, event: string): unknown[] {
 }
 
 /**
- * Tính các bước đưa khoá `hooks` của một Scope về khớp khai báo. Mỗi Khai báo hook là một nhóm matcher riêng;
- * Managed hook được nhận ra bằng nội dung đã ghi trong Lock/State, vì settings không có định danh cho Hook.
- * Managed hook khai báo không đổi mà không còn trong settings thì để yên: chưa phân biệt được bị xoá tay (thêm lại)
- * với bị sửa tay (thêm lại sẽ chạy trùng).
+ * Computes the steps that bring a Scope's `hooks` key in line with the declarations. Each Hook declaration is its own
+ * matcher group; a Managed hook is recognised by the content recorded in Lock/State, since settings have no identifier for
+ * a Hook. A Managed hook whose declaration is unchanged but is gone from settings is left alone: we can't yet tell a manual
+ * deletion (add it back) from a manual edit (adding it back would run it twice).
  */
 export function planHooks(desired: HookDeclaration[], actual: SettingsHooks, managed: ManagedHook[]): HookPlan {
   const actions: PlannedHookAction[] = []
@@ -92,9 +92,9 @@ export function planHooks(desired: HookDeclaration[], actual: SettingsHooks, man
 }
 
 /**
- * Áp các bước lên khoá `hooks`, trả về khoá mới (null khi không còn nhóm nào): thêm vào cuối mảng của event, `update`
- * thay đúng vị trí (đổi event thì chuyển sang cuối mảng của event mới), `remove` gỡ nhóm. Mảng event rỗng bị xoá;
- * mọi nhóm khác giữ nguyên.
+ * Applies the steps to the `hooks` key and returns the new key (null when no groups remain): adds go to the end of the
+ * event's array, `update` replaces in place (a changed event moves it to the end of the new event's array), `remove`
+ * drops the group. Empty event arrays are deleted; all other groups stay as they are.
  */
 export function nextHooks(hooks: SettingsHooks, actions: PlannedHookAction[], managed: ManagedHook[]): SettingsHooks | null {
   const next: SettingsHooks = { ...hooks }
@@ -119,17 +119,17 @@ export function nextHooks(hooks: SettingsHooks, actions: PlannedHookAction[], ma
   return Object.keys(next).length ? next : null
 }
 
-/** Nhóm như ghi vào settings: đúng như người dùng viết, bỏ `event` vì nó là khoá chứa nhóm. */
+/** The group as written to settings: exactly as the user wrote it, minus `event`, since that is the key holding the group. */
 function settingsGroup({ event: _, ...group }: HookGroup) {
   return group
 }
 
-/** Khoá `hooks` trong settings của Scope. */
+/** The `hooks` key in the Scope's settings. */
 export async function readSettingsHooks(scope: Scope, location: Location): Promise<SettingsHooks> {
   return hooksOf(await readJson(settingsPath(scope, location)))
 }
 
-/** Áp mọi bước hook của một Scope trong một lần ghi, đọc lại settings ngay trước khi ghi để giữ mọi khoá khác. */
+/** Applies all hook steps of a Scope in one write, re-reading settings right before writing to keep every other key. */
 export async function writeSettingsHooks(scope: Scope, location: Location, actions: PlannedHookAction[], managed: ManagedHook[]) {
   const path = settingsPath(scope, location)
   const settings = await readJson<Record<string, unknown>>(path)

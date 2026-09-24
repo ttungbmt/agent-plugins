@@ -2,35 +2,36 @@ import { parse } from 'yaml'
 import type { Location } from './files.js'
 import type { ItemKind, ItemSource, Scope } from './types.js'
 
-/** Một Skill/Agent tìm thấy trong nguồn đã tải: `path` là thư mục Skill hoặc file Agent, để copy. */
-/** `blocked`: vì sao nó không cài được khi đứng riêng (Workflow gắn với plugin); vẫn có trong Danh mục nguồn. */
+/** A Skill/Agent found in a fetched source: `path` is the Skill directory or Agent file, for copying. */
+/** `blocked`: why it can't be installed on its own (plugin-bound Workflow); it still appears in the Source catalog. */
 export type FoundItem = { name: string; path: string; sha256: string; blocked?: string }
 
 /**
- * Bản cài skill/agent có trong thư mục của một Scope. `symlink`: do công cụ khác tạo (vd. `npx skills`).
- * `files`: chỉ Workflow (định danh là `meta.name`, không phải tên file, ADR 0010) — mọi file mang tên này, file đầu
- * tiên là Bản cài; từ hai file trở lên thì Claude Code chỉ chạy được một.
+ * An Installed skill/agent in a Scope's directory. `symlink`: created by another tool (e.g. `npx skills`).
+ * `files`: Workflows only (identified by `meta.name`, not the file name, ADR 0010) — every file with this name, the first
+ * being the Installed workflow; with two or more files Claude Code can only run one.
  */
 export type InstalledItem = { name: string; symlink: boolean; sha256: string; files?: string[] }
 
 /**
- * Cách một loại thứ được tải từ nguồn và cài vào Scope (ADR 0005): Skill là thư mục `<name>/SKILL.md`, Agent là
- * file `<name>.md`. Phần tải nguồn, Danh mục nguồn và luật sở hữu dùng chung cho mọi loại.
+ * How one kind of thing is fetched from a source and installed into a Scope (ADR 0005): a Skill is a `<name>/SKILL.md`
+ * directory, an Agent a `<name>.md` file. Source fetching, the Source catalog and ownership rules are shared by all kinds.
  */
 export type ItemHandler = {
   kind: ItemKind
-  /** Thư mục Claude Code đọc cho từng Scope; `null` khi Scope không có (scope `local`). */
+  /** The directory Claude Code reads for each Scope; `null` when the Scope has none (the `local` scope). */
   dir(scope: Scope, location: Location): string | null
-  /** Tìm các thứ trong `root` (gốc nguồn đã tải, hoặc `path` của nó). */
+  /** Finds the things in `root` (the fetched source root, or its `path`). */
   find(root: string, source: ItemSource): Promise<FoundItem[]>
   /**
-   * Chỉ Rule (ADR 0009): thư mục con mà mọi thứ của `source` được cài vào. Định danh trên đĩa (Lock/State, Bản cài) là
-   * `<namespace>/<tên trong nguồn>`, còn Danh mục nguồn và lựa chọn trong khai báo dùng tên trong nguồn.
+   * Rules only (ADR 0009): the subdirectory that everything from `source` is installed into. The on-disk identity
+   * (Lock/State, Installed rule) is `<namespace>/<name in source>`, while the Source catalog and the declaration's
+   * selection use the name in the source.
    */
   namespace?(source: ItemSource): string
-  /** `namespaces`: các Namespace đang khai báo hoặc có trong Lock/State; chỉ loại có `namespace` dùng tới. */
+  /** `namespaces`: Namespaces currently declared or present in Lock/State; only used by kinds with a `namespace`. */
   list(dir: string, namespaces: string[]): Promise<InstalledItem[]>
-  /** Thay Bản cài `name` bằng bản copy của `from`. Symlink cũ chỉ bị gỡ link, không đụng thứ nó trỏ tới. */
+  /** Replaces the installed `name` with a copy of `from`. An old symlink is only unlinked, leaving its target untouched. */
   install(from: string, dir: string, name: string): Promise<void>
   remove(dir: string, name: string): Promise<void>
 }
@@ -38,9 +39,9 @@ export type ItemHandler = {
 export const ITEM_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
 
 /**
- * `name` trong frontmatter của `text`; `undefined` khi không có frontmatter. Frontmatter không phải YAML hợp lệ
- * (vd. `description: Use when: ...` không có ngoặc kép) vẫn được Claude Code nạp, nên khi đó đọc dòng `name:` thay vì
- * làm hỏng cả nguồn.
+ * The frontmatter `name` of `text`; `undefined` when there is no frontmatter. Frontmatter that is not valid YAML (e.g.
+ * `description: Use when: ...` without quotes) is still loaded by Claude Code, so in that case the `name:` line is read
+ * instead of failing the whole source.
  */
 export function frontmatterName(text: string): string | undefined {
   const front = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text)?.[1]

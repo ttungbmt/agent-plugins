@@ -1,4 +1,4 @@
-# Phát hành Release tarball của `ap` khi push tag `v*` (ADR 0008).
+# Publish the `ap` Release tarball when a `v*` tag is pushed (ADR 0008).
 name: release
 
 on:
@@ -19,11 +19,11 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Tag khớp version
+      - name: Tag matches version
         run: |
           version=$(node -p "require('./packages/cli/package.json').version")
           if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
-            echo "::error::tag ${GITHUB_REF_NAME} không khớp version ${version} của packages/cli"
+            echo "::error::tag ${GITHUB_REF_NAME} does not match packages/cli version ${version}"
             exit 1
           fi
       - run: pnpm -C packages/cli typecheck
@@ -48,7 +48,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node }}
-          # Job này không cài pnpm; tắt cache tự bật theo `packageManager` của setup-node v5.
+          # This job does not install pnpm; turn off the cache setup-node v5 enables from `packageManager`.
           package-manager-cache: false
       - uses: actions/download-artifact@v5
         with:
@@ -71,11 +71,11 @@ jobs:
       - uses: actions/attest-build-provenance@v3
         with:
           subject-path: release/*.tgz
-      - name: Tạo GitHub Release
+      - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           flags=(--generate-notes --title "${GITHUB_REF_NAME}")
-          # Pre-release (tag có `-`, vd. v0.2.0-beta.1) không được chiếm link `latest`.
+          # A pre-release (tag containing `-`, e.g. v0.2.0-beta.1) must not take over the `latest` link.
           if [[ "${GITHUB_REF_NAME}" == *-* ]]; then flags+=(--prerelease --latest=false); fi
           gh release create "${GITHUB_REF_NAME}" release/*.tgz --repo "${GITHUB_REPOSITORY}" "${flags[@]}"

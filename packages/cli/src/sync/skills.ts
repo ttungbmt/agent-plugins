@@ -7,9 +7,9 @@ import type { Exec } from './registry.js'
 import { frontmatterName, ITEM_NAME, type FoundItem, type InstalledItem, type ItemHandler } from './items.js'
 import type { ItemSource, Scope } from './types.js'
 
-/** Nguồn đã tải về một thư mục: `commit` là commit đã checkout, `null` với nguồn `directory`. */
+/** A source fetched into a directory: `commit` is the checked-out commit, `null` for a `directory` source. */
 export type FetchedSource = { dir: string; commit: string | null; cleanup(): Promise<void> }
-/** Tải một Nguồn skill/Nguồn agent, ở đúng `commit` khi đã ghim, còn không thì ở `ref` của nó (hoặc nhánh mặc định). */
+/** Fetch a Skill source or Agent source at its pinned `commit` if any, otherwise at its `ref` (or the default branch). */
 export type FetchSkillSource = (source: ItemSource, commit: string | null) => Promise<FetchedSource>
 
 export const SKILLS: ItemHandler = {
@@ -21,13 +21,13 @@ export const SKILLS: ItemHandler = {
   remove: removeSkill,
 }
 
-/** Thư mục skills Claude Code đọc cho từng Scope; scope `local` không có thư mục riêng. */
+/** Skills directory Claude Code reads for each Scope; the `local` scope has no directory of its own. */
 export function skillsDir(scope: Scope, location: Location): string | null {
   if (scope === 'local') return null
   return scope === 'project' ? join(location.cwd, '.claude/skills') : join(claudeDir(location), 'skills')
 }
 
-/** Tải nguồn bằng `git` (ADR 0005): clone nông ở `ref`, hoặc fetch nông đúng commit đã ghim. */
+/** Fetch a source with `git` (ADR 0005): a shallow clone at `ref`, or a shallow fetch of exactly the pinned commit. */
 export function createGitFetcher(exec: Exec, cwd: string): FetchSkillSource {
   async function git(...args: string[]) {
     const result = await exec('git', args)
@@ -58,8 +58,9 @@ export function createGitFetcher(exec: Exec, cwd: string): FetchSkillSource {
 }
 
 /**
- * Tìm Skill trong một nguồn đã tải, dừng ở chỗ đầu tiên có Skill: `SKILL.md` ở gốc → `skills/*\/SKILL.md` → `*\/SKILL.md`.
- * Tên lấy từ `name` trong frontmatter, thiếu thì là tên thư mục (`fallback` cho Skill ở gốc).
+ * Find the Skills in a fetched source, stopping at the first place that has any: `SKILL.md` at the root →
+ * `skills/*\/SKILL.md` → `*\/SKILL.md`.
+ * The name comes from `name` in the frontmatter, falling back to the directory name (`fallback` for a Skill at the root).
  */
 export async function findSkills(root: string, fallback: string): Promise<FoundItem[]> {
   if (await isFile(join(root, 'SKILL.md'))) return [await found(root, fallback)]
@@ -80,18 +81,18 @@ async function found(dir: string, fallback: string): Promise<FoundItem> {
   return { name, path: dir, sha256: await hashDir(dir) }
 }
 
-/** Thư mục chứa Skill/Agent trong một nguồn đã tải: gốc nguồn, hoặc `path` của nguồn `github`/`git`. */
+/** Directory holding the Skills/Agents in a fetched source: the source root, or the `path` of a `github`/`git` source. */
 export function sourceRoot(fetched: FetchedSource, source: ItemSource): string {
   return source.source !== 'directory' && typeof source.path === 'string' ? join(fetched.dir, source.path) : fetched.dir
 }
 
-/** Tên dự phòng cho Skill ở gốc thư mục chứa Skill: tên thư mục `path`, repo hoặc thư mục nguồn. */
+/** Fallback name for a Skill at the root of its containing directory: the `path` directory, repo or source directory name. */
 export function sourceBasename(source: ItemSource): string {
   const where = String(source.source === 'directory' ? source.path : (source.path ?? source.repo ?? source.url))
   return basename(where.replace(/\.git$/, '').replace(/\/+$/, ''))
 }
 
-/** Bản cài skill của một thư mục skills; thư mục là symlink thì băm nội dung nó trỏ tới. */
+/** Installed skills in a skills directory; a symlinked directory hashes the content it points to. */
 export async function listInstalledSkills(dir: string): Promise<InstalledItem[]> {
   const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
   const skills: InstalledItem[] = []
@@ -114,7 +115,7 @@ export async function removeSkill(dir: string, name: string): Promise<void> {
   await rm(join(dir, name), { recursive: true, force: true })
 }
 
-/** sha256 nội dung một thư mục: đường dẫn tương đối và nội dung mọi file (bỏ `.git`), theo thứ tự cố định. */
+/** sha256 of a directory's content: the relative path and content of every file (skipping `.git`), in a fixed order. */
 export async function hashDir(root: string): Promise<string> {
   const hash = createHash('sha256')
   const base = await realDir(root)

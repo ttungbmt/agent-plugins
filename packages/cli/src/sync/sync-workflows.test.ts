@@ -12,7 +12,7 @@ const SOURCE = { source: 'github', repo: REPO }
 
 const script = (name: string, body = `await agent('${name}')`) => `export const meta = { name: '${name}', description: '${name}' }\n${body}\n`
 
-/** Nguồn kiểu communitytools: script có `meta.name` khác tên file, kèm các file không phải Workflow. */
+/** A communitytools-style source: scripts whose `meta.name` differs from the file name, plus files that are not Workflows. */
 const FLOWS = {
   'workflows/review.js': script('code-review'),
   'workflows/audit.js': script('audit'),
@@ -29,7 +29,7 @@ function config(workflows: string) {
   return `kind: Config\nmetadata: { name: demo }\nspec:\n  workflows: ${workflows}\n`
 }
 
-/** Nguồn giả: mỗi repo là một chuỗi commit, `publish` thêm commit mới; tải không có commit thì lấy commit mới nhất. */
+/** Fake source: each repo is a chain of commits and `publish` adds one; fetching without a commit takes the latest. */
 async function fakeSources(initial: Record<string, Record<string, string>>) {
   const history: Record<string, { commit: string; dir: string }[]> = {}
   const calls: string[] = []

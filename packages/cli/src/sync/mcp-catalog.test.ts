@@ -9,7 +9,7 @@ import type { McpConfig } from './types.js'
 const packages = new URL('../../../', import.meta.url)
 const read = (path: string) => readFileSync(fileURLToPath(new URL(path, packages)), 'utf8')
 
-// Danh mục MCP đi kèm `ap`: sửa tay trên 100 mục nên phải tự kiểm tra, không đợi đến lúc sync.
+// The MCP catalog shipped with `ap`: over 100 hand-edited entries, so it checks itself instead of waiting for a sync.
 describe('the shipped MCP catalog', () => {
   const document = parseDocument(read('presets/mcp-servers.yaml'), { uniqueKeys: true })
   const catalog = document.toJS() as { servers: Record<string, McpConfig> }

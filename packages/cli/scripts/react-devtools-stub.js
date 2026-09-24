@@ -1,2 +1,2 @@
-// ink import `react-devtools-core` chỉ khi DEV; bản bundle thay nó bằng stub rỗng.
+// ink imports `react-devtools-core` only in DEV; the bundle swaps it for this empty stub.
 export default {}

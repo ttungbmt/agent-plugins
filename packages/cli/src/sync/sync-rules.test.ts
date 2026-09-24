@@ -10,7 +10,7 @@ import type { ItemSource, Scope } from './types.js'
 const REPO = 'acme/ECC'
 const SOURCE = { source: 'github', repo: REPO }
 
-/** Bộ rule kiểu ECC: nhóm `common` và `web`, link tương đối giữa các nhóm, kèm các file không phải Rule. */
+/** An ECC-style rule set: `common` and `web` groups, relative links between groups, plus files that are not Rules. */
 const ECC = {
   'rules/common/coding-style.md': '# Common coding style\n',
   'rules/common/testing.md': '# Common testing\n',
@@ -25,7 +25,7 @@ function config(rules: string) {
   return `kind: Config\nmetadata: { name: demo }\nspec:\n  rules: ${rules}\n`
 }
 
-/** Nguồn giả: mỗi repo là một chuỗi commit, `publish` thêm commit mới; tải không có commit thì lấy commit mới nhất. */
+/** Fake source: each repo is a chain of commits and `publish` adds one; fetching without a commit takes the latest. */
 async function fakeSources(initial: Record<string, Record<string, string>>) {
   const history: Record<string, { commit: string; dir: string }[]> = {}
   async function publish(repo: string, files: Record<string, string>) {
@@ -64,7 +64,7 @@ async function setup(files: Record<string, string>, repos: Record<string, Record
     sync({ cwd, scope: extra.scope ?? 'project', mode, force: extra.force, update: extra.update }, deps)
   const read = async (path: string) => readFile(join(cwd, path), 'utf8').catch(() => undefined)
   const lock = async () => parse((await read('agent-plugins.lock')) ?? '') ?? {}
-  /** Mọi file dưới `dir`, đường dẫn tương đối, đã sắp xếp. */
+  /** Every file under `dir`, as sorted relative paths. */
   const tree = async (dir = join(cwd, '.claude/rules')) =>
     (await readdir(dir, { recursive: true, withFileTypes: true }).catch(() => []))
       .filter((e) => e.isFile())

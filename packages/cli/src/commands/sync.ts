@@ -52,7 +52,7 @@ export default class Sync extends Command {
     for (const n of report.notices) this.log(`note    ${n}`)
     for (const c of report.conflicts) this.logToStderr(`conflict ${c.name}: ${c.detail}`)
     if (report.inSync && report.actions.length === 0) this.log('marketplaces, plugins, skills, agents, rules, workflows, MCP servers and hooks are in sync')
-    // dry-run chỉ báo lỗi khi có xung đột; check và apply báo lỗi khi còn lệch.
+    // dry-run only fails on conflicts; check and apply fail while anything is still out of sync.
     if (mode === 'dry-run' ? report.conflicts.length > 0 : !report.inSync) this.exit(1)
   }
 }
@@ -65,9 +65,9 @@ function target(a: SyncProgress['action']): string {
 }
 
 /**
- * Hiện tiến độ bằng listr2 trên stderr để stdout vẫn chỉ có bảng tổng kết.
- * Các action chạy tuần tự nên mỗi action là một Listr một-task, chạy nối tiếp nhau.
- * `plain` dùng renderer simple (không vẽ lại dòng) khi không có TTY hoặc output của `claude` được stream ra.
+ * Shows progress with listr2 on stderr so stdout carries only the summary table.
+ * Actions run sequentially, so each action is a single-task Listr, run one after another.
+ * `plain` uses the simple renderer (no line redrawing) when there is no TTY or `claude`'s output is streamed.
  */
 function createProgress({ plain }: { plain: boolean }) {
   let settle: ((error?: string) => void) | undefined
@@ -90,14 +90,14 @@ function createProgress({ plain }: { plain: boolean }) {
       fallbackRendererOptions: { timer: PRESET_TIMER, logger },
       fallbackRendererCondition: plain,
     })
-    // Lỗi của action đã có trong báo cáo; listr chỉ cần hiện ✖.
+    // The action's error is already in the report; listr only needs to show ✖.
     running = running.then(() => list.run()).catch(() => {})
   }
 
   return { onProgress, done: () => running }
 }
 
-/** Chạy `claude`; `stream` chuyển tiếp output của nó ra stderr (vd. tiến độ clone), vẫn gom stderr để báo lỗi. */
+/** Run `claude`; `stream` forwards its output to stderr (e.g. clone progress) while still collecting stderr for errors. */
 function createExec({ stream }: { stream: boolean }): Exec {
   return (command, args) =>
     new Promise((resolve) => {

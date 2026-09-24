@@ -322,7 +322,7 @@ spec:
   })
 
   describe('with a marketplace added by hand in user settings', () => {
-    /** Như `claude plugin marketplace add <fork> --scope user`: khai báo ở user và bản cài chung trỏ vào fork. */
+    /** Like `claude plugin marketplace add <fork> --scope user`: declared at user, shared install points at the fork. */
     async function withManualUserFork(config: string) {
       const t = await setup({ 'agent-plugins.yaml': config })
       await t.claude.exec('claude', ['plugin', 'marketplace', 'add', FORK.source.url, '--scope', 'user'])

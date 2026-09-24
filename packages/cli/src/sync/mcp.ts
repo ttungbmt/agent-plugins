@@ -3,22 +3,22 @@ import { manualEntryConflict, sharedClashConflict } from './identity.js'
 import type { Conflict, ManagedMcp, McpConfig, McpDeclaration, SharedMcpClaim } from './types.js'
 
 export type PlannedMcpAction =
-  /** `update`: CLI không có lệnh sửa, nên là `remove` rồi `add-json`. */
+  /** `update`: the CLI has no edit command, so it is `remove` then `add-json`. */
   | { kind: 'add' | 'update'; name: string; declaration: McpDeclaration }
   | { kind: 'remove'; name: string }
 
 export type McpPlan = {
   actions: PlannedMcpAction[]
   conflicts: Conflict[]
-  /** Manual entry khớp đúng khai báo, không cần action: nhận quản lý. */
+  /** A Manual entry that matches the declaration exactly, no action needed: adopt it. */
   adopted: McpDeclaration[]
-  /** Managed MCP server chỉ cần xoá khỏi Lock/State: đã biến khỏi cấu hình, hoặc Config khác claim đúng cấu hình đó (bàn giao). */
+  /** A Managed MCP server that only needs removing from Lock/State: gone from the config, or another Config claims that exact config (handover). */
   forgotten: string[]
 }
 
 /**
- * Cấu hình dạng chuẩn để so và để ghi: bỏ `type: stdio` (mặc định) và `args`/`env`/`headers` rỗng,
- * vì Claude Code và người dùng có thể viết cùng một server theo cả hai cách.
+ * Canonical config for comparing and writing: drops `type: stdio` (the default) and empty `args`/`env`/`headers`,
+ * since Claude Code and users may write the same server either way.
  */
 export function normalizeMcp(config: McpConfig): McpConfig {
   const out: McpConfig = {}
@@ -40,8 +40,8 @@ const SECRET_KEY = /key|token|secret|password|auth|credential/i
 const PLACEHOLDER = /\$\{([A-Za-z_][A-Za-z0-9_]*)(:-[^}]*)?\}/g
 
 /**
- * Kiểm tra một cấu hình inline (ADR 0006): đúng transport Claude Code nhận, và secret trong `env`/`headers`
- * chỉ được viết dạng `${VAR}`. Trả về thông báo lỗi, hoặc null khi hợp lệ.
+ * Validates an inline config (ADR 0006): a transport Claude Code accepts, and secrets in `env`/`headers` written
+ * only as `${VAR}`. Returns an error message, or null when valid.
  */
 export function checkMcp(name: string, config: McpConfig): string | null {
   const type = config.type ?? 'stdio'
@@ -62,7 +62,7 @@ export function checkMcp(name: string, config: McpConfig): string | null {
   return null
 }
 
-/** Biến `${VAR}` (không có `:-default`) mà cấu hình dùng nhưng môi trường hiện tại chưa đặt. */
+/** `${VAR}` variables (without `:-default`) the config uses but the current environment has not set. */
 export function unsetVariables(config: McpConfig, env: Record<string, string | undefined>): string[] {
   const missing = new Set<string>()
   for (const [, name, fallback] of JSON.stringify(config).matchAll(PLACEHOLDER)) {
@@ -72,8 +72,8 @@ export function unsetVariables(config: McpConfig, env: Record<string, string | u
 }
 
 /**
- * Tính các bước đưa Bản cài MCP server của một scope về khớp khai báo, cùng luật sở hữu với plugin (ADR 0003).
- * `held` là các tên đang xung đột giữa các Preset: Managed entry của chúng được giữ nguyên.
+ * Computes the steps that bring a scope's Installed MCP servers in line with the declarations, using the same ownership
+ * rules as plugins (ADR 0003). `held` is the names in conflict between Presets: their Managed entries are kept as is.
  */
 export function planMcp(
   desired: McpDeclaration[],
@@ -105,14 +105,14 @@ export function planMcp(
 
     if (entry === undefined) actions.push({ kind: 'add', name, declaration })
     else if (!same) actions.push({ kind: 'update', name, declaration })
-    // Khớp đúng khai báo thì nhận quản lý; Config khác đang claim thì để luật bàn giao xử lý.
+    // An exact match with the declaration is adopted; if another Config claims it, the handover rules handle it.
     else if (!isManaged && !opts.shared?.some((c) => c.name === name)) adopted.push(declaration)
   }
 
   const forgotten: string[] = []
   for (const record of managed) {
     if (claimed.has(record.name)) continue
-    // Chỉ bàn giao được cho Config claim đúng cấu hình này (xem `store`); claim khác cấu hình thì gỡ, Config đó sẽ thêm lại bản của nó.
+    // Handover only works to a Config claiming this exact config (see `store`); a claim with a different config is removed, and that Config adds its own back.
     const stillClaimed = opts.shared?.some((c) => c.name === record.name && sameMcp(c.server, record.server))
     if (stillClaimed || actual[record.name] === undefined) forgotten.push(record.name)
     else actions.push({ kind: 'remove', name: record.name })

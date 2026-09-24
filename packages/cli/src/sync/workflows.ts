@@ -15,17 +15,18 @@ export const WORKFLOWS: ItemHandler = {
   remove: removeWorkflow,
 }
 
-/** Thư mục workflows Claude Code đọc cho từng Scope; scope `local` không có thư mục riêng. */
+/** The workflows directory Claude Code reads for each Scope; the `local` scope has no directory of its own. */
 export function workflowsDir(scope: Scope, location: Location): string | null {
   if (scope === 'local') return null
   return scope === 'project' ? join(location.cwd, '.claude/workflows') : join(claudeDir(location), 'workflows')
 }
 
 /**
- * Tìm Workflow trong một nguồn đã tải (ADR 0010): file `*.js` ngay trong gốc workflows (không đệ quy, vì Claude Code
- * không tìm trong thư mục con), bỏ `*.test.*` và `_*`, và chỉ nhận file có `meta` literal với `name` hợp lệ. Gốc của
- * nguồn `github`/`git` là `path` khi có khai báo, còn không thì `workflows/` (không dò `.claude/workflows/`, nơi repo
- * nguồn để workflow của chính nó). Nguồn `directory` dùng `workflows/` của nó nếu có, còn không thì chính nó.
+ * Finds Workflows in a fetched source (ADR 0010): `*.js` files directly in the workflows root (not recursive, since Claude
+ * Code does not look in subdirectories), skipping `*.test.*` and `_*`, and only accepting files with a literal `meta` with a
+ * valid `name`. The root of a `github`/`git` source is `path` when declared, otherwise `workflows/` (`.claude/workflows/`,
+ * where the source repo keeps its own workflows, is not searched). A `directory` source uses its `workflows/` if present,
+ * otherwise itself.
  */
 export async function findWorkflows(root: string, source: ItemSource): Promise<FoundItem[]> {
   const explicit = source.source === 'directory' || typeof source.path === 'string'
@@ -50,9 +51,9 @@ export async function findWorkflows(root: string, source: ItemSource): Promise<F
 }
 
 /**
- * Bản cài workflow: mọi `*.js` ngay trong thư mục có `meta.name` hợp lệ, định danh bằng `meta.name` (ADR 0010), nên
- * file người dùng tự đặt tên khác vẫn khớp được khai báo. Nhiều file cùng tên gộp thành một Bản cài; file dùng làm Bản
- * cài là `<name>.js` nếu có, còn không thì file đầu tiên theo tên.
+ * Installed workflows: every `*.js` directly in the directory with a valid `meta.name`, identified by `meta.name` (ADR
+ * 0010), so a file the user named differently still matches its declaration. Several files with the same name merge into
+ * one Installed workflow; the file used as the Installed workflow is `<name>.js` if present, otherwise the first by name.
  */
 export async function listInstalledWorkflows(dir: string): Promise<InstalledItem[]> {
   const byName = new Map<string, { file: string; symlink: boolean; sha256: string }[]>()
@@ -77,8 +78,9 @@ export async function listInstalledWorkflows(dir: string): Promise<InstalledItem
 }
 
 /**
- * Ghi file Workflow thành `<dir>/<meta.name>.js`. Bản cài cũ mang tên này mà khác tên file (đã nhận quản lý, hoặc bị
- * thay bằng `--force`) bị gỡ, để chỉ còn một file; symlink chỉ bị gỡ link. File cùng tên khác không bị đụng tới.
+ * Writes a Workflow file as `<dir>/<meta.name>.js`. An older Installed workflow with this name but a different file name
+ * (adopted, or replaced with `--force`) is removed so only one file remains; a symlink is only unlinked. Other files with
+ * the same name are left alone.
  */
 export async function installWorkflow(from: string, dir: string, name: string): Promise<void> {
   const current = await installedFile(dir, name)
@@ -89,7 +91,7 @@ export async function installWorkflow(from: string, dir: string, name: string): 
   await copyFile(from, target)
 }
 
-/** Gỡ đúng file là Bản cài của `name`, dù tên file là gì. */
+/** Removes exactly the files that are the Installed workflow of `name`, whatever their file names. */
 export async function removeWorkflow(dir: string, name: string): Promise<void> {
   const current = await installedFile(dir, name)
   if (current) await rm(join(dir, current), { force: true })
@@ -100,14 +102,15 @@ async function installedFile(dir: string, name: string): Promise<string | undefi
 }
 
 /**
- * Agent Claude Code có sẵn, không cần cài (theo danh sách `subagent_type` của Agent tool trong Claude Code 2.1.x;
- * chưa đối chiếu với tài liệu). `agentType` trỏ tới chúng không bao giờ bị coi là thiếu.
+ * Built-in Claude Code agents that need no install (per the Agent tool's `subagent_type` list in Claude Code 2.1.x; not yet
+ * checked against the docs). An `agentType` pointing to them is never treated as missing.
  */
 export const BUILTIN_AGENTS = ['claude', 'claude-code-guide', 'Explore', 'general-purpose', 'Plan', 'statusline-setup']
 
 /**
- * Cảnh báo cho Workflow gọi `agentType` không tiền tố hoặc `workflow('<tên>')` mà Scope sẽ không có (ADR 0010). Chỉ
- * cảnh báo, không tự cài; tên tạo lúc chạy không được phát hiện. `scripts` là nội dung các Workflow sẽ có ở Scope.
+ * Warns about Workflows that call an unprefixed `agentType` or `workflow('<name>')` the Scope will not have (ADR 0010).
+ * Only warns, never installs; names built at runtime are not detected. `scripts` is the content of the Workflows the Scope
+ * will have.
  */
 export function missingDependencyNotices(
   scripts: { name: string; text: string }[],
@@ -129,9 +132,9 @@ export function missingDependencyNotices(
 }
 
 /**
- * Vì sao Claude Code sẽ không chạy workflow nào, hoặc `undefined`: `CLAUDE_CODE_DISABLE_WORKFLOWS`, hay
- * `disableWorkflows: true` / `enableWorkflows: false` trong file settings có ưu tiên cao nhất đặt khoá đó (local > project
- * > user). Không đoán được mặc định theo gói (Pro tắt sẵn), nên thiếu khoá thì coi như đang bật.
+ * Why Claude Code will not run any workflow, or `undefined`: `CLAUDE_CODE_DISABLE_WORKFLOWS`, or
+ * `disableWorkflows: true` / `enableWorkflows: false` in the highest-priority settings file that sets the key (local > project
+ * > user). The per-plan default can't be inferred (Pro has it off), so a missing key counts as enabled.
  */
 export async function workflowsSwitchedOff(location: Location, env: NodeJS.ProcessEnv): Promise<string | undefined> {
   const flag = env.CLAUDE_CODE_DISABLE_WORKFLOWS

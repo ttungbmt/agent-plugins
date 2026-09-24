@@ -15,13 +15,13 @@ export const RULES: ItemHandler = {
   remove: removeRule,
 }
 
-/** Thư mục rules Claude Code đọc cho từng Scope; scope `local` không có thư mục riêng. */
+/** Rules directory Claude Code reads for each Scope; the `local` scope has no directory of its own. */
 export function rulesDir(scope: Scope, location: Location): string | null {
   if (scope === 'local') return null
   return scope === 'project' ? join(location.cwd, '.claude/rules') : join(claudeDir(location), 'rules')
 }
 
-/** Namespace mặc định: tên repo (`github`), tên cuối URL bỏ `.git` (`git`) hoặc tên thư mục (`directory`), viết thường. */
+/** Default Namespace: the repo name (`github`), last URL segment sans `.git` (`git`) or directory name (`directory`), lowercased. */
 export function defaultNamespace(source: ItemSource): string {
   const where = String(source.source === 'github' ? source.repo : source.source === 'git' ? source.url : source.path)
   const name = basename(where.replace(/\/+$/, '').replace(/\.git$/, '')).toLowerCase()
@@ -30,10 +30,10 @@ export function defaultNamespace(source: ItemSource): string {
 }
 
 /**
- * Tìm Rule trong một nguồn đã tải (ADR 0009): mọi `*.md` đệ quy dưới gốc rules, bỏ `README.md` ở mọi cấp và thư mục
- * bắt đầu bằng `.`. Gốc rules của nguồn `github`/`git` là `path` khi có khai báo, còn không thì `rules/` (không dò
- * `.claude/rules/` hay gốc repo). Nguồn `directory` là thư mục người dùng tự chỉ ra, nên dùng `rules/` của nó nếu có,
- * còn không thì chính nó.
+ * Find the Rules in a fetched source (ADR 0009): every `*.md` recursively under the rules root, skipping `README.md` at
+ * every level and directories starting with `.`. The rules root of a `github`/`git` source is `path` when declared,
+ * otherwise `rules/` (without probing `.claude/rules/` or the repo root). A `directory` source is a directory the user
+ * points at directly, so its `rules/` is used if present, otherwise the directory itself.
  */
 export async function findRules(root: string, source: ItemSource): Promise<FoundItem[]> {
   const explicit = source.source === 'directory' || typeof source.path === 'string'
@@ -50,10 +50,10 @@ export async function findRules(root: string, source: ItemSource): Promise<Found
 }
 
 /**
- * Bản cài rule trong các Namespace cho trước, định danh `<namespace>/<đường dẫn>`. File ngoài các Namespace đó (của
- * người dùng) không được liệt kê; file là symlink thì băm nội dung nó trỏ tới. Namespace là symlink (vd. người dùng
- * `ln -s` tới bản checkout của mình) là một Bản cài symlink tên `<namespace>`, không liệt kê gì bên trong, để mọi Rule
- * dưới nó là Manual entry và `ap` không ghi xuyên qua link.
+ * Installed rules in the given Namespaces, identified as `<namespace>/<path>`. Files outside those Namespaces (the
+ * user's own) are not listed; a symlinked file hashes the content it points to. A Namespace that is a symlink (e.g. the
+ * user ran `ln -s` to their own checkout) is one symlinked Installed rule named `<namespace>`, with nothing listed inside,
+ * so every Rule beneath it is a Manual entry and `ap` never writes through the link.
  */
 export async function listInstalledRules(dir: string, namespaces: string[]): Promise<InstalledItem[]> {
   const rules: InstalledItem[] = []
@@ -75,8 +75,8 @@ export async function listInstalledRules(dir: string, namespaces: string[]): Pro
 }
 
 /**
- * Copy đúng file Rule vào `<dir>/<namespace>/<đường dẫn>.md`, giữ cấu trúc thư mục để link tương đối vẫn đúng.
- * Namespace là symlink (chỉ tới đây khi `--force`) thì chỉ gỡ link, không đụng thứ nó trỏ tới.
+ * Copy exactly the Rule file to `<dir>/<namespace>/<path>.md`, keeping the directory structure so relative links still work.
+ * If the Namespace is a symlink (only reached with `--force`), only the link is removed, never what it points to.
  */
 export async function installRule(from: string, dir: string, name: string): Promise<void> {
   const namespace = join(dir, name.split('/')[0]!)
@@ -87,7 +87,7 @@ export async function installRule(from: string, dir: string, name: string): Prom
   await copyFile(from, target)
 }
 
-/** Gỡ file Rule, rồi các thư mục cha đã rỗng tới hết Namespace. */
+/** Remove a Rule file, then its now-empty parent directories up to the Namespace. */
 export async function removeRule(dir: string, name: string): Promise<void> {
   const target = join(dir, `${name}.md`)
   await rm(target, { force: true })

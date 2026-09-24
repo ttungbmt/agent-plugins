@@ -7,8 +7,8 @@ export function sameSource(a: MarketplaceSource, b: MarketplaceSource): boolean 
 }
 
 /**
- * Hai source có cho ra cùng một bản cài không. `path` của nguồn `directory`/`file` được so sau khi quy về
- * tuyệt đối theo thư mục Config, vì `ap` ghi nó tương đối còn `claude` ghi tuyệt đối.
+ * Whether two sources yield the same install. The `path` of a `directory`/`file` source is compared after resolving it
+ * against the Config directory, since `ap` writes it relative while `claude` writes it absolute.
  */
 export function sameInstall(a: MarketplaceSource, b: MarketplaceSource, cwd: string): boolean {
   return sameSource(absolute(a, cwd), absolute(b, cwd))
@@ -19,12 +19,12 @@ function absolute(source: MarketplaceSource, cwd: string): MarketplaceSource {
   return local && typeof source.path === 'string' ? { ...source, path: resolve(cwd, source.path) } : source
 }
 
-/** Khai báo có chỉ tới marketplace này không: theo tên, hoặc theo source với dạng rút gọn chưa biết tên. */
+/** Whether a declaration points to this marketplace: by name, or by source for a Shorthand declaration whose name is still unknown. */
 export function identifies(declaration: MarketplaceDeclaration, marketplace: { name: string; source: MarketplaceSource }) {
   return declaration.name ? declaration.name === marketplace.name : sameSource(declaration.source, marketplace.source)
 }
 
-/** Tên của marketplace một khai báo chỉ tới; dạng rút gọn chưa biết tên thì tra theo source trong Lock/State, rồi trong settings. */
+/** The name of the marketplace a declaration points to; for a Shorthand declaration with no known name, look it up by source in the Lock/State, then in settings. */
 export function knownName(declaration: MarketplaceDeclaration, managed: ManagedEntry[], actual: KnownEntry[]): string | null {
   return (
     declaration.name ??

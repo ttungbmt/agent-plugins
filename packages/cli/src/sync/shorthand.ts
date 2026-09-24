@@ -4,13 +4,13 @@ import { ConfigError } from './resolve.js'
 import type { MarketplaceSource } from './types.js'
 
 const GITHUB_REPO = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/
-/** Host mà `claude` coi URL https là repo git dù không có đuôi `.git`. */
+/** Hosts whose https URLs `claude` treats as git repos even without a `.git` suffix. */
 const GIT_HOSTS = new Set(['github.com', 'gitlab.com'])
 
 /**
- * Đọc một Khai báo rút gọn thành source, phân loại giống `claude plugin marketplace add` để source ghi ra khớp
- * với source `claude` tự ghi. Đường dẫn cục bộ tính theo `dir` (thư mục file khai báo) và được stat để biết là
- * `directory` hay `file`.
+ * Parse a Shorthand declaration into a source, classifying it the way `claude plugin marketplace add` does so the source
+ * written out matches the one `claude` writes itself. A local path is resolved against `dir` (the declaring file's
+ * directory) and stat'ed to tell `directory` from `file`.
  */
 export async function parseShorthand(text: string, dir: string, origin: string, what = 'marketplace'): Promise<MarketplaceSource> {
   if (text.startsWith('./') || text.startsWith('../') || isAbsolute(text)) return local(text, dir, origin, what)
@@ -51,7 +51,7 @@ async function local(text: string, dir: string, origin: string, what: string): P
   return { source: 'file', path }
 }
 
-/** `./a/../b/` → `./b`; giữ `../` ở đầu. */
+/** `./a/../b/` → `./b`; a leading `../` is kept. */
 function relativePath(text: string): string {
   const path = normalize(text).replace(/\/+$/, '')
   return path === '..' || path.startsWith('../') ? path : `./${path}`
