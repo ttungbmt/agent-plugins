@@ -3,7 +3,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, posix, relative, resolve } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
 import { parse } from 'yaml'
-import { sameSource } from './identity.js'
+import { ConfigError } from './errors.js'
+import { describeItemSource, sameSource, withoutRef } from './identity.js'
 import { checkHook } from './hooks.js'
 import { checkMcp, normalizeMcp, sameMcp } from './mcp.js'
 import { parseShorthand } from './shorthand.js'
@@ -45,8 +46,6 @@ export type ResolvedConfig = {
   conflicts: Conflict[]
   notices: string[]
 }
-
-export class ConfigError extends Error {}
 
 type PresetDocument = { kind?: string; metadata?: { name?: string }; spec?: { presets?: unknown; extends?: unknown; marketplaces?: unknown; plugins?: unknown; mcpServers?: unknown; hooks?: unknown } & { [K in ItemKind as `${K}s`]?: unknown } }
 
@@ -353,17 +352,6 @@ function selectionsOverlap(a: Selection, b: Selection): boolean {
 export function outranks(a: Pick<ItemDeclaration, 'presets' | 'shadows'>, b: Pick<ItemDeclaration, 'presets'>): boolean {
   if (b.presets.includes(null)) return false
   return a.shadows.includes('*') || b.presets.every((p) => a.shadows.includes(p as string))
-}
-
-export function describeItemSource(source: ItemSource): string {
-  if (source.source === 'directory') return String(source.path)
-  const where = String(source.repo ?? source.url)
-  const at = source.ref ? `${where}${source.source === 'github' ? '@' : '#'}${source.ref}` : where
-  return source.path ? `${at} (${source.path})` : at
-}
-
-export function withoutRef({ ref: _, ...source }: ItemSource): ItemSource {
-  return source
 }
 
 /** The `path` of a Skill source/Agent source, normalized (`./a/b/` → `a/b`); `null` for the source root. */

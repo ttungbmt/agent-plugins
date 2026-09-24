@@ -1,7 +1,7 @@
 import { relative } from 'node:path'
 import { Command, Flags } from '@oclif/core'
 import { init } from '../init/index.js'
-import { ConfigError } from '../sync/resolve.js'
+import { ConfigError } from '../sync/errors.js'
 
 export default class Init extends Command {
   static override description = 'Create an empty agent-plugins.yaml in the current directory'

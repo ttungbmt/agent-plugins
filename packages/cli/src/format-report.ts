@@ -1,6 +1,6 @@
 import type { Style } from './format-conflicts.js'
 import type { Scope, SyncAction, SyncReport } from './sync/index.js'
-import { describeItemSource } from './sync/resolve.js'
+import { describeItemSource } from './sync/identity.js'
 import { ITEM_KINDS, type ItemKind } from './sync/types.js'
 
 const plain: Style = (_, text) => text

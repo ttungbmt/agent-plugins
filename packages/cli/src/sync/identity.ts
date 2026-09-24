@@ -1,9 +1,20 @@
 import { resolve } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
-import type { Conflict, KnownEntry, ManagedEntry, MarketplaceDeclaration, MarketplaceSource, PluginDeclaration, Scope } from './types.js'
+import type { Conflict, ItemSource, KnownEntry, ManagedEntry, MarketplaceDeclaration, MarketplaceSource, PluginDeclaration, Scope } from './types.js'
 
 export function sameSource(a: MarketplaceSource, b: MarketplaceSource): boolean {
   return isDeepStrictEqual(a, b)
+}
+
+export function describeItemSource(source: ItemSource): string {
+  if (source.source === 'directory') return String(source.path)
+  const where = String(source.repo ?? source.url)
+  const at = source.ref ? `${where}${source.source === 'github' ? '@' : '#'}${source.ref}` : where
+  return source.path ? `${at} (${source.path})` : at
+}
+
+export function withoutRef({ ref: _, ...source }: ItemSource): ItemSource {
+  return source
 }
 
 /**

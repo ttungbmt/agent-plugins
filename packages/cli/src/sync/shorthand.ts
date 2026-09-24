@@ -1,6 +1,6 @@
 import { stat } from 'node:fs/promises'
 import { isAbsolute, normalize, resolve } from 'node:path'
-import { ConfigError } from './resolve.js'
+import { ConfigError } from './errors.js'
 import type { MarketplaceSource } from './types.js'
 
 const GITHUB_REPO = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/

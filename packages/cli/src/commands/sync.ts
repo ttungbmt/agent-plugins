@@ -8,7 +8,8 @@ import { defaultPresetsDir } from '../presets-dir.js'
 import { SCOPES } from '../sync/files.js'
 import { sync, type SyncProgress, type SyncReport } from '../sync/index.js'
 import type { Exec } from '../sync/registry.js'
-import { ConfigError, describeItemSource } from '../sync/resolve.js'
+import { ConfigError } from '../sync/errors.js'
+import { describeItemSource } from '../sync/identity.js'
 import { ITEM_KINDS, type ItemKind } from '../sync/types.js'
 
 export default class Sync extends Command {

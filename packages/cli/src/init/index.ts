@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
-import { ConfigError } from '../sync/resolve.js'
+import { ConfigError } from '../sync/errors.js'
 
 const SCHEMA_URL =
   'https://raw.githubusercontent.com/ttungbmt/agent-plugins/master/packages/schemas/schemas/config.schema.json'
