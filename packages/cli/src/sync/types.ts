@@ -29,8 +29,16 @@ export type ManagedPlugin = { id: string; enabled: boolean; origin: string }
 export type PluginClaim = { id: string; enabled: boolean; origin: string }
 export type SharedPluginClaim = PluginClaim & { config: string }
 
-/** Loại thứ `ap` tự tải từ một nguồn và copy vào thư mục của Scope (ADR 0005). */
-export type ItemKind = 'skill' | 'agent'
+/** Loại thứ `ap` tự tải từ một nguồn và copy vào thư mục của Scope (ADR 0005), theo thứ tự sync và thứ tự trong Lock/State. */
+export const ITEM_KINDS = ['skill', 'agent'] as const
+export type ItemKind = (typeof ITEM_KINDS)[number]
+
+/** Một giá trị cho mỗi loại item. */
+export type ByKind<T> = Record<ItemKind, T>
+
+export function byKind<T>(make: (kind: ItemKind) => T): ByKind<T> {
+  return Object.fromEntries(ITEM_KINDS.map((kind) => [kind, make(kind)])) as ByKind<T>
+}
 
 /** Nguồn skill hoặc Nguồn agent đã đọc: `github`, `git` (kèm `ref` nếu có) hoặc `directory`. */
 export type ItemSource = MarketplaceSource

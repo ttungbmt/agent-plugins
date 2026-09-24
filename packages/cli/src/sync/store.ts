@@ -5,9 +5,12 @@ import { readJson, writeJson, type Location } from './files.js'
 import { sameSource } from './identity.js'
 import { sameMcp } from './mcp.js'
 import type { PresetPins } from './resolve.js'
+import { byKind, ITEM_KINDS } from './types.js'
 import type {
+  ByKind,
   Claim,
   ItemClaim,
+  ItemKind,
   ItemSource,
   ManagedEntry,
   ManagedItem,
@@ -24,49 +27,45 @@ import type {
 } from './types.js'
 
 /**
- * Managed entry của một scope: Known marketplace entry, Plugin entry, Bản cài skill, Bản cài agent và Bản cài MCP server, kèm Danh mục nguồn
- * của Nguồn skill và Nguồn agent (ghim riêng, kể cả khi cùng repo).
+ * Managed entry của một scope: Known marketplace entry, Plugin entry, Bản cài của từng loại item và Bản cài MCP server,
+ * kèm Danh mục nguồn của mỗi loại item (ghim riêng, kể cả khi cùng repo).
  */
 export type Owned = {
   marketplaces: ManagedEntry[]
   plugins: ManagedPlugin[]
-  skills: ManagedItem[]
-  skillSources: SourceCatalog[]
-  agents: ManagedItem[]
-  agentSources: SourceCatalog[]
+  items: ByKind<ManagedItem[]>
+  itemSources: ByKind<SourceCatalog[]>
   mcpServers: ManagedMcp[]
 }
-/** Danh mục nguồn như ghi trong Lock/State: tên nằm dưới `skills` hoặc `agents`. */
-type SkillSourceRecord = { source: ItemSource; commit: string; skills: string[] }
-type AgentSourceRecord = { source: ItemSource; commit: string; agents: string[] }
+/** Khoá của một loại item trong Lock/State, vd. `skills`, `skillSources`, `skillClaims`. */
+type ItemsKey = `${ItemKind}s`
+type SourcesKey = `${ItemKind}Sources`
+type ClaimsKey = `${ItemKind}Claims`
+const keysOf = (kind: ItemKind) =>
+  ({ items: `${kind}s`, sources: `${kind}Sources`, claims: `${kind}Claims` }) as { items: ItemsKey; sources: SourcesKey; claims: ClaimsKey }
+/** Danh mục nguồn như ghi trong Lock/State: tên nằm dưới khoá của loại item (`skills`, `agents`, …). */
+type SourceRecord = { source: ItemSource; commit: string } & { [K in ItemsKey]?: string[] }
 type Stored = {
   marketplaces?: ManagedEntry[]
   plugins?: ManagedPlugin[]
-  skillSources?: SkillSourceRecord[]
-  skills?: ManagedItem[]
-  agentSources?: AgentSourceRecord[]
-  agents?: ManagedItem[]
   mcpServers?: ManagedMcp[]
-}
+} & { [K in ItemsKey]?: ManagedItem[] } & { [K in SourcesKey]?: SourceRecord[] }
 type Lock = Stored & { presets?: PresetPins }
 type State = Stored & {
   claims?: Claim[]
   pluginClaims?: PluginClaim[]
-  skillClaims?: ItemClaim[]
-  agentClaims?: ItemClaim[]
   mcpClaims?: McpClaim[]
-}
+} & { [K in ClaimsKey]?: ItemClaim[] }
 /** Chỉ dùng ở scope user: claim của Config này và các Managed entry nó vừa bỏ sở hữu. */
 export type Sharing = {
   claims: Claim[]
   pluginClaims: PluginClaim[]
-  skillClaims: ItemClaim[]
-  agentClaims: ItemClaim[]
+  itemClaims: ByKind<ItemClaim[]>
   mcpClaims: McpClaim[]
   released: Owned
 }
-export const NO_OWNED: Owned = { marketplaces: [], plugins: [], skills: [], skillSources: [], agents: [], agentSources: [], mcpServers: [] }
-const NO_SHARING: Sharing = { claims: [], pluginClaims: [], skillClaims: [], agentClaims: [], mcpClaims: [], released: NO_OWNED }
+export const NO_OWNED: Owned = { marketplaces: [], plugins: [], items: byKind(() => []), itemSources: byKind(() => []), mcpServers: [] }
+const NO_SHARING: Sharing = { claims: [], pluginClaims: [], itemClaims: byKind(() => []), mcpClaims: [], released: NO_OWNED }
 
 /**
  * Lock (`agent-plugins.lock`: Managed entry của scope project + mã băm Preset từ xa) và State (scope local/user) — ADR 0003.
@@ -94,7 +93,7 @@ export function createStore({ cwd, homedir }: Location) {
     },
     user: {
       read: async () => (await readJson<Record<string, State>>(userStatePath))[configKey],
-      write: async (owned, { claims, pluginClaims, skillClaims, agentClaims, mcpClaims, released }) => {
+      write: async (owned, { claims, pluginClaims, itemClaims, mcpClaims, released }) => {
         const states = await readJson<Record<string, State>>(userStatePath)
         // Entry vừa bỏ sở hữu được giao cho các Config khác đang claim cùng khai báo, để repo cuối cùng khai báo nó sẽ gỡ nó.
         for (const [key, state] of Object.entries(states)) {
@@ -109,11 +108,12 @@ export function createStore({ cwd, homedir }: Location) {
             if (!record || state.plugins?.some((m) => m.id === claim.id)) continue
             ;(state.plugins ??= []).push({ id: claim.id, enabled: claim.enabled, origin: claim.origin })
           }
-          for (const [claimsOf, key] of [[state.skillClaims, 'skills'], [state.agentClaims, 'agents']] as const) {
-            for (const claim of claimsOf ?? []) {
-              const record = released[key].find((r) => r.name === claim.name && sameSource(r.source, claim.source))
-              if (!record || state[key]?.some((m) => m.name === claim.name)) continue
-              ;(state[key] ??= []).push({ ...record, origin: claim.origin })
+          for (const kind of ITEM_KINDS) {
+            const key = keysOf(kind)
+            for (const claim of state[key.claims] ?? []) {
+              const record = released.items[kind].find((r) => r.name === claim.name && sameSource(r.source, claim.source))
+              if (!record || state[key.items]?.some((m) => m.name === claim.name)) continue
+              ;(state[key.items] ??= []).push({ ...record, origin: claim.origin })
             }
           }
           for (const claim of state.mcpClaims ?? []) {
@@ -126,8 +126,7 @@ export function createStore({ cwd, homedir }: Location) {
           ...ownedFields(owned),
           claims,
           pluginClaims,
-          skillClaims,
-          agentClaims,
+          ...Object.fromEntries(ITEM_KINDS.map((kind) => [keysOf(kind).claims, itemClaims[kind]])),
           mcpClaims,
         })
         if (Object.keys(state).length) states[configKey] = state
@@ -143,7 +142,7 @@ export function createStore({ cwd, homedir }: Location) {
 
   async function writeLock({ presets, ...stored }: Lock) {
     const strip = (list?: ManagedItem[]) => list?.map(({ commit: _, ...item }) => item)
-    const lock: Lock = compact({ ...stored, skills: strip(stored.skills), agents: strip(stored.agents) })
+    const lock: Lock = compact({ ...stored, ...Object.fromEntries(ITEM_KINDS.map((kind) => [keysOf(kind).items, strip(stored[keysOf(kind).items])])) })
     if (presets && Object.keys(presets).length) lock.presets = presets
     const empty = Object.keys(lock).length === 0
     // Không tạo Lock rỗng cho repo chưa có; Lock đã có thì làm rỗng để git thấy thay đổi.
@@ -154,19 +153,14 @@ export function createStore({ cwd, homedir }: Location) {
   /** Claim của các Config khác ở scope user; Config đã bị xoá khỏi đĩa thì bỏ qua. */
   async function sharedClaims() {
     const states = await readJson<Record<string, State>>(userStatePath)
-    const shared = {
-      marketplaces: [] as SharedClaim[],
-      plugins: [] as SharedPluginClaim[],
-      skills: [] as SharedItemClaim[],
-      agents: [] as SharedItemClaim[],
-      mcpServers: [] as SharedMcpClaim[],
-    }
+    const shared = noShared()
     for (const [config, state] of Object.entries(states)) {
       if (config === configKey || !(await access(config).then(() => true, () => false))) continue
       for (const claim of state.claims ?? []) shared.marketplaces.push({ ...claim, config })
       for (const claim of state.pluginClaims ?? []) shared.plugins.push({ ...claim, config })
-      for (const claim of state.skillClaims ?? []) shared.skills.push({ ...claim, config })
-      for (const claim of state.agentClaims ?? []) shared.agents.push({ ...claim, config })
+      for (const kind of ITEM_KINDS) {
+        for (const claim of state[keysOf(kind).claims] ?? []) shared.items[kind].push({ ...claim, config })
+      }
       for (const claim of state.mcpClaims ?? []) shared.mcpServers.push({ ...claim, config })
     }
     return shared
@@ -175,20 +169,19 @@ export function createStore({ cwd, homedir }: Location) {
   async function load(scope: Scope) {
     const lock = await readLock()
     const state = await owners[scope].read(lock)
-    const shared = scope === 'user' ? await sharedClaims() : { marketplaces: [], plugins: [], skills: [], agents: [], mcpServers: [] }
+    const shared = scope === 'user' ? await sharedClaims() : noShared()
     return {
       managed: state?.marketplaces ?? [],
       managedPlugins: state?.plugins ?? [],
-      managedSkills: state?.skills ?? [],
-      skillCatalogs: (state?.skillSources ?? []).map(({ skills, ...c }) => ({ ...c, names: skills })),
-      managedAgents: state?.agents ?? [],
-      agentCatalogs: (state?.agentSources ?? []).map(({ agents, ...c }) => ({ ...c, names: agents })),
+      managedItems: byKind((kind) => state?.[keysOf(kind).items] ?? []),
+      itemCatalogs: byKind((kind) =>
+        (state?.[keysOf(kind).sources] ?? []).map(({ source, commit, [keysOf(kind).items]: names }): SourceCatalog => ({ source, commit, names: names! })),
+      ),
       managedMcp: state?.mcpServers ?? [],
       pins: lock.presets ?? {},
       shared: shared.marketplaces,
       sharedPlugins: shared.plugins,
-      sharedSkills: shared.skills,
-      sharedAgents: shared.agents,
+      sharedItems: shared.items,
       sharedMcp: shared.mcpServers,
     }
   }
@@ -203,16 +196,27 @@ export function createStore({ cwd, homedir }: Location) {
   return { load, save }
 }
 
+function noShared() {
+  return {
+    marketplaces: [] as SharedClaim[],
+    plugins: [] as SharedPluginClaim[],
+    items: byKind((): SharedItemClaim[] => []),
+    mcpServers: [] as SharedMcpClaim[],
+  }
+}
+
 /** Thứ tự các mục của Lock/State; `commit` trên từng Skill của Lock/State cũ được bỏ (đã chuyển về Danh mục nguồn). */
-function ownedFields(owned: Owned): Required<Stored> {
+function ownedFields(owned: Owned): Stored {
   const items = (list: ManagedItem[]) => list.map(({ commit: _, ...item }) => item)
   return {
     marketplaces: owned.marketplaces,
     plugins: owned.plugins,
-    skillSources: owned.skillSources.map(({ names, ...c }) => ({ ...c, skills: names })),
-    skills: items(owned.skills),
-    agentSources: owned.agentSources.map(({ names, ...c }) => ({ ...c, agents: names })),
-    agents: items(owned.agents),
+    ...Object.fromEntries(
+      ITEM_KINDS.flatMap((kind) => [
+        [keysOf(kind).sources, owned.itemSources[kind].map(({ names, ...c }) => ({ ...c, [keysOf(kind).items]: names }))],
+        [keysOf(kind).items, items(owned.items[kind])],
+      ]),
+    ),
     mcpServers: owned.mcpServers,
   }
 }

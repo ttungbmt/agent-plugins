@@ -11,7 +11,8 @@ import { ConflictError, createRegistry, type Exec } from './registry.js'
 import { resolveConfig, type Fetch } from './resolve.js'
 import { createGitFetcher, SKILLS, type FetchedSource, type FetchSkillSource } from './skills.js'
 import { createStore, NO_OWNED } from './store.js'
-import type { Claim, Conflict, ItemDeclaration, ItemKind, ItemSource, KnownEntry, ManagedEntry, ManagedItem, ManagedMcp, MarketplaceDeclaration, MarketplaceSource, Scope, SharedItemClaim, SourceCatalog } from './types.js'
+import { byKind, ITEM_KINDS } from './types.js'
+import type { ByKind, Claim, Conflict, ItemDeclaration, ItemKind, ItemSource, KnownEntry, ManagedEntry, ManagedItem, ManagedMcp, MarketplaceDeclaration, MarketplaceSource, Scope, SharedItemClaim, SourceCatalog } from './types.js'
 
 export type { Scope } from './types.js'
 export type SyncMode = 'apply' | 'dry-run' | 'check'
@@ -55,6 +56,9 @@ type ItemSync = {
   collected: CollectedItems | null
   plan: ItemPlan
 }
+
+/** Cách tải và cài của từng loại item. */
+const HANDLERS: ByKind<ItemHandler> = { skill: SKILLS, agent: AGENTS }
 
 const EMPTY_PLAN: ItemPlan = { actions: [], conflicts: [], notices: [], adopted: [], forgotten: [] }
 
@@ -138,10 +142,11 @@ export async function sync(
     notices.push(...run.collected.notices, ...run.plan.notices)
     return run
   }
-  const items = [
-    await syncItems(SKILLS, resolved.skills, loaded.managedSkills, loaded.skillCatalogs, loaded.sharedSkills),
-    await syncItems(AGENTS, resolved.agents, loaded.managedAgents, loaded.agentCatalogs, loaded.sharedAgents),
-  ]
+  const items = {} as ByKind<ItemSync>
+  for (const kind of ITEM_KINDS) {
+    items[kind] = await syncItems(HANDLERS[kind], resolved.items[kind], loaded.managedItems[kind], loaded.itemCatalogs[kind], loaded.sharedItems[kind])
+  }
+  const itemRuns = ITEM_KINDS.map((kind) => items[kind])
 
   const actualMcp = await registry.listMcp(scope)
   const env = deps.env ?? process.env
@@ -172,7 +177,7 @@ export async function sync(
     ...plan.actions.filter((a) => a.kind !== 'remove').map((action) => ({ target: 'marketplace' as const, action })),
     ...pluginPlan.actions.map((action) => ({ target: 'plugin' as const, action })),
     ...removals.map((action) => ({ target: 'marketplace' as const, action })),
-    ...items.flatMap(({ handler, plan }) => plan.actions.map((action) => ({ target: handler.kind, action }))),
+    ...itemRuns.flatMap(({ handler, plan }) => plan.actions.map((action) => ({ target: handler.kind, action }))),
     ...mcpPlan.actions.map((action) => ({ target: 'mcp' as const, action })),
   ]
 
@@ -193,7 +198,7 @@ export async function sync(
   if (mode !== 'apply') {
     const actions: SyncAction[] = [
       ...steps.map((step) => ({ ...describe(step), status: 'planned' as const })),
-      ...items.flatMap(({ handler, collected }) =>
+      ...itemRuns.flatMap(({ handler, collected }) =>
         (collected?.unknown ?? []).map((source) => ({ target: handler.kind, kind: 'install' as const, name: null, source, status: 'planned' as const })),
       ),
     ]
@@ -212,7 +217,8 @@ export async function sync(
   const releasedMcp = loaded.managedMcp.filter((m) => mcpPlan.forgotten.includes(m.name))
   for (const name of mcpPlan.forgotten) mcpRecords.delete(name)
   const failedMarketplaces = new Set<string | null>()
-  const itemRecords = items.map(({ managed, plan }) => {
+  const itemRecords = byKind((kind) => {
+    const { managed, plan } = items[kind]
     const records = new Map(managed.map((m) => [m.name, m]))
     for (const name of plan.forgotten) records.delete(name)
     return records
@@ -231,14 +237,14 @@ export async function sync(
     mcpRecords.set(name, { name, server, origin })
     adoptedNotice(`MCP server "${name}"`)
   }
-  items.forEach(({ handler, plan }, i) => {
-    for (const { name, source, sha256, origin } of plan.adopted) {
-      itemRecords[i]!.set(name, { name, source, sha256: sha256!, origin })
-      adoptedNotice(`${handler.kind} "${name}"`)
+  for (const kind of ITEM_KINDS) {
+    for (const { name, source, sha256, origin } of items[kind].plan.adopted) {
+      itemRecords[kind].set(name, { name, source, sha256: sha256!, origin })
+      adoptedNotice(`${kind} "${name}"`)
     }
-  })
+  }
 
-  const actions: SyncReport['actions'] = items.flatMap(({ handler, collected }) =>
+  const actions: SyncReport['actions'] = itemRuns.flatMap(({ handler, collected }) =>
     (collected?.failures ?? []).map(({ source, error }) => ({
       target: handler.kind,
       kind: 'fetch' as const,
@@ -268,14 +274,14 @@ export async function sync(
     }
     deps.onProgress?.({ phase: 'end', action: actions.at(-1)!, ms: Date.now() - started })
   }
-  await Promise.all([...new Set(items.flatMap((i) => i.collected?.fetched ?? []))].map((f) => f.cleanup()))
+  await Promise.all([...new Set(itemRuns.flatMap((i) => i.collected?.fetched ?? []))].map((f) => f.cleanup()))
   // Managed skill/agent không cần copy lại vẫn nhận nguồn và origin mới nhất; commit của nó nằm ở Danh mục nguồn.
-  items.forEach(({ collected }, i) => {
-    for (const { name, source, sha256, origin } of collected?.desired ?? []) {
-      const record = itemRecords[i]!.get(name)
-      if (record?.sha256 === sha256) itemRecords[i]!.set(name, { name, source, sha256, origin })
+  for (const kind of ITEM_KINDS) {
+    for (const { name, source, sha256, origin } of items[kind].collected?.desired ?? []) {
+      const record = itemRecords[kind].get(name)
+      if (record?.sha256 === sha256) itemRecords[kind].set(name, { name, source, sha256, origin })
     }
-  })
+  }
 
   async function applyMarketplace(action: PlannedAction): Promise<string | null> {
     if (action.kind === 'remove') {
@@ -332,9 +338,8 @@ export async function sync(
   }
 
   async function applyItem(kind: ItemKind, action: PlannedItemAction): Promise<string> {
-    const i = items.findIndex((it) => it.handler.kind === kind)
-    const { handler, dir } = items[i]!
-    const records = itemRecords[i]!
+    const { handler, dir } = items[kind]
+    const records = itemRecords[kind]
     const { name } = action
     if (action.kind === 'remove') {
       await handler.remove(dir!, name)
@@ -351,43 +356,39 @@ export async function sync(
   const pluginClaims = resolved.plugins
     .filter((p) => !held.has(p.marketplace) && !conflicts.some((c) => c.name === p.id))
     .map(({ id, enabled, origin }) => ({ id, enabled, origin }))
-  const [itemClaims, releasedItems] = [
-    items.map(({ collected }) =>
-      (collected?.desired ?? [])
-        .filter((s) => !conflicts.some((c) => c.name === s.name))
-        .map(({ name, source, origin }) => ({ name, source, origin })),
-    ),
-    items.map(({ managed, plan }) => managed.filter((m) => plan.forgotten.includes(m.name))),
-  ]
+  const itemClaims = byKind((kind) =>
+    (items[kind].collected?.desired ?? [])
+      .filter((s) => !conflicts.some((c) => c.name === s.name))
+      .map(({ name, source, origin }) => ({ name, source, origin })),
+  )
+  const releasedItems = byKind((kind) => {
+    const { managed, plan } = items[kind]
+    return managed.filter((m) => plan.forgotten.includes(m.name))
+  })
   const mcpClaims: ManagedMcp[] = resolved.mcpServers
     .filter((d) => mcpSettled(d.name))
     .map(({ name, server, origin }) => ({ name, server, origin }))
-  const [skills, agents] = items
   await mcpNotices()
   await store.save(
     scope,
     {
       marketplaces: [...records.values()],
       plugins: [...pluginRecords.values()],
-      skills: [...itemRecords[0]!.values()],
-      skillSources: skills!.collected?.catalogs ?? skills!.catalogs,
-      agents: [...itemRecords[1]!.values()],
-      agentSources: agents!.collected?.catalogs ?? agents!.catalogs,
+      items: byKind((kind) => [...itemRecords[kind].values()]),
+      itemSources: byKind((kind) => items[kind].collected?.catalogs ?? items[kind].catalogs),
       mcpServers: [...mcpRecords.values()],
     },
     resolved.pins,
     {
       claims,
       pluginClaims,
-      skillClaims: itemClaims[0]!,
-      agentClaims: itemClaims[1]!,
+      itemClaims,
       mcpClaims,
       released: {
         ...NO_OWNED,
         marketplaces: released,
         plugins: releasedPlugins,
-        skills: releasedItems[0]!,
-        agents: releasedItems[1]!,
+        items: releasedItems,
         mcpServers: releasedMcp,
       },
     },

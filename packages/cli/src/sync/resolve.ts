@@ -6,7 +6,8 @@ import { parse } from 'yaml'
 import { sameSource } from './identity.js'
 import { checkMcp, normalizeMcp, sameMcp } from './mcp.js'
 import { parseShorthand } from './shorthand.js'
-import type { Conflict, ItemDeclaration, ItemKind, ItemSource, MarketplaceDeclaration, MarketplaceSource, McpConfig, McpDeclaration, PluginDeclaration, Selection } from './types.js'
+import { byKind, ITEM_KINDS } from './types.js'
+import type { ByKind, Conflict, ItemDeclaration, ItemKind, ItemSource, MarketplaceDeclaration, MarketplaceSource, McpConfig, McpDeclaration, PluginDeclaration, Selection } from './types.js'
 
 export type Fetch = (url: string) => Promise<string>
 /** URL Preset từ xa → sha256 nội dung đã chấp nhận. */
@@ -27,10 +28,8 @@ export type ResolvedConfig = {
   declarations: MarketplaceDeclaration[]
   /** Khai báo plugin đã gộp; hậu tố `@marketplace` chưa được kiểm tra. */
   plugins: PluginDeclaration[]
-  /** Khai báo skill đã gộp theo nguồn. */
-  skills: ItemDeclaration[]
-  /** Khai báo agent đã gộp theo nguồn. */
-  agents: ItemDeclaration[]
+  /** Khai báo skill, Khai báo agent, … đã gộp theo nguồn. */
+  items: ByKind<ItemDeclaration[]>
   /** Khai báo MCP server đã phân giải (tra Danh mục MCP) và đã gộp; tên bị `false` đã được bỏ. */
   mcpServers: McpDeclaration[]
   /**
@@ -46,7 +45,7 @@ export type ResolvedConfig = {
 
 export class ConfigError extends Error {}
 
-type PresetDocument = { kind?: string; metadata?: { name?: string }; spec?: { presets?: unknown; extends?: unknown; marketplaces?: unknown; plugins?: unknown; skills?: unknown; agents?: unknown; mcpServers?: unknown } }
+type PresetDocument = { kind?: string; metadata?: { name?: string }; spec?: { presets?: unknown; extends?: unknown; marketplaces?: unknown; plugins?: unknown; mcpServers?: unknown } & { [K in ItemKind as `${K}s`]?: unknown } }
 type LoadedPreset = { id: string; label: string; doc: PresetDocument; dir: string }
 type Resolution = ResolveContext & { root: string; usedPins: PresetPins; catalog?: Promise<Record<string, McpConfig>> }
 
@@ -61,7 +60,7 @@ export async function resolveConfig(configPath: string, ctx: ResolveContext): Pr
     throw new ConfigError(`${configLabel}: a Config selects presets with \`spec.presets\`, not \`spec.extends\``)
   }
   const resolution: Resolution = { ...ctx, root: dirname(configPath), usedPins: {} }
-  const graph: PresetGraph = { ancestors: new Map(), contributions: [], plugins: [], skills: [], agents: [], mcpServers: [] }
+  const graph: PresetGraph = { ancestors: new Map(), contributions: [], plugins: [], items: byKind(() => []), mcpServers: [] }
   for (const ref of list(config.spec?.presets)) await collect(ref, resolution.root, [], graph, resolution)
 
   const own = await readMarketplaces(config.spec?.marketplaces, configLabel, resolution.root)
@@ -81,23 +80,23 @@ export async function resolveConfig(configPath: string, ctx: ResolveContext): Pr
     readItems(kind, raw, configLabel, resolution.root).then((ds) =>
       ds.map((d): ItemDeclaration => ({ ...d, origin: configLabel, presets: [null], shadows: ['*'] })),
     )
-  const skills = mergeItems('skill', [...graph.skills, ...(await own_('skill', config.spec?.skills))])
-  const agents = mergeItems('agent', [...graph.agents, ...(await own_('agent', config.spec?.agents))])
+  const items = {} as ByKind<ReturnType<typeof mergeItems>>
+  for (const kind of ITEM_KINDS) items[kind] = mergeItems(kind, [...graph.items[kind], ...(await own_(kind, config.spec?.[`${kind}s`]))])
+  const mergedItems = ITEM_KINDS.map((kind) => items[kind])
   const ownMcp = (await readMcpServers(config.spec?.mcpServers, configLabel, resolution)).map(
     (d): McpContribution => ({ ...d, presets: [null], shadows: ['*'] }),
   )
   const mcpServers = mergeMcpServers([...graph.mcpServers, ...ownMcp])
-  notices.push(...skills.notices, ...agents.notices, ...mcpServers.notices)
+  notices.push(...mergedItems.flatMap((m) => m.notices), ...mcpServers.notices)
 
   return {
     declarations: [...kept, ...own],
     plugins,
-    skills: skills.declarations,
-    agents: agents.declarations,
+    items: byKind((kind) => items[kind].declarations),
     mcpServers: mcpServers.declarations,
     mcpConflicts: mcpServers.conflicts,
     pins: resolution.usedPins,
-    conflicts: [...merged.conflicts.filter((c) => !ownNames.has(c.name)), ...skills.conflicts, ...agents.conflicts],
+    conflicts: [...merged.conflicts.filter((c) => !ownNames.has(c.name)), ...mergedItems.flatMap((m) => m.conflicts)],
     notices,
   }
 }
@@ -110,9 +109,8 @@ type PresetGraph = {
   contributions: Contribution[]
   /** Khai báo plugin theo thứ tự nạp: Preset cha trước, con sau. */
   plugins: PluginDeclaration[]
-  /** Khai báo skill và Khai báo agent theo thứ tự nạp, mỗi mục của một Preset. */
-  skills: ItemDeclaration[]
-  agents: ItemDeclaration[]
+  /** Khai báo của từng loại item theo thứ tự nạp, mỗi mục của một Preset. */
+  items: ByKind<ItemDeclaration[]>
   /** Khai báo MCP server theo thứ tự nạp. */
   mcpServers: McpContribution[]
 }
@@ -319,10 +317,10 @@ async function collect(ref: string, from: string, stack: LoadedPreset[], graph: 
     graph.contributions.push({ declaration: { ...d, source: rebasePath(d.source, preset, resolution.root) }, presetId: preset.id })
   }
   graph.plugins.push(...readPlugins(preset.doc.spec?.plugins, preset.label))
-  for (const [kind, raw, into] of [['skill', preset.doc.spec?.skills, graph.skills], ['agent', preset.doc.spec?.agents, graph.agents]] as const) {
-    for (const d of await readItems(kind, raw, preset.label, preset.dir)) {
+  for (const kind of ITEM_KINDS) {
+    for (const d of await readItems(kind, preset.doc.spec?.[`${kind}s`], preset.label, preset.dir)) {
       const source = rebasePath(d.source, preset, resolution.root)
-      into.push({ ...d, source, origin: preset.label, presets: [preset.id], shadows: [...ancestors] })
+      graph.items[kind].push({ ...d, source, origin: preset.label, presets: [preset.id], shadows: [...ancestors] })
     }
   }
   for (const d of await readMcpServers(preset.doc.spec?.mcpServers, preset.label, resolution)) {
