@@ -51,12 +51,18 @@ export async function findRules(root: string, source: ItemSource): Promise<Found
 
 /**
  * Bản cài rule trong các Namespace cho trước, định danh `<namespace>/<đường dẫn>`. File ngoài các Namespace đó (của
- * người dùng) không được liệt kê; file là symlink thì băm nội dung nó trỏ tới.
+ * người dùng) không được liệt kê; file là symlink thì băm nội dung nó trỏ tới. Namespace là symlink (vd. người dùng
+ * `ln -s` tới bản checkout của mình) là một Bản cài symlink tên `<namespace>`, không liệt kê gì bên trong, để mọi Rule
+ * dưới nó là Manual entry và `ap` không ghi xuyên qua link.
  */
 export async function listInstalledRules(dir: string, namespaces: string[]): Promise<InstalledItem[]> {
   const rules: InstalledItem[] = []
   for (const namespace of namespaces) {
     const root = join(dir, namespace)
+    if (await isSymlink(root)) {
+      rules.push({ name: namespace, symlink: true, sha256: '' })
+      continue
+    }
     if (!(await isDir(root))) continue
     for (const entry of await readdir(root, { recursive: true, withFileTypes: true })) {
       if ((!entry.isFile() && !entry.isSymbolicLink()) || !entry.name.endsWith('.md')) continue
@@ -68,8 +74,13 @@ export async function listInstalledRules(dir: string, namespaces: string[]): Pro
   return rules
 }
 
-/** Copy đúng file Rule vào `<dir>/<namespace>/<đường dẫn>.md`, giữ cấu trúc thư mục để link tương đối vẫn đúng. */
+/**
+ * Copy đúng file Rule vào `<dir>/<namespace>/<đường dẫn>.md`, giữ cấu trúc thư mục để link tương đối vẫn đúng.
+ * Namespace là symlink (chỉ tới đây khi `--force`) thì chỉ gỡ link, không đụng thứ nó trỏ tới.
+ */
 export async function installRule(from: string, dir: string, name: string): Promise<void> {
+  const namespace = join(dir, name.split('/')[0]!)
+  if (await isSymlink(namespace)) await rm(namespace)
   const target = join(dir, `${name}.md`)
   await rm(target, { force: true })
   await mkdir(dirname(target), { recursive: true })
@@ -94,6 +105,10 @@ async function markdownFiles(dir: string): Promise<string[]> {
     else if (entry.isFile() && entry.name.endsWith('.md') && entry.name.toLowerCase() !== 'readme.md') files.push(path)
   }
   return files.sort()
+}
+
+async function isSymlink(path: string): Promise<boolean> {
+  return lstat(path).then((s) => s.isSymbolicLink(), () => false)
 }
 
 async function isDir(path: string): Promise<boolean> {

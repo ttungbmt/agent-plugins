@@ -44,6 +44,9 @@ export function planItems(
   const conflicts: Conflict[] = []
   const notices: string[] = []
   const adopted: DesiredItem[] = []
+  /** Bản cài cùng tên, hoặc thư mục symlink chứa nó (Namespace của Rule là symlink, ADR 0009). */
+  const entryOf = (name: string) =>
+    installed.find((e) => e.name === name) ?? installed.find((e) => e.symlink && name.startsWith(`${e.name}/`))
 
   for (const item of desired) {
     const { name } = item
@@ -53,7 +56,7 @@ export function planItems(
       continue
     }
 
-    const entry = installed.find((e) => e.name === name)
+    const entry = entryOf(name)
     const record = managed.find((m) => m.name === name)
     if (!entry) {
       actions.push({ kind: 'install', name, desired: item })
@@ -80,14 +83,15 @@ export function planItems(
     } else if (opts.force) {
       actions.push({ kind: 'install', name, desired: item })
     } else {
-      conflicts.push(manualEntryConflict(name, entry.symlink ? `a symlinked ${kind}` : `different ${kind} content`))
+      const why = entry.name !== name ? `a symlinked namespace "${entry.name}"` : entry.symlink ? `a symlinked ${kind}` : `different ${kind} content`
+      conflicts.push(manualEntryConflict(name, why))
     }
   }
 
   const forgotten: string[] = []
   for (const record of managed) {
     if (desired.some((d) => d.name === record.name) || opts.held?.has(record.name)) continue
-    const entry = installed.find((e) => e.name === record.name)
+    const entry = entryOf(record.name)
     if (!entry || entry.symlink || opts.shared?.some((c) => c.name === record.name)) forgotten.push(record.name)
     else if (entry.sha256 !== record.sha256 && !opts.force) conflicts.push(modifiedConflict(kind, record.name))
     else actions.push({ kind: 'remove', name: record.name })

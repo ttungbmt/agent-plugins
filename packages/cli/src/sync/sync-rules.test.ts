@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { join, relative, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
@@ -169,5 +169,122 @@ describe('sync rules', () => {
 
     expect((await t.run()).conflicts).toEqual([])
     expect(await t.tree()).toContain('other/common.md')
+  })
+})
+
+describe('sync rules ownership', () => {
+  const put = async (root: string, path: string, content: string) => {
+    await mkdir(join(root, path, '..'), { recursive: true })
+    await writeFile(join(root, path), content)
+  }
+
+  it('adopts a hand-copied rule with the same content and reports it once', async () => {
+    const t = await setup({
+      'agent-plugins.yaml': config(`[${REPO}]`),
+      '.claude/rules/ecc/common/testing.md': ECC['rules/common/testing.md'],
+    })
+
+    const report = await t.run()
+
+    expect(report.conflicts).toEqual([])
+    expect(report.actions).toEqual([act('install', 'ecc/common/coding-style'), act('install', 'ecc/web/coding-style')])
+    expect(report.notices).toContain('ap now manages rule "ecc/common/testing", which was set up by hand')
+    expect((await t.lock()).rules.map((r: { name: string }) => r.name)).toContain('ecc/common/testing')
+    expect((await t.run()).notices).not.toContain('ap now manages rule "ecc/common/testing", which was set up by hand')
+  })
+
+  it('keeps a hand-written rule at the same path until --force', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[${REPO}]`), '.claude/rules/ecc/common/testing.md': '# My testing\n' })
+
+    const report = await t.run()
+
+    expect(report.conflicts).toEqual([expect.objectContaining({ name: 'ecc/common/testing', reason: 'manual-entry' })])
+    expect(await t.read('.claude/rules/ecc/common/testing.md')).toBe('# My testing\n')
+
+    expect((await t.run('apply', { force: true })).actions).toEqual([act('install', 'ecc/common/testing')])
+    expect(await t.read('.claude/rules/ecc/common/testing.md')).toBe(ECC['rules/common/testing.md'])
+  })
+
+  it('reports a managed rule edited on disk, on update and on removal, until --force', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[${REPO}]`) })
+    await t.run()
+    await put(t.cwd, '.claude/rules/ecc/common/testing.md', '# Edited\n')
+
+    await t.sources.publish(REPO, { ...ECC, 'rules/common/testing.md': '# Testing v2\n' })
+    const update = await t.run('apply', { update: true })
+    expect(update.conflicts).toEqual([expect.objectContaining({ name: 'ecc/common/testing', reason: 'modified-rule' })])
+    expect(await t.read('.claude/rules/ecc/common/testing.md')).toBe('# Edited\n')
+
+    await t.setConfig('kind: Config\nmetadata: { name: demo }\nspec: {}\n')
+    const removal = await t.run()
+    expect(removal.conflicts).toEqual([expect.objectContaining({ name: 'ecc/common/testing', reason: 'modified-rule' })])
+    expect(await t.read('.claude/rules/ecc/common/testing.md')).toBe('# Edited\n')
+
+    expect((await t.run('apply', { force: true })).actions).toContainEqual(act('remove', 'ecc/common/testing'))
+    expect(await t.tree()).toEqual([])
+  })
+
+  it('never touches a file the user added inside the namespace', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[${REPO}]`), '.claude/rules/ecc/web/mine.md': '# Mine\n' })
+
+    expect((await t.run()).conflicts).toEqual([])
+    await t.setConfig('kind: Config\nmetadata: { name: demo }\nspec: {}\n')
+    await t.run()
+
+    expect(await t.tree()).toEqual(['ecc/web/mine.md'])
+  })
+
+  it('treats a symlinked namespace as a manual entry and never writes through it', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[${REPO}]`) })
+    const checkout = await makeTree({ 'common/testing.md': ECC['rules/common/testing.md'], 'notes.md': '# Notes\n' })
+    await mkdir(join(t.cwd, '.claude/rules'), { recursive: true })
+    await symlink(checkout, join(t.cwd, '.claude/rules/ecc'))
+
+    const report = await t.run()
+
+    expect(report.actions).toEqual([])
+    expect(report.conflicts.map((c) => [c.name, c.reason])).toEqual([
+      ['ecc/common/coding-style', 'manual-entry'],
+      ['ecc/common/testing', 'manual-entry'],
+      ['ecc/web/coding-style', 'manual-entry'],
+    ])
+    expect(report.conflicts[0]!.detail).toContain('symlinked namespace')
+    expect(await t.tree(checkout)).toEqual(['common/testing.md', 'notes.md'])
+
+    await t.run('apply', { force: true })
+    expect((await lstat(join(t.cwd, '.claude/rules/ecc'))).isSymbolicLink()).toBe(false)
+    expect(await t.tree()).toEqual(['ecc/common/coding-style.md', 'ecc/common/testing.md', 'ecc/web/coding-style.md'])
+    expect(await t.tree(checkout)).toEqual(['common/testing.md', 'notes.md'])
+  })
+
+  it('forgets managed rules whose namespace was replaced by a symlink, without deleting through it', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[${REPO}]`) })
+    await t.run()
+    const checkout = await makeTree({ 'common/testing.md': '# My fork\n' })
+    await rm(join(t.cwd, '.claude/rules/ecc'), { recursive: true })
+    await symlink(checkout, join(t.cwd, '.claude/rules/ecc'))
+
+    await t.setConfig('kind: Config\nmetadata: { name: demo }\nspec: {}\n')
+    const report = await t.run()
+
+    expect(report).toMatchObject({ actions: [], conflicts: [] })
+    expect((await t.lock()).rules).toBeUndefined()
+    expect(await t.tree(checkout)).toEqual(['common/testing.md'])
+  })
+
+  it('leaves a symlinked rule file alone when it matches, and reports it when it differs', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[${REPO}]`) })
+    const same = await makeTree({ 'testing.md': ECC['rules/common/testing.md'] })
+    const other = await makeTree({ 'style.md': '# Other style\n' })
+    await mkdir(join(t.cwd, '.claude/rules/ecc/common'), { recursive: true })
+    await symlink(join(same, 'testing.md'), join(t.cwd, '.claude/rules/ecc/common/testing.md'))
+    await symlink(join(other, 'style.md'), join(t.cwd, '.claude/rules/ecc/common/coding-style.md'))
+
+    const report = await t.run()
+
+    expect(report.conflicts).toEqual([expect.objectContaining({ name: 'ecc/common/coding-style', reason: 'manual-entry' })])
+    expect(report.actions).toEqual([act('install', 'ecc/web/coding-style')])
+    expect((await t.lock()).rules.map((r: { name: string }) => r.name)).toEqual(['ecc/web/coding-style'])
+    expect(await readFile(join(other, 'style.md'), 'utf8')).toBe('# Other style\n')
   })
 })
