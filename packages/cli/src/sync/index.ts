@@ -207,18 +207,25 @@ export async function sync(
   for (const { name, server } of resolved.mcpServers) {
     for (const variable of unsetVariables(server, env)) notices.push(`MCP server "${name}" uses \${${variable}}, which is not set in this environment`)
   }
-  // User-scoped MCP servers (ADR 0014) are planned against the `user` Scope, like User-scoped plugins.
-  const liftedMcp = scope === 'user' ? [] : resolved.mcpServers.filter((d) => d.scope === 'user')
-  const targetMcp = resolved.mcpServers.filter((d) => !liftedMcp.includes(d))
   const mcpHeld = new Set(resolved.mcpConflicts.map((c) => c.name))
-  const mcpPlan = planMcp(targetMcp, actualMcp, loaded.managedMcp, { force, held: mcpHeld, shared: loaded.sharedMcp })
-  const userMcpPlan = user && planMcp(liftedMcp, user.mcp, user.managedMcp, { force, held: mcpHeld, shared: user.sharedMcp })
-  for (const name of userMcpPlan?.forgotten ?? []) {
-    if (liftedMcp.some((d) => d.name === name) || !user!.sharedMcp.some((c) => c.name === name)) continue
+  const mcpKind: MovableKind<McpDeclaration, ManagedMcp, PlannedMcpAction> = {
+    key: (x) => x.name,
+    plan: (declarations, managed, side) =>
+      side === 'user'
+        ? planMcp(declarations, user!.mcp, managed, { force, held: mcpHeld, shared: user!.sharedMcp })
+        : planMcp(declarations, actualMcp, managed, { force, held: mcpHeld, shared: loaded.sharedMcp }),
+    isRemoval: (a) => a.kind === 'remove',
+    record: ({ name, server, origin }) => ({ name, server, origin }),
+    run: runMcp,
+  }
+  // User-scoped MCP servers (ADR 0014) are planned against the `user` Scope, like User-scoped plugins.
+  const mcp = scopeMove(mcpKind, resolved.mcpServers, { scope, managed: loaded.managedMcp }, user && { managed: user.managedMcp, claims: user.mcpClaims })
+  for (const name of mcp.plans.user?.forgotten ?? []) {
+    if (mcp.declared.user.some((d) => d.name === name) || !user!.sharedMcp.some((c) => c.name === name)) continue
     notices.push(`MCP server "${name}" stays in user settings because another Config declares it; turn it off for this repo with /mcp in Claude Code`)
   }
   // Kept apart from `conflicts` (which shares names across marketplace/plugin/Skill/Agent), merged only into the report.
-  const mcpConflicts = [...resolved.mcpConflicts, ...mcpPlan.conflicts, ...(userMcpPlan?.conflicts ?? [])]
+  const mcpConflicts = [...resolved.mcpConflicts, ...mcp.conflicts]
   const mcpSettled = (name: string) => !mcpConflicts.some((c) => c.name === name)
   const hookPlan = planHooks(resolved.hooks, await readSettingsHooks(scope, location), loaded.managedHooks)
 
@@ -253,13 +260,6 @@ export async function sync(
   const userSteps = (removing: boolean) =>
     (removing ? userRemovals : (user?.plan.actions ?? []).filter((a) => a.kind !== 'remove'))
       .map((action) => ({ target: 'marketplace' as const, action, scope: 'user' as const }))
-  // A User-scoped MCP server is added before the targeted Scope's servers and removed after them, and a server moving
-  // between the two Scopes stays at the old one while the new one has a conflict (ADR 0014).
-  const [targetMcpConflicts, userMcpConflicts] = [mcpPlan, userMcpPlan].map((p) => new Set(p?.conflicts.map((c) => c.name)))
-  const userMcpSteps = (removing: boolean) =>
-    (userMcpPlan?.actions ?? [])
-      .filter((a) => (a.kind === 'remove') === removing && !(removing && targetMcpConflicts!.has(a.name)))
-      .map((action) => ({ target: 'mcp' as const, action, scope: 'user' as const }))
   const steps: Exclude<Step, { target: 'hook' }>[] = [
     // User-scope entries first, so the plugins of the targeted Scope find their marketplace (ADR 0011).
     ...userSteps(false),
@@ -272,11 +272,10 @@ export async function sync(
     ...removals.map((action) => ({ target: 'marketplace' as const, action })),
     ...userSteps(true),
     ...itemRuns.flatMap(({ handler, plan }) => plan.actions.map((action) => ({ target: handler.kind, action }))),
-    ...userMcpSteps(false),
-    ...mcpPlan.actions
-      .filter((a) => !(a.kind === 'remove' && userMcpConflicts!.has(a.name)))
-      .map((action) => ({ target: 'mcp' as const, action })),
-    ...userMcpSteps(true),
+    // A User-scoped MCP server is added before the targeted Scope's servers and removed after them (ADR 0014).
+    ...mcp.steps.before.map((action) => ({ target: 'mcp' as const, action, scope: 'user' as const })),
+    ...mcp.steps.target.map((action) => ({ target: 'mcp' as const, action })),
+    ...mcp.steps.after.map((action) => ({ target: 'mcp' as const, action, scope: 'user' as const })),
   ]
   const hookSteps: Step[] = hookPlan.actions.map((action) => ({ target: 'hook' as const, action }))
 
@@ -288,7 +287,7 @@ export async function sync(
     }
     // Only servers actually in `.mcp.json` (in dry-run: about to be added) await approval; not when `add-json` failed.
     // User-scoped MCP servers live in `~/.claude.json`, which has no approval step.
-    const inMcpJson = targetMcp.filter((d) => mcpSettled(d.name)).map((d) => d.name)
+    const inMcpJson = mcp.declared.target.filter((d) => mcpSettled(d.name)).map((d) => d.name)
     const present = mode === 'apply' ? await registry.listMcp(scope) : null
     const pending = scope === 'project' ? await registry.pendingMcp(inMcpJson.filter((n) => !present || n in present)) : []
     if (pending.length) {
@@ -310,24 +309,19 @@ export async function sync(
 
   const byName = (m: { name: string }) => m.name
   const noPlan = { adopted: [], forgotten: [] }
-  const toMcp = ({ name, server, origin }: McpDeclaration): ManagedMcp => ({ name, server, origin })
   const records = ledger(managed, byName, plan, (a) => record(a.name, a.declaration))
   const userRecords = ledger(user?.managed ?? [], byName, user?.plan ?? noPlan, (a) => record(a.name, a.declaration))
-  const mcpRecords = ledger(loaded.managedMcp, byName, mcpPlan, toMcp)
-  const userMcpRecords = ledger(user?.managedMcp ?? [], byName, userMcpPlan ?? noPlan, toMcp)
   const hookRecords = ledger(loaded.managedHooks, byName, { ...hookPlan, adopted: [] }, (m: ManagedHook) => m)
   const toItem = ({ name, source, sha256, origin }: DesiredItem): ManagedItem => ({ name, source, sha256: sha256!, origin })
   const itemRecords = byKind((kind) => ledger(items[kind].managed, byName, items[kind].plan, toItem))
   /** Marketplaces whose step failed, with the Scope they were meant for. */
   const failedMarketplaces = new Map<string | null, Scope>()
-  /** MCP servers whose add/update failed, with their Scope; one moving there keeps its old Scope (ADR 0014). */
-  const failedMcp = new Map<string, Scope>()
   // A Manual entry that matches the declaration exactly: adopt it, reported only once.
   const adoptedNotice = (what: string) => notices.push(`ap now manages ${what}, which was set up by hand`)
   for (const name of [...records.adopted, ...userRecords.adopted, ...plugins.adopted]) {
     adoptedNotice(`"${name}"`)
   }
-  for (const name of [...mcpRecords.adopted, ...userMcpRecords.adopted]) adoptedNotice(`MCP server "${name}"`)
+  for (const name of mcp.adopted) adoptedNotice(`MCP server "${name}"`)
   for (const kind of ITEM_KINDS) {
     for (const name of itemRecords[kind].adopted) adoptedNotice(`${kind} "${name}"`)
   }
@@ -352,13 +346,12 @@ export async function sync(
           : step.target === 'plugin'
             ? await plugins.apply(step.action, step.scope ? 'user' : 'target')
             : step.target === 'mcp'
-              ? await applyMcp(step.action, step.scope)
+              ? await mcp.apply(step.action, step.scope ? 'user' : 'target')
               : await applyItem(step.target, step.action)
       actions.push({ ...describe(step), name, status: 'done' })
     } catch (error) {
       if (error instanceof ConflictError) conflicts.push(error.conflict)
       if (step.target === 'marketplace') failedMarketplaces.set(step.action.name, step.scope ?? scope)
-      if (step.target === 'mcp' && step.action.kind !== 'remove') failedMcp.set(step.action.name, step.scope ?? scope)
       actions.push({ ...describe(step), status: 'failed', error: (error as Error).message })
     }
     deps.onProgress?.({ phase: 'end', action: actions.at(-1)!, ms: Date.now() - started })
@@ -418,21 +411,14 @@ export async function sync(
     return { id, enabled, origin }
   }
 
-  /** `at` is set for a User-scoped MCP server, which lives in the `user` Scope and its own records. */
-  async function applyMcp(action: PlannedMcpAction, at?: 'user'): Promise<string> {
+  /** Runs an MCP server step at `at`; the CLI has no edit command, so an update is a removal and an add. */
+  async function runMcp(action: PlannedMcpAction, at: Scope): Promise<ManagedMcp | null> {
     const { name } = action
-    const [target, owned] = at ? [at, userMcpRecords] : [scope, mcpRecords]
-    const failedAt = failedMcp.get(name)
-    if (action.kind === 'remove' && failedAt && failedAt !== target) throw new Error(`"${name}" is kept here until it is set up in ${failedAt} settings`)
-    if (action.kind !== 'add') await registry.removeMcp(name, target)
-    if (action.kind === 'remove') {
-      owned.delete(name)
-      return name
-    }
+    if (action.kind !== 'add') await registry.removeMcp(name, at)
+    if (action.kind === 'remove') return null
     const { server, origin } = action.declaration
-    await registry.addMcp(name, server, target)
-    owned.set({ name, server, origin })
-    return name
+    await registry.addMcp(name, server, at)
+    return { name, server, origin }
   }
 
   /** All hook steps of a Scope are one settings write (ADR 0007), then progress is reported and each step recorded. */
@@ -479,9 +465,8 @@ export async function sync(
       .filter((s) => !conflicts.some((c) => c.name === s.name))
       .map(({ name, source, origin }) => ({ name, source, origin })),
   )
-  const claimsOfMcp = (servers: McpDeclaration[]): ManagedMcp[] =>
-    servers.filter((d) => mcpSettled(d.name)).map(({ name, server, origin }) => ({ name, server, origin }))
-  const mcpClaims = claimsOfMcp(targetMcp)
+  const mcpSettledDeclaration = (d: McpDeclaration) => mcpSettled(d.name)
+  const savedMcp = mcp.saved('target', mcpSettledDeclaration)
   await mcpNotices()
   await store.save(
     scope,
@@ -490,7 +475,7 @@ export async function sync(
       plugins: savedPlugins.owned,
       items: byKind((kind) => itemRecords[kind].values()),
       itemSources: byKind((kind) => items[kind].collected?.catalogs ?? items[kind].catalogs),
-      mcpServers: mcpRecords.values(),
+      mcpServers: savedMcp.owned,
       hooks: hookRecords.values(),
     },
     resolved.pins,
@@ -498,39 +483,35 @@ export async function sync(
       claims,
       pluginClaims: savedPlugins.claims,
       itemClaims,
-      mcpClaims,
+      mcpClaims: savedMcp.claims,
       released: {
         ...NO_OWNED,
         marketplaces: records.released,
         plugins: savedPlugins.released,
         items: byKind((kind) => itemRecords[kind].released),
-        mcpServers: mcpRecords.released,
+        mcpServers: savedMcp.released,
       },
     },
   )
   // A record holding only claims is saved too, so dropping the last User-scoped declaration drops those claims.
-  // An MCP server moving back from `user` keeps this Config's claim there until the targeted Scope has it (ADR 0014).
-  const movingBackMcp = [...(user?.managedMcp ?? []), ...(user?.mcpClaims ?? [])]
-    .filter((m, i, all) => all.findIndex((o) => o.name === m.name) === i && !liftedMcp.some((d) => d.name === m.name))
-    .filter((m) => failedMcp.get(m.name) === scope || targetMcpConflicts!.has(m.name))
-    .map(({ name, server, origin }) => ({ name, server, origin }))
   const userPlugins = plugins.saved('user', pluginSettled)
-  if (user && (user.recorded || lifted.length || desiredPlugins.some((p) => p.scope === 'user') || liftedMcp.length)) {
+  const userMcp = mcp.saved('user', mcpSettledDeclaration)
+  if (user && (user.recorded || lifted.length || plugins.declared.user.length || mcp.declared.user.length)) {
     await store.save(
       'user',
       {
         ...NO_OWNED,
         marketplaces: userRecords.values(),
         plugins: userPlugins.owned,
-        mcpServers: userMcpRecords.values(),
+        mcpServers: userMcp.owned,
       },
       resolved.pins,
       {
         claims: claimsOf(lifted, userRecords.values(), user.actual, conflicts),
         pluginClaims: userPlugins.claims,
         itemClaims: byKind(() => []),
-        mcpClaims: [...claimsOfMcp(liftedMcp), ...movingBackMcp],
-        released: { ...NO_OWNED, marketplaces: userRecords.released, plugins: userPlugins.released, mcpServers: userMcpRecords.released },
+        mcpClaims: userMcp.claims,
+        released: { ...NO_OWNED, marketplaces: userRecords.released, plugins: userPlugins.released, mcpServers: userMcp.released },
       },
       { target: scope },
     )

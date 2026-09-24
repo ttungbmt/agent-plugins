@@ -61,6 +61,7 @@ describe('scopeMove', () => {
     const { kind, runs } = fakeKind()
     const move = scopeMove(kind, [declared('a'), declared('b', 'user')], { scope: 'user' as Scope, managed: [] }, null)
 
+    expect(move.declared).toEqual({ target: [declared('a'), declared('b', 'user')], user: [] })
     expect(move.steps.before).toEqual([])
     expect(move.steps.after).toEqual([])
     await applyAll(move)
@@ -77,6 +78,7 @@ describe('scopeMove', () => {
       { managed: [managed('old')], claims: [] },
     )
 
+    expect(move.declared).toEqual({ target: [declared('a')], user: [declared('b', 'user')] })
     await applyAll(move)
     expect(runs).toEqual(['put b @user', 'put a @project', 'drop gone @project', 'drop old @user'])
     expect(move.saved('target', settled)).toMatchObject({ owned: [managed('a')], claims: [managed('a')] })

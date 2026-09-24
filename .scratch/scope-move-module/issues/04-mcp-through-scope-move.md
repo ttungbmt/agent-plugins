@@ -1,6 +1,6 @@
 ---
 title: Route MCP servers through `scopeMove`
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [02]
 ---
 

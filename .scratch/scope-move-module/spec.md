@@ -72,6 +72,7 @@ function scopeMove<D extends { scope?: 'user' }, M, A>(
   target: { scope: Scope; managed: M[] },
   user: { managed: M[]; claims: M[] } | null,   // null when the Sync targets `user`
 ): {
+  declared: { target: D[]; user: D[] }               // the split on `scope: 'user'`
   plans: { target: KindPlan; user: KindPlan | null }   // for kind-specific rules left in sync()
   conflicts: Conflict[]
   notices: string[]

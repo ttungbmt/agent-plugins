@@ -62,6 +62,8 @@ export function scopeMove<D extends { scope?: 'user' }, M, A>(
   const failed = new Map<string, Scope>()
 
   return {
+    /** The declarations synced to each side: User-scoped ones go to `user` unless the Sync targets it. */
+    declared,
     plans,
     conflicts: [...plans.target.conflicts, ...(plans.user?.conflicts ?? [])],
     notices: [...(plans.target.notices ?? []), ...(plans.user?.notices ?? [])],
