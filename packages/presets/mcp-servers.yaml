@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=../schemas/schemas/mcp-catalog.schema.json
 
 # MCP catalog: server configurations a Preset or Config enables with `<name>: true` under `spec.mcpServers` (ADR 0006).
-# Sources and the reasoning behind each entry: docs/research/mcp-servers-catalog.md and mcp-servers-catalog-{2,3,4}.md.
+# Sources and the reasoning behind each entry: docs/research/mcp-servers-catalog.md and mcp-servers-catalog-{2,3,4,5}.md.
 # An `Authorization` header turns off Claude Code's OAuth login, so each name picks one auth style: the bare name is the
 # vendor-recommended one and the `-oauth` / `-token` twin is the other.
 # OAuth entries: after sync, run `/mcp` or `claude mcp login <name>` to sign in.
@@ -771,3 +771,272 @@ servers:
     args: [--from, 'browser-use[cli]==0.13.10', browser-use, --mcp]
     env:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+
+  # --- Microsoft Azure ---------------------------------------------------------------------
+  # Remote Azure DevOps (https://mcp.dev.azure.com/<org>) and Foundry need your own Entra app registration: declare them
+  # inline with `oauth: {clientId: <app id>, callbackPort: 3118}`.
+  azure:
+    description: >-
+      Microsoft's official Azure MCP Server (GA) for Azure resources (Storage, Key Vault, Cosmos DB, AKS, Foundry,
+      Monitor, ...) with your local Azure sign-in (az login, azd, VS Code or PowerShell); runs with npx (Node 20+),
+      telemetry off. Also shipped as plugin `azure@claude-plugins-official`.
+    command: npx
+    args: [-y, '@azure/mcp@2.0.5', server, start]
+    env:
+      AZURE_MCP_COLLECT_TELEMETRY: 'false'
+
+  microsoft-learn:
+    description: >-
+      Microsoft's official hosted Microsoft Learn server for searching and fetching Microsoft and Azure documentation and
+      code samples; no sign-in. Also shipped as plugin `microsoft-docs@claude-plugins-official`.
+    type: http
+    url: https://learn.microsoft.com/api/mcp
+
+  azure-devops:
+    description: >-
+      Microsoft's official local Azure DevOps server (Azure DevOps Services only) for work items, repos, pipelines, wiki
+      and test plans; runs with npx (Node 20+), needs AZURE_DEVOPS_ORG and signs in through the browser on first use.
+    command: npx
+    args: [-y, '@azure-devops/mcp@2.10.0', '${AZURE_DEVOPS_ORG}']
+
+  azure-devops-token:
+    description: >-
+      Microsoft's official local Azure DevOps server with a personal access token instead of browser sign-in; runs with
+      npx and needs AZURE_DEVOPS_ORG and AZURE_DEVOPS_BASIC_AUTH, which must already be base64("<email>:<pat>").
+    command: npx
+    args: [-y, '@azure-devops/mcp@2.10.0', '${AZURE_DEVOPS_ORG}', --authentication, pat]
+    env:
+      PERSONAL_ACCESS_TOKEN: ${AZURE_DEVOPS_BASIC_AUTH}
+
+  # --- Google Cloud ------------------------------------------------------------------------
+  # Google's remote servers support neither DCR nor CIMD, so Claude Code cannot sign in by itself. These entries mint an
+  # ADC access token on each connection (run `gcloud auth application-default login` first) and bill the quota project
+  # GOOGLE_CLOUD_PROJECT. Each caller needs roles/mcp.toolUser plus the product's own IAM roles.
+  gcloud:
+    description: >-
+      Google's official local gcloud server that runs gcloud CLI commands (a default denylist blocks some) with your
+      local gcloud sign-in; runs with npx (Node 20+) and needs the gcloud CLI on PATH.
+    command: npx
+    args: [-y, '@google-cloud/gcloud-mcp@0.5.3']
+    env:
+      CLOUDSDK_CORE_DISABLE_USAGE_REPORTING: 'true'
+
+  gcp-bigquery:
+    description: >-
+      Google's official managed BigQuery server for datasets, table metadata and SQL (execute_sql can write); ADC token
+      from the gcloud CLI, needs GOOGLE_CLOUD_PROJECT. Its headersHelper is POSIX shell, so it does not run on native
+      Windows. Also shipped as plugin `bigquery-data-analytics@claude-plugins-official`.
+    type: http
+    url: https://bigquery.googleapis.com/mcp
+    headers:
+      x-goog-user-project: ${GOOGLE_CLOUD_PROJECT}
+    headersHelper: printf '{"Authorization":"Bearer %s"}' "$(gcloud auth application-default print-access-token)"
+
+  gcp-cloud-run:
+    description: >-
+      Google's official managed Cloud Run server for listing services and deploying from an image, an archive or file
+      contents; ADC token from the gcloud CLI, needs GOOGLE_CLOUD_PROJECT. Its headersHelper is POSIX shell, so it does
+      not run on native Windows.
+    type: http
+    url: https://run.googleapis.com/mcp
+    headers:
+      x-goog-user-project: ${GOOGLE_CLOUD_PROJECT}
+    headersHelper: printf '{"Authorization":"Bearer %s"}' "$(gcloud auth application-default print-access-token)"
+
+  gcp-gke:
+    description: >-
+      Google's official managed GKE server for clusters, node pools and Kubernetes resources, logs and manifests; ADC
+      token from the gcloud CLI, needs GOOGLE_CLOUD_PROJECT. Its headersHelper is POSIX shell, so it does not run on
+      native Windows.
+    type: http
+    url: https://container.googleapis.com/mcp
+    headers:
+      x-goog-user-project: ${GOOGLE_CLOUD_PROJECT}
+    headersHelper: printf '{"Authorization":"Bearer %s"}' "$(gcloud auth application-default print-access-token)"
+
+  gcp-compute:
+    description: >-
+      Google's official managed Compute Engine server for VM instances, disks, templates and reservations; ADC token
+      from the gcloud CLI, needs GOOGLE_CLOUD_PROJECT. Its headersHelper is POSIX shell, so it does not run on native
+      Windows.
+    type: http
+    url: https://compute.googleapis.com/mcp
+    headers:
+      x-goog-user-project: ${GOOGLE_CLOUD_PROJECT}
+    headersHelper: printf '{"Authorization":"Bearer %s"}' "$(gcloud auth application-default print-access-token)"
+
+  gcp-cloud-sql:
+    description: >-
+      Google's official managed Cloud SQL server for administering MySQL, PostgreSQL and SQL Server instances; ADC token
+      from the gcloud CLI, needs GOOGLE_CLOUD_PROJECT. Its headersHelper is POSIX shell, so it does not run on native
+      Windows. Also shipped as plugins `cloud-sql-postgresql@claude-plugins-official`,
+      `cloud-sql-mysql@claude-plugins-official` and `cloud-sql-sqlserver@claude-plugins-official`.
+    type: http
+    url: https://sqladmin.googleapis.com/mcp
+    headers:
+      x-goog-user-project: ${GOOGLE_CLOUD_PROJECT}
+    headersHelper: printf '{"Authorization":"Bearer %s"}' "$(gcloud auth application-default print-access-token)"
+
+  gcp-logging:
+    description: >-
+      Google's official managed Cloud Logging server for reading log entries, log names, buckets and views; ADC token
+      from the gcloud CLI, needs GOOGLE_CLOUD_PROJECT. Its headersHelper is POSIX shell, so it does not run on native
+      Windows.
+    type: http
+    url: https://logging.googleapis.com/mcp
+    headers:
+      x-goog-user-project: ${GOOGLE_CLOUD_PROJECT}
+    headersHelper: printf '{"Authorization":"Bearer %s"}' "$(gcloud auth application-default print-access-token)"
+
+  gcp-monitoring:
+    description: >-
+      Google's official managed Cloud Monitoring server for metrics, time series and alert policies; ADC token from the
+      gcloud CLI, needs GOOGLE_CLOUD_PROJECT. Its headersHelper is POSIX shell, so it does not run on native Windows.
+    type: http
+    url: https://monitoring.googleapis.com/mcp
+    headers:
+      x-goog-user-project: ${GOOGLE_CLOUD_PROJECT}
+    headersHelper: printf '{"Authorization":"Bearer %s"}' "$(gcloud auth application-default print-access-token)"
+
+  firebase:
+    description: >-
+      Google's official Firebase server in the Firebase CLI (Firestore, Auth, Hosting, Functions, Data Connect,
+      Crashlytics, ...), with tools picked from the project's firebase.json; runs with npx (Node 20+) and uses
+      `firebase login` or ADC. Also shipped as plugin `firebase@claude-plugins-official`.
+    command: npx
+    args: [-y, firebase-tools@15.31.0, mcp, --dir, '${CLAUDE_PROJECT_DIR:-.}']
+
+  google-developer-knowledge:
+    description: >-
+      Google's official hosted Developer Knowledge server for searching Google developer documentation (Cloud,
+      Firebase, Android, Maps, ...); needs DEVELOPERKNOWLEDGE_API_KEY, an API key with the Developer Knowledge API enabled.
+    type: http
+    url: https://developerknowledge.googleapis.com/mcp
+    headers:
+      X-Goog-Api-Key: ${DEVELOPERKNOWLEDGE_API_KEY}
+
+  google-maps:
+    description: >-
+      Google's official hosted Maps Grounding Lite server for place search, weather and routes (billed per call);
+      needs GOOGLE_MAPS_API_KEY, an API key with the Maps Grounding Lite API enabled.
+    type: http
+    url: https://mapstools.googleapis.com/mcp
+    headers:
+      X-Goog-Api-Key: ${GOOGLE_MAPS_API_KEY}
+
+  google-maps-code-assist:
+    description: >-
+      Google's official hosted Maps Code Assist server (experimental, free) with Google Maps Platform docs and coding
+      guidance; no sign-in.
+    type: http
+    url: https://mapscodeassist.googleapis.com/mcp
+
+  # --- Documentation -----------------------------------------------------------------------
+  context7:
+    description: >-
+      Upstash's official hosted Context7 server for current, version-specific library documentation and code examples;
+      needs CONTEXT7_API_KEY (free at context7.com/dashboard). Also shipped as plugin `context7@claude-plugins-official`.
+    type: http
+    url: https://mcp.context7.com/mcp
+    headers:
+      Authorization: Bearer ${CONTEXT7_API_KEY}
+
+  context7-anonymous:
+    description: >-
+      Upstash's official hosted Context7 server without an API key, at the lower anonymous rate limit; no auth.
+    type: http
+    url: https://mcp.context7.com/mcp
+
+  context7-oauth:
+    description: Upstash's official hosted Context7 server with browser sign-in (OAuth) instead of an API key.
+    type: http
+    url: https://mcp.context7.com/mcp/oauth
+
+  # --- Browser automation (Playwright) -----------------------------------------------------
+  playwright:
+    description: >-
+      Microsoft's official Playwright server for browser automation through accessibility snapshots; runs with npx
+      (Node 18+), headed, with a persistent per-workspace profile. Also shipped as plugin `playwright@claude-plugins-official`.
+    command: npx
+    args: [-y, '@playwright/mcp@0.0.82']
+
+  playwright-headless:
+    description: >-
+      Microsoft's official Playwright server with a headless browser and an in-memory profile, for machines without a
+      display (WSL, CI, SSH) or parallel sessions; runs with npx.
+    command: npx
+    args: [-y, '@playwright/mcp@0.0.82', --headless, --isolated]
+
+  playwright-extension:
+    description: >-
+      Microsoft's official Playwright server attached to your running Chrome or Edge and its logged-in tabs; runs with npx
+      and needs the Playwright Extension installed in that browser.
+    command: npx
+    args: [-y, '@playwright/mcp@0.0.82', --extension]
+
+  # --- Linear ------------------------------------------------------------------------------
+  linear:
+    description: >-
+      Linear's official hosted server for finding, creating and updating issues, projects, cycles and comments; OAuth
+      sign-in. Also shipped as plugin `linear@claude-plugins-official`.
+    type: http
+    url: https://mcp.linear.app/mcp
+
+  linear-token:
+    description: >-
+      Linear's official hosted server with a personal API key instead of browser sign-in; needs LINEAR_API_KEY (a key
+      limited to Read permission gives read-only access).
+    type: http
+    url: https://mcp.linear.app/mcp
+    headers:
+      Authorization: Bearer ${LINEAR_API_KEY}
+
+  # --- Stripe ------------------------------------------------------------------------------
+  stripe:
+    description: >-
+      Stripe's official hosted server for the Stripe API, account data, analytics and docs search; OAuth sign-in, picking
+      live accounts or sandboxes and their permissions at consent. Also shipped as plugin `stripe@claude-plugins-official`.
+    type: http
+    url: https://mcp.stripe.com
+
+  stripe-token:
+    description: >-
+      Stripe's official hosted server with an agent API key (a restricted key tagged for agents; rk_test_… for a
+      sandbox) instead of OAuth; needs STRIPE_AGENT_API_KEY. Untagged restricted and secret keys stop working on 2026-10-31.
+    type: http
+    url: https://mcp.stripe.com
+    headers:
+      Authorization: Bearer ${STRIPE_AGENT_API_KEY}
+
+  # --- Slack -------------------------------------------------------------------------------
+  # No DCR/CIMD: sign-in uses Slack's published app client ID, as in Slack's own Claude Code config.
+  slack:
+    description: >-
+      Slack's official hosted server for searching messages and files, reading channels and threads, and sending
+      messages, canvases and lists; OAuth sign-in through Slack's published app, which a workspace admin must approve.
+      Also shipped as plugin `slack@claude-plugins-official`.
+    type: http
+    url: https://mcp.slack.com/mcp
+    oauth:
+      clientId: '1601185624273.8899143856786'
+      callbackPort: 3118
+
+  # --- Grafana -----------------------------------------------------------------------------
+  grafana:
+    description: >-
+      Grafana Labs' official local server for any Grafana (self-hosted or Grafana Cloud): dashboards, datasources,
+      Prometheus/Loki queries, alerting, incidents and OnCall; runs with uvx and needs GRAFANA_URL and
+      GRAFANA_SERVICE_ACCOUNT_TOKEN, usage stats off. Also shipped as plugin `grafana-mcp@claude-plugins-official`.
+    command: uvx
+    args: [mcp-grafana@1.5.1]
+    env:
+      GRAFANA_URL: ${GRAFANA_URL}
+      GRAFANA_SERVICE_ACCOUNT_TOKEN: ${GRAFANA_SERVICE_ACCOUNT_TOKEN}
+      GRAFANA_USAGE_STATS: disabled
+
+  grafana-cloud:
+    description: >-
+      Grafana Labs' official hosted Grafana Cloud server with the signed-in user's permissions; OAuth sign-in (you enter
+      the stack URL in the browser), Grafana Cloud only. Also shipped as plugin `grafana-cloud-mcp@claude-plugins-official`.
+    type: http
+    url: https://mcp.grafana.com/mcp
