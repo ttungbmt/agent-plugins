@@ -220,6 +220,12 @@ describe('presetRefs', () => {
     expect(() => presetRefs({ spec: { hooks: {} } }, 'Preset', 'p.yaml')).toThrow('p.yaml: unknown key `spec.hooks`')
   })
 
+  it('reads a `spec` written as a list by its indexes, so the first one is an unknown key', () => {
+    expect(() => presetRefs({ spec: ['a'] } as PresetDocument, 'Config', 'c.yaml')).toThrow(
+      "c.yaml: unknown key `spec.0`; a Config's spec takes presets, ",
+    )
+  })
+
   it('rejects a reference that is not a string', () => {
     expect(() => presetRefs({ spec: { presets: [1] } }, 'Config', 'c.yaml')).toThrow('c.yaml: `spec.presets` must be a preset reference or a list of them')
     expect(() => presetRefs({ spec: { extends: { a: 1 } } }, 'Preset', 'p.yaml')).toThrow('p.yaml: `spec.extends` must be a preset reference or a list of them')

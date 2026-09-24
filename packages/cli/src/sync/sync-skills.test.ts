@@ -301,6 +301,15 @@ describe('sync skills', () => {
     expect(report.conflicts).toEqual([expect.objectContaining({ name: 'pdf', reason: 'preset-clash' })])
   })
 
+  it('keeps skills in declaration order, all-digit names included', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config(`[${REPO}, ${OTHER}]`) }, { [REPO]: skill('pdf'), [OTHER]: skill('7') })
+
+    const report = await t.run()
+
+    expect(report.actions).toEqual([act('install', 'pdf'), act('install', '7')])
+    expect((await t.lock()).skills.map((s: { name: string }) => s.name)).toEqual(['pdf', '7'])
+  })
+
   it('installs every skill but the excluded ones, and warns about an excluded skill the source lacks', async () => {
     const t = await setup(
       { 'agent-plugins.yaml': config(`[{ source: ${REPO}, exclude: [docx, xlsx] }]`) },

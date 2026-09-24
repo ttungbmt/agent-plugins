@@ -128,6 +128,21 @@ describe('mergeLayers', () => {
     ])
   })
 
+  it('keeps MCP servers in declaration order, all-digit names included', () => {
+    const names = ['github', 'context7', '2fa', '7', 'sentry']
+    const result = mergeLayers([config({ mcpServers: names.map((name) => ({ name, server: { command: name }, origin: 'config' })) })])
+
+    expect(result.mcpServers.map((d) => d.name)).toEqual(names)
+  })
+
+  it('keeps an MCP server named __proto__ as an ordinary name', () => {
+    const names = ['github', '__proto__', 'sentry']
+    const result = mergeLayers([config({ mcpServers: names.map((name) => ({ name, server: { command: name }, origin: 'config' })) })])
+
+    expect(result.mcpServers.map((d) => d.name)).toEqual(names)
+    expect(result.mcpServers[1]).toEqual({ name: '__proto__', server: { command: '__proto__' }, origin: 'config' })
+  })
+
   it('takes hooks from the Config only', () => {
     const hook = { name: 'done', group: { event: 'Stop', hooks: [] }, origin: 'config' }
     const result = mergeLayers([preset('a', [], {}), config({ hooks: [hook] })])

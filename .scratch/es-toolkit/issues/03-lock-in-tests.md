@@ -1,6 +1,6 @@
 ---
 title: Pin the behaviours no current test covers
-labels: []
+labels: [done]
 blocked_by: []
 ---
 

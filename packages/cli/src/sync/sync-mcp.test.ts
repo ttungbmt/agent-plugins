@@ -253,6 +253,18 @@ describe('sync mcp servers', () => {
     expect((await t.run('dry-run')).notices).toContain('MCP server "search" has the same name as one plugin s provides (plugin:s:search); both will run')
   })
 
+  it('reads a plugin.json `mcpServers` list by its indexes, as servers named "0", "1", …', async () => {
+    const t = await setup({ 'agent-plugins.yaml': config('{ "0": { command: zero-mcp } }') })
+    const installPath = join(t.homedir, 'plugin-s')
+    await makeFile(join(installPath, '.claude-plugin/plugin.json'), { name: 's', mcpServers: [{ command: 'x' }] })
+    await makeFile(join(t.cwd, '.claude/settings.json'), { enabledPlugins: { 's@m': true } })
+    await makeFile(join(t.homedir, '.claude/plugins/installed_plugins.json'), {
+      plugins: { 's@m': [{ scope: 'project', projectPath: t.cwd, installPath }] },
+    })
+
+    expect((await t.run('dry-run')).notices).toContain('MCP server "0" has the same name as one plugin s provides (plugin:s:0); both will run')
+  })
+
   it('reads an empty .mcp.json as having no servers', async () => {
     const t = await setup({ 'agent-plugins.yaml': config('{ firecrawl: true }'), '.mcp.json': '' })
 

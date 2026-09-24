@@ -5,6 +5,7 @@ import { parse } from 'yaml'
 import { fakeClaude } from './fake-claude.js'
 import { sync, type SyncMode } from './index.js'
 import { makeTree } from './test-helpers.js'
+import { findWorkflows, listInstalledWorkflows } from './workflows.js'
 import type { ItemSource, Scope } from './types.js'
 
 const REPO = 'acme/flows'
@@ -417,3 +418,36 @@ describe('sync workflows when workflows are switched off', () => {
   })
 })
 
+
+/**
+ * Pins today's order, which comes from `localeCompare` with the machine's locale. These ASCII names sort the same under
+ * `en`, `sv_SE`, `tr_TR` and `C`, so the expected values are the `en` order whatever `LC_ALL` the runner has.
+ */
+describe('workflow order', () => {
+  const NAMES = ['zeta2', 'Deploy-prod', 'audit', 'Zeta', 'deploy']
+
+  it('lists the workflows of a source by meta.name in `en` order', async () => {
+    const root = await makeTree(Object.fromEntries(NAMES.map((n) => [`workflows/${n}.js`, script(n)])))
+
+    const found = await findWorkflows(root, { source: 'directory', path: root })
+
+    expect(found.map((w) => w.name)).toEqual(['audit', 'deploy', 'Deploy-prod', 'Zeta', 'zeta2'])
+  })
+
+  it('lists Installed workflows by file name in `en` order', async () => {
+    const dir = await makeTree(Object.fromEntries(NAMES.map((n) => [`${n}.js`, script(n)])))
+
+    const installed = await listInstalledWorkflows(dir)
+
+    expect(installed.map((w) => w.name)).toEqual(['audit', 'Deploy-prod', 'deploy', 'Zeta', 'zeta2'])
+  })
+
+  it('takes b.js over B.js as the Installed workflow when neither is <name>.js', async () => {
+    const dir = await makeTree({ 'B.js': script('deploy', "await agent('upper')"), 'b.js': script('deploy', "await agent('lower')") })
+
+    const [installed] = await listInstalledWorkflows(dir)
+    const lower = await listInstalledWorkflows(await makeTree({ 'b.js': script('deploy', "await agent('lower')") }))
+
+    expect(installed).toMatchObject({ name: 'deploy', files: ['b.js', 'B.js'], sha256: lower[0]!.sha256 })
+  })
+})

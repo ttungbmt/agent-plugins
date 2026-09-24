@@ -27,6 +27,15 @@ describe('init', () => {
     expect(result.configPath).toBe(join(cwd, 'agent-plugins.yaml'))
   })
 
+  it.each([
+    ['v1.2.3', 'v1-2-3'],
+    ['My Project v2', 'my-project-v2'],
+  ])('keeps digits joined to letters when deriving the name from %s', async (dirName, name) => {
+    const cwd = await makeRepo(dirName)
+    await init({ cwd })
+    expect(parse(await read(cwd, 'agent-plugins.yaml')).metadata.name).toBe(name)
+  })
+
   it('uses --name instead of the directory name', async () => {
     const cwd = await makeRepo('whatever')
     await init({ cwd, name: 'team-tools' })
