@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.agent-plugins/state.local.json
+.agent-plugins/cache/
+packages/cli/release/
+mise.local.toml
+.scratch/claude-config/
+.env

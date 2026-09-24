@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": true,
+    "tsBuildInfoFile": "dist/.tsbuildinfo"
+  },
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/fake-claude.ts",
+    "src/**/test-helpers.ts"
+  ]
+}

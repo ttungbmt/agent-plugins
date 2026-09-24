@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ttungbmt/agent-plugins/master/packages/schemas/schemas/config.schema.json
+
+kind: Config
+
+metadata:
+  name: mealops
+
+spec:
+  presets:
+    - ./agent-plugins.preset.yaml 

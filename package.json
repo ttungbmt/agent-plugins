@@ -1,0 +1,27 @@
+{
+  "name": "agent-plugins-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "ap": "pnpm -C packages/cli build && node packages/cli/bin/run.js",
+    "mcp:outdated": "node scripts/mcp-outdated.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.5.1",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@12.5.1",
+  "type": "module",
+  "devDependencies": {
+    "@ttungbmt/agent-plugins": "workspace:*",
+    "yaml": "^2.9.1"
+  }
+}

@@ -1,0 +1,44 @@
+plugins:
+  - id: context7@claude-plugins-official
+    enabled: true
+    origin: agent-plugins
+  - id: typescript-lsp@claude-plugins-official
+    enabled: true
+    origin: agent-plugins
+  - id: mattpocock-skills@claude-plugins-official
+    enabled: true
+    origin: agent-plugins
+  - id: security-guidance@claude-plugins-official
+    enabled: true
+    origin: agent-plugins
+  - id: code-simplifier@claude-plugins-official
+    enabled: true
+    origin: agent-plugins
+  - id: hookify@claude-plugins-official
+    enabled: true
+    origin: agent-plugins
+  - id: commit-commands@claude-plugins-official
+    enabled: true
+    origin: agent-plugins
+  - id: claude-code-setup@claude-plugins-official
+    enabled: true
+    origin: base
+  - id: claude-md-management@claude-plugins-official
+    enabled: true
+    origin: base
+  - id: skill-creator@claude-plugins-official
+    enabled: true
+    origin: agent-plugins
+mcpServers:
+  - name: firecrawl
+    server:
+      type: http
+      url: https://mcp.firecrawl.dev/v2/mcp
+      headers:
+        Authorization: Bearer ${FIRECRAWL_API_KEY}
+    origin: agent-plugins
+  - name: deepwiki
+    server:
+      type: http
+      url: https://mcp.deepwiki.com/mcp
+    origin: agent-plugins.preset.yaml

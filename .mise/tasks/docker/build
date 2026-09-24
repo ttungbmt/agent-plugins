@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Build the sandbox image"
+set -euo pipefail
+docker compose build "$@"

@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=./packages/schemas/schemas/config.schema.json
+
+kind: Config
+
+metadata:
+  name: agent-plugins
+
+spec:
+  presets:
+    - ./agent-plugins.preset.yaml

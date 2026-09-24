@@ -1,0 +1,37 @@
+marketplaces:
+  - name: obsidian-skills
+    source:
+      source: github
+      repo: kepano/obsidian-skills
+    origin: agent-plugins.preset.yaml
+  - name: last30days-skill
+    source:
+      source: github
+      repo: mvanhorn/last30days-skill
+    origin: .agent-plugins/preset.yaml
+plugins:
+  - id: obsidian@obsidian-skills
+    enabled: true
+    origin: agent-plugins.preset.yaml
+  - id: last30days@last30days-skill
+    enabled: true
+    origin: agent-plugins.preset.yaml
+  - id: claude-code-setup@claude-plugins-official
+    enabled: true
+    origin: base
+  - id: claude-md-management@claude-plugins-official
+    enabled: true
+    origin: base
+mcpServers:
+  - name: firecrawl
+    server:
+      type: http
+      url: https://mcp.firecrawl.dev/v2/mcp
+      headers:
+        Authorization: Bearer ${FIRECRAWL_API_KEY}
+    origin: agent-plugins.preset.yaml
+  - name: deepwiki
+    server:
+      type: http
+      url: https://mcp.deepwiki.com/mcp
+    origin: agent-plugins.preset.yaml

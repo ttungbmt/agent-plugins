@@ -1,0 +1,5 @@
+packages:
+  - "packages/*"
+allowBuilds:
+  # esbuild gets its platform binary through optionalDependencies; no postinstall needed.
+  esbuild: false

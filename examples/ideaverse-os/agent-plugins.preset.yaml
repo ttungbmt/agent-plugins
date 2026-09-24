@@ -1,0 +1,23 @@
+kind: Preset
+
+metadata:
+  name: ideaverse-os
+
+spec:
+  extends: base
+
+  marketplaces:
+    - kepano/obsidian-skills
+    - mvanhorn/last30days-skill
+    
+  plugins:
+    obsidian@obsidian-skills: true
+    last30days@last30days-skill: true
+
+  mcpServers:
+    firecrawl: true
+    deepwiki: true
+
+
+  
+

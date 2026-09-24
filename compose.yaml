@@ -1,0 +1,17 @@
+# Clean sandbox for trying `ap`. See docker/README.md.
+name: agent-plugins
+
+services:
+  ap:
+    stdin_open: true
+    tty: true
+    build:
+      context: docker
+      args: { NODE_VERSION: "24" }
+    image: agent-plugins-sandbox:node24
+    volumes:
+      - ./examples:/examples:ro
+      - home:/home/node
+
+volumes:
+  home:

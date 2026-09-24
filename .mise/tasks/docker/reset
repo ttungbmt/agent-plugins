@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Remove sandbox containers and the home volume (back to a clean machine)"
+set -euo pipefail
+docker compose down -v --remove-orphans "$@"

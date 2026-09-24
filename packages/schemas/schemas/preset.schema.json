@@ -1,0 +1,923 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ttungbmt/agent-plugins/packages/schemas/schemas/preset.schema.json",
+  "title": "Preset",
+  "description": "",
+  "type": "object",
+  "required": ["kind", "metadata", "spec"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": { "description": "Resource kind. Always `Preset`.", "const": "Preset" },
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name",
+          "description": "Unique preset name.",
+          "examples": ["agent-plugins"]
+        },
+        "description": { "type": "string", "description": "Human-readable summary of the preset." }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "extends": {
+          "description": "Presets this preset inherits from, loaded before it. This preset overrides any declaration made in its `extends` tree. Accepts one reference or a list.",
+          "oneOf": [{ "$ref": "#/$defs/presetRef" }, { "$ref": "#/$defs/presetRefs" }],
+          "examples": ["base", ["base", "./team.yaml"]]
+        },
+        "marketplaces": {
+          "description": "Marketplaces to register. Accepts a list of shorthand source strings (`owner/repo`, a git URL, a URL to `marketplace.json`, or a local path), or a `name: { source }` map in the `extraKnownMarketplaces` format.",
+          "oneOf": [
+            {
+              "title": "Marketplace source list",
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/marketplaceShorthand" },
+              "examples": [
+                ["anthropics/claude-plugins-official", "acme-corp/claude-plugins@v1.0.0", "git@github.com:acme-corp/plugins.git", "https://git.example.com/security/plugins.git#release", "https://plugins.example.com/marketplace.json", "./plugins"]
+              ]
+            },
+            {
+              "title": "Marketplace map",
+              "type": "object",
+              "propertyNames": { "$ref": "#/$defs/name" },
+              "additionalProperties": { "$ref": "#/$defs/marketplaceEntry" },
+              "examples": [
+                {
+                  "claude-plugins-official": {
+                    "source": { "source": "github", "repo": "anthropics/claude-plugins-official" },
+                    "autoUpdate": true
+                  },
+                  "security-plugins": {
+                    "source": { "source": "git", "url": "https://git.example.com/security/plugins.git" }
+                  },
+                  "internal-tools": {
+                    "source": { "source": "url", "url": "https://plugins.example.com/marketplace.json" }
+                  },
+                  "local-file": { "source": { "source": "file", "path": "./marketplace.json" } },
+                  "local-dev": { "source": { "source": "directory", "path": "./plugins" } },
+                  "team-tools": {
+                    "source": {
+                      "source": "settings",
+                      "name": "team-tools",
+                      "plugins": [
+                        {
+                          "name": "code-formatter",
+                          "source": { "source": "github", "repo": "acme-corp/code-formatter" }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "plugins": {
+          "description": "Plugins to enable, as in Claude Code's `enabledPlugins` setting. The `@marketplace` suffix must name a declared marketplace. Accepts a `name@marketplace: enabled` or `name@marketplace: { enabled, scope }` map (canonical), or a list of `name@marketplace` strings as shorthand for all `true`.",
+          "oneOf": [
+            {
+              "title": "Plugin map",
+              "description": "Canonical form. `false` disables a plugin, including one enabled by an inherited preset.",
+              "type": "object",
+              "propertyNames": { "$ref": "#/$defs/pluginRef" },
+              "additionalProperties": {
+                "oneOf": [
+                  { "type": "boolean", "description": "Whether the plugin is enabled." },
+                  {
+                    "title": "Plugin settings",
+                    "type": "object",
+                    "required": ["enabled"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "enabled": { "type": "boolean", "description": "Whether the plugin is enabled." },
+                      "scope": {
+                        "enum": ["user"],
+                        "description": "Install and enable this plugin at the `user` Scope (`~/.claude`) whatever Scope `ap sync` targets. Its `@marketplace` must be a marketplace with `scope: user`, and `enabled` must be `true`. Omitted: the targeted Scope."
+                      }
+                    },
+                    "if": { "required": ["scope"] },
+                    "then": { "properties": { "enabled": { "const": true } } }
+                  }
+                ]
+              },
+              "examples": [
+                {
+                  "context7@claude-plugins-official": true,
+                  "typescript-lsp@claude-plugins-official": false,
+                  "commit-commands@claude-plugins-official": { "enabled": true, "scope": "user" }
+                }
+              ]
+            },
+            {
+              "title": "Plugin ref list",
+              "description": "Shorthand that enables every listed plugin. Cannot disable a plugin; use the map form for that.",
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/pluginRef" },
+              "examples": [["context7@claude-plugins-official"]]
+            }
+          ]
+        },
+        "skills": {
+          "description": "Standalone skills to copy into the scope's skills directory (`.claude/skills/` or `~/.claude/skills/`). Each item is a skill source: a string installs every skill in it, a map either selects some of them (`skills`) or installs all but some (`exclude`). A map may add `path`, the folder of the source that holds the skills, and `scope: user` to sync them to `~/.claude` whatever Scope `ap sync` targets. Skills are found at `SKILL.md`, `skills/*/SKILL.md` or `*/SKILL.md` of the source (or of its `path`), named by the `name` in their frontmatter.",
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/skillSource" },
+              {
+                "title": "All skills of the source",
+                "type": "object",
+                "required": ["source"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/skillSource" },
+                  "scope": { "$ref": "#/$defs/itemScope" }
+                }
+              },
+              {
+                "title": "Skills under a path",
+                "type": "object",
+                "required": ["source", "path"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/skillSource" },
+                  "path": { "$ref": "#/$defs/skillPath" },
+                  "scope": { "$ref": "#/$defs/itemScope" }
+                }
+              },
+              {
+                "title": "Skill selection",
+                "type": "object",
+                "required": ["source", "skills"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/skillSource" },
+                  "path": { "$ref": "#/$defs/skillPath" },
+                  "scope": { "$ref": "#/$defs/itemScope" },
+                  "skills": {
+                    "description": "Skills of the source to install, by name.",
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": { "type": "string" }
+                  }
+                }
+              },
+              {
+                "title": "Skill exclusion",
+                "type": "object",
+                "required": ["source", "exclude"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/skillSource" },
+                  "path": { "$ref": "#/$defs/skillPath" },
+                  "scope": { "$ref": "#/$defs/itemScope" },
+                  "exclude": {
+                    "description": "Skills of the source not to install, by name; every other skill is installed.",
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": { "type": "string" }
+                  }
+                }
+              }
+            ]
+          },
+          "examples": [
+            [
+              "vercel-labs/agent-skills",
+              { "source": "vercel-labs/skills", "scope": "user" },
+              { "source": "anthropics/skills@main", "skills": ["pdf", "docx"] },
+              { "source": "acme/skills", "exclude": ["experimental"] },
+              { "source": "acme/workflow-lab", "path": "claude/skills", "skills": ["task-manager"] },
+              "./skills"
+            ]
+          ]
+        },
+        "agents": {
+          "description": "Standalone agents (subagent files) to copy into the scope's agents directory (`.claude/agents/` or `~/.claude/agents/`). Each item is an agent source: a string installs every agent in it, a map either selects some of them (`agents`) or installs all but some (`exclude`). A map may add `path`, the folder of the source that holds the agents, and `scope: user` to sync them to `~/.claude` whatever Scope `ap sync` targets. Agents are the `*.md` files of `agents/`, `.claude/agents/` or the root of the source (the first that has any), or of its `path`, named by the `name` in their frontmatter; files without a `name` are skipped unless the source declares a `path`. Agents bundled in a plugin are enabled through `plugins` instead.",
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/agentSource" },
+              {
+                "title": "All agents of the source",
+                "type": "object",
+                "required": ["source"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/agentSource" },
+                  "scope": { "$ref": "#/$defs/itemScope" }
+                }
+              },
+              {
+                "title": "Agents under a path",
+                "type": "object",
+                "required": ["source", "path"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/agentSource" },
+                  "path": { "$ref": "#/$defs/agentPath" },
+                  "scope": { "$ref": "#/$defs/itemScope" }
+                }
+              },
+              {
+                "title": "Agent selection",
+                "type": "object",
+                "required": ["source", "agents"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/agentSource" },
+                  "path": { "$ref": "#/$defs/agentPath" },
+                  "scope": { "$ref": "#/$defs/itemScope" },
+                  "agents": {
+                    "description": "Agents of the source to install, by name.",
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": { "type": "string" }
+                  }
+                }
+              },
+              {
+                "title": "Agent exclusion",
+                "type": "object",
+                "required": ["source", "exclude"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/agentSource" },
+                  "path": { "$ref": "#/$defs/agentPath" },
+                  "scope": { "$ref": "#/$defs/itemScope" },
+                  "exclude": {
+                    "description": "Agents of the source not to install, by name; every other agent is installed.",
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": { "type": "string" }
+                  }
+                }
+              }
+            ]
+          },
+          "examples": [
+            [
+              "affaan-m/ECC",
+              { "source": "affaan-m/ECC", "agents": ["typescript-reviewer"] },
+              { "source": "acme/workflow-lab", "path": "claude/agents" },
+              "./agents"
+            ]
+          ]
+        },
+        "workflows": {
+          "description": "Standalone workflows (Workflow tool scripts) to copy into the scope's workflows directory (`.claude/workflows/` or `~/.claude/workflows/`). Each item is a workflow source: a string installs every workflow in it, a map either selects some of them (`workflows`) or installs all but some (`exclude`). A map may add `path`, the folder of the source that holds the workflows (otherwise `workflows/`), and `scope: user` to sync them to `~/.claude` whatever Scope `ap sync` targets. Workflows are the `*.js` files directly in that folder (not `*.test.*` or `_*`) whose `export const meta` is an object literal with a string `name`; they are named, selected and installed by that `meta.name` (as `<meta.name>.js`), not by file name. A workflow that calls a plugin's agent (`agentType: '<plugin>:<agent>'`) is never installed: declare the plugin instead. Workflows bundled in a plugin are enabled through `plugins`. `ap` never adds `Workflow(...)` permission rules.",
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/workflowSource" },
+              {
+                "title": "All workflows of the source",
+                "type": "object",
+                "required": ["source"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/workflowSource" },
+                  "scope": { "$ref": "#/$defs/itemScope" }
+                }
+              },
+              {
+                "title": "Workflows under a path",
+                "type": "object",
+                "required": ["source", "path"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/workflowSource" },
+                  "path": { "$ref": "#/$defs/workflowPath" },
+                  "scope": { "$ref": "#/$defs/itemScope" }
+                }
+              },
+              {
+                "title": "Workflow selection",
+                "type": "object",
+                "required": ["source", "workflows"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/workflowSource" },
+                  "path": { "$ref": "#/$defs/workflowPath" },
+                  "scope": { "$ref": "#/$defs/itemScope" },
+                  "workflows": {
+                    "description": "Workflows of the source to install, by `meta.name`.",
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": { "type": "string" }
+                  }
+                }
+              },
+              {
+                "title": "Workflow exclusion",
+                "type": "object",
+                "required": ["source", "exclude"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/workflowSource" },
+                  "path": { "$ref": "#/$defs/workflowPath" },
+                  "scope": { "$ref": "#/$defs/itemScope" },
+                  "exclude": {
+                    "description": "Workflows of the source not to install, by `meta.name`; every other workflow is installed.",
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": { "type": "string" }
+                  }
+                }
+              }
+            ]
+          },
+          "examples": [
+            [
+              "acme/workflows",
+              { "source": "transilienceai/communitytools", "path": ".claude/workflows", "exclude": ["safe-pr"] },
+              { "source": "acme/workflows", "workflows": ["code-review"] },
+              "./workflows"
+            ]
+          ]
+        },
+        "mcpServers": {
+          "description": "MCP servers to add to Claude Code's MCP configuration of the scope (`.mcp.json` for project), by name. `true` takes the server as-is from the catalog shipped with `ap`; an object is the server configuration inline, in Claude Code's `.mcp.json` format; `false` drops a server declared by an inherited preset. An object may add `scope: user` to write the server to the `user` Scope (`~/.claude.json`) whatever Scope `ap sync` targets; `{ scope: user }` alone takes the catalog's configuration. Secrets must be written as `${VAR}` placeholders, which Claude Code expands at run time.",
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/name" },
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "boolean",
+                "description": "`true`: the catalog's configuration for this name. `false`: drop an inherited server."
+              },
+              { "$ref": "#/$defs/mcpServerDeclaration" }
+            ]
+          },
+          "examples": [
+            {
+              "firecrawl": true,
+              "context7": { "scope": "user" },
+              "docs": {
+                "type": "http",
+                "url": "https://example.com/mcp",
+                "headers": { "Authorization": "Bearer ${DOCS_TOKEN}" }
+              },
+              "legacy": false
+            }
+          ]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "presetRef": {
+      "description": "A preset reference: a bare name is a default preset shipped with `ap`; `./` or `../` is a file relative to the file that references it; `https://` is a remote preset pinned by content hash in agent-plugins.lock.",
+      "type": "string",
+      "anyOf": [{ "$ref": "#/$defs/name" }, { "pattern": "^\\.\\.?/" }, { "pattern": "^https://" }]
+    },
+    "presetRefs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/presetRef" },
+      "examples": [["base", "./presets/team.yaml", "https://example.com/presets/shared.yaml"]]
+    },
+    "name": {
+      "type": "string",
+      "description": "Kebab-case identifier.",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "marketplaceShorthand": {
+      "type": "string",
+      "description": "Where to fetch a marketplace from, read the way `claude plugin marketplace add` reads it: `owner/repo[@ref]` (GitHub); `git@host:path` or `ssh://...` (git); an https URL ending in `.git` or on github.com/gitlab.com (git, `#ref` pins a ref); any other https URL (a `marketplace.json`); or a path starting with `./`, `../` or `/`, relative to the file that declares it (a directory, or a `.json` file).",
+      "anyOf": [
+        { "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(@.+)?$" },
+        { "pattern": "^(git@|ssh://|https?://)" },
+        { "pattern": "^(\\./|\\.\\./|/)" }
+      ],
+      "examples": ["anthropics/claude-plugins-official", "git@github.com:owner/repo.git", "https://example.com/marketplace.json", "./path/to/marketplace"]
+    },
+    "itemScope": {
+      "enum": ["user"],
+      "description": "Sync what this entry selects to the `user` Scope (`~/.claude`) whatever Scope `ap sync` targets; its pin lives in `~/.agent-plugins/state.json`, not in agent-plugins.lock. Only github and git sources can set it. Omitted: the targeted Scope."
+    },
+    "skillSource": {
+      "type": "string",
+      "description": "Where to fetch skills from: `owner/repo[@ref]` (GitHub); `git@host:path`, `ssh://...` or an https git URL (`#ref` pins a ref); or a local directory starting with `./`, `../` or `/`, relative to the file that declares it.",
+      "anyOf": [
+        { "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(@.+)?$" },
+        { "pattern": "^(git@|ssh://|https?://)" },
+        { "pattern": "^(\\./|\\.\\./|/)" }
+      ],
+      "examples": ["vercel-labs/agent-skills", "https://git.example.com/team/skills.git#v1", "./skills"]
+    },
+    "skillPath": {
+      "type": "string",
+      "description": "Folder inside the skill source that holds the skills, relative to its root; part of the source's identity in agent-plugins.lock.",
+      "not": { "pattern": "^(/|\\.\\.(/|$))" },
+      "examples": ["claude/skills"]
+    },
+    "agentSource": {
+      "type": "string",
+      "description": "Where to fetch agents from: `owner/repo[@ref]` (GitHub); `git@host:path`, `ssh://...` or an https git URL (`#ref` pins a ref); or a local directory starting with `./`, `../` or `/`, relative to the file that declares it.",
+      "anyOf": [
+        { "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(@.+)?$" },
+        { "pattern": "^(git@|ssh://|https?://)" },
+        { "pattern": "^(\\./|\\.\\./|/)" }
+      ],
+      "examples": ["affaan-m/ECC", "https://git.example.com/team/agents.git#v1", "./agents"]
+    },
+    "agentPath": {
+      "type": "string",
+      "description": "Folder inside the agent source that holds the agents, relative to its root; part of the source's identity in agent-plugins.lock.",
+      "not": { "pattern": "^(/|\\.\\.(/|$))" },
+      "examples": ["claude/agents"]
+    },
+    "workflowSource": {
+      "type": "string",
+      "description": "Where to fetch workflows from: `owner/repo[@ref]` (GitHub); `git@host:path`, `ssh://...` or an https git URL (`#ref` pins a ref); or a local directory starting with `./`, `../` or `/`, relative to the file that declares it.",
+      "anyOf": [
+        { "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(@.+)?$" },
+        { "pattern": "^(git@|ssh://|https?://)" },
+        { "pattern": "^(\\./|\\.\\./|/)" }
+      ],
+      "examples": ["transilienceai/communitytools", "https://git.example.com/team/workflows.git#v1", "./workflows"]
+    },
+    "workflowPath": {
+      "type": "string",
+      "description": "Folder inside the workflow source that holds the workflows, relative to its root (default `workflows/`); part of the source's identity in agent-plugins.lock.",
+      "not": { "pattern": "^(/|\\.\\.(/|$))" },
+      "examples": [".claude/workflows"]
+    },
+    "marketplaceSource": {
+      "type": "string",
+      "description": "GitHub repository of a marketplace, as `owner/repo`.",
+      "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+      "examples": ["anthropics/claude-plugins-official"]
+    },
+    "marketplaceEntry": {
+      "type": "object",
+      "description": "Marketplace entry, as in Claude Code's `extraKnownMarketplaces` setting.",
+      "required": ["source"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "$ref": "#/$defs/marketplaceSourceObject" },
+        "autoUpdate": {
+          "type": "boolean",
+          "description": "Refresh the marketplace and update its installed plugins in the background after startup. When omitted, official Anthropic marketplaces default to `true` and third-party marketplaces to `false`."
+        },
+        "scope": {
+          "enum": ["user"],
+          "description": "Sync this marketplace to the `user` Scope (`~/.claude`) whatever Scope `ap sync` targets. Plugins that use it stay at the targeted Scope unless they set `scope: user` themselves. Omitted: the targeted Scope. `ap` keeps this field out of Claude Code's settings."
+        }
+      },
+      "examples": [
+        {
+          "source": { "source": "github", "repo": "anthropics/claude-plugins-official" },
+          "autoUpdate": true
+        }
+      ]
+    },
+    "marketplaceSourceObject": {
+      "description": "Where to fetch a marketplace from, discriminated by `source`.",
+      "oneOf": [
+        {
+          "title": "GitHub",
+          "type": "object",
+          "description": "A GitHub repository.",
+          "required": ["source", "repo"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "github" },
+            "repo": { "$ref": "#/$defs/marketplaceSource" },
+            "ref": { "$ref": "#/$defs/gitRef" },
+            "path": { "$ref": "#/$defs/marketplaceJsonPath" },
+            "skipLfs": { "$ref": "#/$defs/skipLfs" }
+          },
+          "examples": [
+            { "source": "github", "repo": "anthropics/claude-plugins-official" },
+            { "source": "github", "repo": "acme-corp/claude-plugins", "ref": "v1.0.0" },
+            {
+              "source": "github",
+              "repo": "acme-corp/monorepo",
+              "path": "plugins/.claude-plugin/marketplace.json"
+            }
+          ]
+        },
+        {
+          "title": "Git",
+          "type": "object",
+          "description": "Any git repository, including self-hosted GitLab and Bitbucket. Cloned with the machine's git credentials.",
+          "required": ["source", "url"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "git" },
+            "url": { "type": "string", "description": "Full git repository URL." },
+            "ref": { "$ref": "#/$defs/gitRef" },
+            "path": { "$ref": "#/$defs/marketplaceJsonPath" },
+            "skipLfs": { "$ref": "#/$defs/skipLfs" }
+          },
+          "examples": [
+            { "source": "git", "url": "https://git.example.com/security/plugins.git" },
+            { "source": "git", "url": "https://git.example.com/security/plugins.git", "ref": "release" },
+            {
+              "source": "git",
+              "url": "git@gitlab.example.com:acme/plugins.git",
+              "ref": "v2.0.0",
+              "path": "marketplace/.claude-plugin/marketplace.json"
+            }
+          ]
+        },
+        {
+          "title": "URL",
+          "type": "object",
+          "description": "A direct URL to a `marketplace.json` file.",
+          "required": ["source", "url"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "url" },
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "description": "Direct URL to the `marketplace.json` file."
+            },
+            "headers": { "$ref": "#/$defs/headers" },
+            "headersHelper": { "$ref": "#/$defs/headersHelper" }
+          },
+          "examples": [
+            { "source": "url", "url": "https://plugins.example.com/marketplace.json" },
+            {
+              "source": "url",
+              "url": "https://plugins.example.com/marketplace.json",
+              "headers": { "Authorization": "Bearer ${TOKEN}" }
+            },
+            {
+              "source": "url",
+              "url": "https://plugins.example.com/marketplace.json",
+              "headersHelper": "/opt/bin/mint-token.sh"
+            }
+          ]
+        },
+        {
+          "title": "File",
+          "type": "object",
+          "description": "A local `marketplace.json` file.",
+          "required": ["source", "path"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "file" },
+            "path": { "type": "string", "description": "Local path to the `marketplace.json` file." }
+          },
+          "examples": [{ "source": "file", "path": "./marketplace.json" }]
+        },
+        {
+          "title": "Directory",
+          "type": "object",
+          "description": "A local directory. For development only.",
+          "required": ["source", "path"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "directory" },
+            "path": {
+              "type": "string",
+              "description": "Local directory containing `.claude-plugin/marketplace.json`."
+            }
+          },
+          "examples": [{ "source": "directory", "path": "./plugins" }]
+        },
+        {
+          "title": "Settings",
+          "type": "object",
+          "description": "An inline marketplace declared without a hosted repository. Plugins still need enabling separately.",
+          "required": ["source", "name", "plugins"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "settings" },
+            "name": {
+              "$ref": "#/$defs/name",
+              "description": "Name of the inline marketplace. Must match the marketplace key."
+            },
+            "plugins": {
+              "type": "array",
+              "description": "Plugins declared inline.",
+              "items": { "$ref": "#/$defs/inlinePlugin" }
+            }
+          },
+          "examples": [
+            {
+              "source": "settings",
+              "name": "team-tools",
+              "plugins": [
+                {
+                  "name": "code-formatter",
+                  "source": { "source": "github", "repo": "acme-corp/code-formatter", "ref": "v2.1.0" }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "inlinePlugin": {
+      "type": "object",
+      "description": "Plugin declared inline in a `settings` marketplace. Must reference an external source.",
+      "required": ["name", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/name", "description": "Plugin name." },
+        "source": { "$ref": "#/$defs/pluginSourceObject" },
+        "headers": { "$ref": "#/$defs/headers" },
+        "headersHelper": { "$ref": "#/$defs/headersHelper" }
+      },
+      "examples": [
+        {
+          "name": "code-formatter",
+          "source": { "source": "github", "repo": "acme-corp/code-formatter" }
+        },
+        {
+          "name": "my-plugin",
+          "source": {
+            "source": "archive",
+            "url": "https://registry.example.com/plugins/my-plugin-2.1.0.zip"
+          },
+          "headers": { "X-Registry-Org": "acme" },
+          "headersHelper": "/opt/bin/mint-registry-token.sh"
+        }
+      ]
+    },
+    "pluginSourceObject": {
+      "description": "External source a plugin is fetched from, discriminated by `source`.",
+      "oneOf": [
+        {
+          "title": "GitHub",
+          "type": "object",
+          "required": ["source", "repo"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "github" },
+            "repo": {
+              "$ref": "#/$defs/marketplaceSource",
+              "description": "GitHub repository, as `owner/repo`."
+            },
+            "ref": { "$ref": "#/$defs/gitRef" },
+            "sha": { "$ref": "#/$defs/gitSha" }
+          },
+          "examples": [
+            { "source": "github", "repo": "acme-corp/code-formatter", "ref": "v2.1.0" },
+            {
+              "source": "github",
+              "repo": "acme-corp/code-formatter",
+              "sha": "0123456789abcdef0123456789abcdef01234567"
+            }
+          ]
+        },
+        {
+          "title": "Git URL",
+          "type": "object",
+          "required": ["source", "url"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "url" },
+            "url": {
+              "type": "string",
+              "description": "Full git repository URL (`https://` or `git@`). The `.git` suffix is optional."
+            },
+            "ref": { "$ref": "#/$defs/gitRef" },
+            "sha": { "$ref": "#/$defs/gitSha" }
+          },
+          "examples": [
+            { "source": "url", "url": "https://gitlab.example.com/acme/linter.git", "ref": "v1.4.0" },
+            {
+              "source": "url",
+              "url": "https://gitlab.example.com/acme/linter.git",
+              "sha": "0123456789abcdef0123456789abcdef01234567"
+            }
+          ]
+        },
+        {
+          "title": "Git subdirectory",
+          "type": "object",
+          "required": ["source", "url", "path"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "git-subdir" },
+            "url": {
+              "type": "string",
+              "description": "Git repository URL, GitHub `owner/repo` shorthand, or SSH URL."
+            },
+            "path": {
+              "type": "string",
+              "description": "Subdirectory within the repo containing the plugin. Cloned sparsely.",
+              "examples": ["tools/claude-plugin"]
+            },
+            "ref": { "$ref": "#/$defs/gitRef" },
+            "sha": { "$ref": "#/$defs/gitSha" }
+          },
+          "examples": [
+            {
+              "source": "git-subdir",
+              "url": "https://gitlab.example.com/acme/monorepo.git",
+              "path": "tools/linter",
+              "sha": "0123456789abcdef0123456789abcdef01234567"
+            },
+            {
+              "source": "git-subdir",
+              "url": "acme-corp/monorepo",
+              "path": "tools/claude-plugin",
+              "ref": "v3.0.0"
+            }
+          ]
+        },
+        {
+          "title": "npm",
+          "type": "object",
+          "required": ["source", "package"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "npm" },
+            "package": {
+              "type": "string",
+              "description": "Package name, optionally scoped.",
+              "examples": ["@org/plugin"]
+            },
+            "version": {
+              "type": "string",
+              "description": "Version or version range.",
+              "examples": ["2.1.0", "^2.0.0"]
+            },
+            "registry": { "type": "string", "format": "uri", "description": "Custom npm registry URL." }
+          },
+          "examples": [
+            { "source": "npm", "package": "@acme/claude-plugin" },
+            {
+              "source": "npm",
+              "package": "@acme/claude-plugin",
+              "version": "^2.0.0",
+              "registry": "https://npm.example.com"
+            }
+          ]
+        },
+        {
+          "title": "Archive",
+          "type": "object",
+          "description": "Zip archive downloaded over HTTPS. Requires Claude Code v2.1.224 or later.",
+          "required": ["source", "url"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "const": "archive" },
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https://",
+              "description": "HTTPS URL of the zip archive."
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{64}$",
+              "description": "SHA-256 digest of the archive, as 64 hex characters."
+            }
+          },
+          "examples": [
+            {
+              "source": "archive",
+              "url": "https://registry.example.com/plugins/my-plugin-2.1.0.zip",
+              "sha256": "6bfa50e3d2e00c052b46abe51fff89346ac803e45771f76dcf6df1ab74cca5e1"
+            }
+          ]
+        }
+      ]
+    },
+    "gitRef": {
+      "type": "string",
+      "description": "Git branch or tag. Defaults to the repository's default branch.",
+      "examples": ["main", "v1.0.0"]
+    },
+    "gitSha": {
+      "type": "string",
+      "description": "Full 40-character git commit SHA to pin to.",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "marketplaceJsonPath": {
+      "type": "string",
+      "description": "Path to `marketplace.json` within the repo. Defaults to `.claude-plugin/marketplace.json`."
+    },
+    "skipLfs": {
+      "type": "boolean",
+      "description": "Accepted but has no effect since Claude Code v2.1.274, which never downloads Git LFS content for marketplaces.",
+      "deprecated": true
+    },
+    "headers": {
+      "type": "object",
+      "description": "HTTP headers sent with the download, such as `Authorization`.",
+      "additionalProperties": { "type": "string" },
+      "examples": [{ "Authorization": "Bearer <token>" }]
+    },
+    "headersHelper": {
+      "type": "string",
+      "description": "Command that prints a JSON object of headers, for short-lived credentials. Requires Claude Code v2.1.238 or later.",
+      "maxLength": 500,
+      "examples": ["/opt/bin/mint-registry-token.sh"]
+    },
+    "pluginRef": {
+      "type": "string",
+      "description": "Plugin reference, as `name@marketplace`.",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*@[a-z0-9]+(-[a-z0-9]+)*$",
+      "examples": ["context7@claude-plugins-official"]
+    },
+    "mcpServerDeclaration": {
+      "description": "An MCP server configuration, optionally with `scope`; or `{ scope: user }` alone to take the catalog's configuration at the `user` Scope.",
+      "oneOf": [
+        {
+          "title": "catalog server at the user Scope",
+          "type": "object",
+          "required": ["scope"],
+          "properties": { "scope": { "$ref": "#/$defs/mcpServerScope" } },
+          "additionalProperties": false
+        },
+        {
+          "title": "inline server",
+          "$ref": "#/$defs/mcpServerFields",
+          "properties": { "scope": { "$ref": "#/$defs/mcpServerScope" } },
+          "unevaluatedProperties": false
+        }
+      ]
+    },
+    "mcpServerScope": {
+      "const": "user",
+      "description": "Write this server to the `user` Scope (`~/.claude.json`) whatever Scope `ap sync` targets. `command` and `args` must not start with `./` or `../`. Omitted: the targeted Scope."
+    },
+    "mcpServerFields": {
+      "description": "The two shapes of `mcpServer` without its closing `unevaluatedProperties`, so the MCP catalog can add `description` on top.",
+      "oneOf": [
+        {
+          "title": "stdio server",
+          "type": "object",
+          "required": ["command"],
+          "properties": {
+            "type": { "const": "stdio" },
+            "command": {
+              "type": "string",
+              "description": "Executable to run; relative paths resolve against the project root."
+            },
+            "args": { "type": "array", "items": { "type": "string" } },
+            "env": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "Environment variables; write secrets as `${VAR}`."
+            }
+          }
+        },
+        {
+          "title": "remote server",
+          "type": "object",
+          "required": ["type", "url"],
+          "properties": {
+            "type": {
+              "enum": ["http", "sse"],
+              "description": "`sse` is deprecated in Claude Code; prefer `http`."
+            },
+            "url": { "type": "string" },
+            "headers": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "HTTP headers; write secrets as `${VAR}`. An `Authorization` header turns off Claude Code's OAuth login for this server."
+            },
+            "headersHelper": {
+              "type": "string",
+              "description": "Shell command that prints a JSON object of headers, run on every connection; for credentials other than a static token or OAuth. Claude Code runs it for project and local scope only once the folder is trusted.",
+              "examples": ["/opt/bin/get-mcp-auth-headers.sh"]
+            },
+            "oauth": {
+              "type": "object",
+              "description": "OAuth settings for servers without dynamic client registration or with non-standard discovery. The client secret never goes here: Claude Code stores it only from `claude mcp add-json --client-secret`.",
+              "properties": {
+                "clientId": { "type": "string", "description": "Pre-registered OAuth client ID." },
+                "callbackPort": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65535,
+                  "description": "Fixed local port for the OAuth redirect, matching the redirect URI registered with the client."
+                },
+                "authServerMetadataUrl": {
+                  "type": "string",
+                  "pattern": "^https://",
+                  "description": "Authorization server metadata URL that replaces the `/.well-known` discovery chain."
+                },
+                "scopes": { "type": "string", "description": "Space-separated scopes to request, overriding discovered ones." }
+              },
+              "additionalProperties": false,
+              "examples": [{ "clientId": "Iv23liExample", "callbackPort": 8080 }]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

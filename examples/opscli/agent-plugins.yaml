@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ttungbmt/agent-plugins/master/packages/schemas/schemas/config.schema.json
+
+kind: Config
+
+metadata:
+  name: opscli
+
+spec:
+  presets:
+    - base
+

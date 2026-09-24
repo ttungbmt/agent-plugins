@@ -1,0 +1,16 @@
+{
+  "enabledPlugins": {
+    "claude-code-setup@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "playground@claude-plugins-official": true,
+    "core@clerk-skills": true
+  },
+  "extraKnownMarketplaces": {
+    "clerk-skills": {
+      "source": {
+        "source": "github",
+        "repo": "clerk/skills"
+      }
+    }
+  }
+}

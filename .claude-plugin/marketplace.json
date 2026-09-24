@@ -1,0 +1,22 @@
+{
+  "name": "claude-plugins",
+  "description": "",
+  "version": "0.0.1",
+  "owner": {
+    "name": "Truong Thanh Tung",
+    "email": "ttungbmt@gmail.com"
+  },
+  "plugins": [
+      {
+        "name": "my-plugin",
+        "description": "",
+        "author": {
+          "name": "Truong Thanh Tung",
+          "email": "ttungbmt@gmail.com"
+        },
+        "source": "./plugins/internal/my-plugin",
+        "category": "",
+        "homepage": "https://github.com/ttungbmt/agent-plugins/tree/main/plugins/internal/my-plugin"
+      }
+  ]
+}

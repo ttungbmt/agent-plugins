@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mcp-catalog.schema.json",
+  "title": "ap MCP catalog",
+  "description": "The MCP catalog shipped with `ap`: server configurations a Preset or Config enables with `name: true` under `spec.mcpServers`.",
+  "type": "object",
+  "required": ["kind", "servers"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": { "const": "McpCatalog" },
+    "servers": {
+      "type": "object",
+      "propertyNames": { "$ref": "preset.schema.json#/$defs/name" },
+      "additionalProperties": {
+        "description": "An MCP server configuration plus a catalog-only `description`, which `ap` drops before writing the server.",
+        "type": "object",
+        "required": ["description"],
+        "properties": {
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What the server is, who ships it, and what it needs (auth, environment variables, runtime)."
+          }
+        },
+        "$ref": "preset.schema.json#/$defs/mcpServerFields",
+        "unevaluatedProperties": false
+      }
+    }
+  }
+}
