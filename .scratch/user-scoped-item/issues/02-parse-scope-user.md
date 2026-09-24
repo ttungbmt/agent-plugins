@@ -1,6 +1,6 @@
 ---
 title: "Parse `scope: user` on item entries"
-labels: [ready-for-agent]
+labels: [done]
 blocked_by: [01]
 ---
 

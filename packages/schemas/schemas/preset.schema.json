@@ -125,11 +125,21 @@
           ]
         },
         "skills": {
-          "description": "Standalone skills to copy into the scope's skills directory (`.claude/skills/` or `~/.claude/skills/`). Each item is a skill source: a string installs every skill in it, a map either selects some of them (`skills`) or installs all but some (`exclude`). A map may add `path`, the folder of the source that holds the skills. Skills are found at `SKILL.md`, `skills/*/SKILL.md` or `*/SKILL.md` of the source (or of its `path`), named by the `name` in their frontmatter.",
+          "description": "Standalone skills to copy into the scope's skills directory (`.claude/skills/` or `~/.claude/skills/`). Each item is a skill source: a string installs every skill in it, a map either selects some of them (`skills`) or installs all but some (`exclude`). A map may add `path`, the folder of the source that holds the skills, and `scope: user` to sync them to `~/.claude` whatever Scope `ap sync` targets. Skills are found at `SKILL.md`, `skills/*/SKILL.md` or `*/SKILL.md` of the source (or of its `path`), named by the `name` in their frontmatter.",
           "type": "array",
           "items": {
             "oneOf": [
               { "$ref": "#/$defs/skillSource" },
+              {
+                "title": "All skills of the source at the user Scope",
+                "type": "object",
+                "required": ["source", "scope"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/skillSource" },
+                  "scope": { "$ref": "#/$defs/itemScope" }
+                }
+              },
               {
                 "title": "Skills under a path",
                 "type": "object",
@@ -137,7 +147,8 @@
                 "additionalProperties": false,
                 "properties": {
                   "source": { "$ref": "#/$defs/skillSource" },
-                  "path": { "$ref": "#/$defs/skillPath" }
+                  "path": { "$ref": "#/$defs/skillPath" },
+                  "scope": { "$ref": "#/$defs/itemScope" }
                 }
               },
               {
@@ -148,6 +159,7 @@
                 "properties": {
                   "source": { "$ref": "#/$defs/skillSource" },
                   "path": { "$ref": "#/$defs/skillPath" },
+                  "scope": { "$ref": "#/$defs/itemScope" },
                   "skills": {
                     "description": "Skills of the source to install, by name.",
                     "type": "array",
@@ -165,6 +177,7 @@
                 "properties": {
                   "source": { "$ref": "#/$defs/skillSource" },
                   "path": { "$ref": "#/$defs/skillPath" },
+                  "scope": { "$ref": "#/$defs/itemScope" },
                   "exclude": {
                     "description": "Skills of the source not to install, by name; every other skill is installed.",
                     "type": "array",
@@ -179,6 +192,7 @@
           "examples": [
             [
               "vercel-labs/agent-skills",
+              { "source": "vercel-labs/skills", "scope": "user" },
               { "source": "anthropics/skills@main", "skills": ["pdf", "docx"] },
               { "source": "acme/skills", "exclude": ["experimental"] },
               { "source": "acme/workflow-lab", "path": "claude/skills", "skills": ["task-manager"] },
@@ -187,11 +201,21 @@
           ]
         },
         "agents": {
-          "description": "Standalone agents (subagent files) to copy into the scope's agents directory (`.claude/agents/` or `~/.claude/agents/`). Each item is an agent source: a string installs every agent in it, a map either selects some of them (`agents`) or installs all but some (`exclude`). A map may add `path`, the folder of the source that holds the agents. Agents are the `*.md` files of `agents/`, `.claude/agents/` or the root of the source (the first that has any), or of its `path`, named by the `name` in their frontmatter; files without a `name` are skipped unless the source declares a `path`. Agents bundled in a plugin are enabled through `plugins` instead.",
+          "description": "Standalone agents (subagent files) to copy into the scope's agents directory (`.claude/agents/` or `~/.claude/agents/`). Each item is an agent source: a string installs every agent in it, a map either selects some of them (`agents`) or installs all but some (`exclude`). A map may add `path`, the folder of the source that holds the agents, and `scope: user` to sync them to `~/.claude` whatever Scope `ap sync` targets. Agents are the `*.md` files of `agents/`, `.claude/agents/` or the root of the source (the first that has any), or of its `path`, named by the `name` in their frontmatter; files without a `name` are skipped unless the source declares a `path`. Agents bundled in a plugin are enabled through `plugins` instead.",
           "type": "array",
           "items": {
             "oneOf": [
               { "$ref": "#/$defs/agentSource" },
+              {
+                "title": "All agents of the source at the user Scope",
+                "type": "object",
+                "required": ["source", "scope"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/agentSource" },
+                  "scope": { "$ref": "#/$defs/itemScope" }
+                }
+              },
               {
                 "title": "Agents under a path",
                 "type": "object",
@@ -199,7 +223,8 @@
                 "additionalProperties": false,
                 "properties": {
                   "source": { "$ref": "#/$defs/agentSource" },
-                  "path": { "$ref": "#/$defs/agentPath" }
+                  "path": { "$ref": "#/$defs/agentPath" },
+                  "scope": { "$ref": "#/$defs/itemScope" }
                 }
               },
               {
@@ -210,6 +235,7 @@
                 "properties": {
                   "source": { "$ref": "#/$defs/agentSource" },
                   "path": { "$ref": "#/$defs/agentPath" },
+                  "scope": { "$ref": "#/$defs/itemScope" },
                   "agents": {
                     "description": "Agents of the source to install, by name.",
                     "type": "array",
@@ -227,6 +253,7 @@
                 "properties": {
                   "source": { "$ref": "#/$defs/agentSource" },
                   "path": { "$ref": "#/$defs/agentPath" },
+                  "scope": { "$ref": "#/$defs/itemScope" },
                   "exclude": {
                     "description": "Agents of the source not to install, by name; every other agent is installed.",
                     "type": "array",
@@ -248,11 +275,21 @@
           ]
         },
         "workflows": {
-          "description": "Standalone workflows (Workflow tool scripts) to copy into the scope's workflows directory (`.claude/workflows/` or `~/.claude/workflows/`). Each item is a workflow source: a string installs every workflow in it, a map either selects some of them (`workflows`) or installs all but some (`exclude`). A map may add `path`, the folder of the source that holds the workflows; otherwise it is `workflows/`. Workflows are the `*.js` files directly in that folder (not `*.test.*` or `_*`) whose `export const meta` is an object literal with a string `name`; they are named, selected and installed by that `meta.name` (as `<meta.name>.js`), not by file name. A workflow that calls a plugin's agent (`agentType: '<plugin>:<agent>'`) is never installed: declare the plugin instead. Workflows bundled in a plugin are enabled through `plugins`. `ap` never adds `Workflow(...)` permission rules.",
+          "description": "Standalone workflows (Workflow tool scripts) to copy into the scope's workflows directory (`.claude/workflows/` or `~/.claude/workflows/`). Each item is a workflow source: a string installs every workflow in it, a map either selects some of them (`workflows`) or installs all but some (`exclude`). A map may add `path`, the folder of the source that holds the workflows (otherwise `workflows/`), and `scope: user` to sync them to `~/.claude` whatever Scope `ap sync` targets. Workflows are the `*.js` files directly in that folder (not `*.test.*` or `_*`) whose `export const meta` is an object literal with a string `name`; they are named, selected and installed by that `meta.name` (as `<meta.name>.js`), not by file name. A workflow that calls a plugin's agent (`agentType: '<plugin>:<agent>'`) is never installed: declare the plugin instead. Workflows bundled in a plugin are enabled through `plugins`. `ap` never adds `Workflow(...)` permission rules.",
           "type": "array",
           "items": {
             "oneOf": [
               { "$ref": "#/$defs/workflowSource" },
+              {
+                "title": "All workflows of the source at the user Scope",
+                "type": "object",
+                "required": ["source", "scope"],
+                "additionalProperties": false,
+                "properties": {
+                  "source": { "$ref": "#/$defs/workflowSource" },
+                  "scope": { "$ref": "#/$defs/itemScope" }
+                }
+              },
               {
                 "title": "Workflows under a path",
                 "type": "object",
@@ -260,7 +297,8 @@
                 "additionalProperties": false,
                 "properties": {
                   "source": { "$ref": "#/$defs/workflowSource" },
-                  "path": { "$ref": "#/$defs/workflowPath" }
+                  "path": { "$ref": "#/$defs/workflowPath" },
+                  "scope": { "$ref": "#/$defs/itemScope" }
                 }
               },
               {
@@ -271,6 +309,7 @@
                 "properties": {
                   "source": { "$ref": "#/$defs/workflowSource" },
                   "path": { "$ref": "#/$defs/workflowPath" },
+                  "scope": { "$ref": "#/$defs/itemScope" },
                   "workflows": {
                     "description": "Workflows of the source to install, by `meta.name`.",
                     "type": "array",
@@ -288,6 +327,7 @@
                 "properties": {
                   "source": { "$ref": "#/$defs/workflowSource" },
                   "path": { "$ref": "#/$defs/workflowPath" },
+                  "scope": { "$ref": "#/$defs/itemScope" },
                   "exclude": {
                     "description": "Workflows of the source not to install, by `meta.name`; every other workflow is installed.",
                     "type": "array",
@@ -363,6 +403,10 @@
         { "pattern": "^(\\./|\\.\\./|/)" }
       ],
       "examples": ["anthropics/claude-plugins-official", "git@github.com:owner/repo.git", "https://example.com/marketplace.json", "./path/to/marketplace"]
+    },
+    "itemScope": {
+      "enum": ["user"],
+      "description": "Sync what this entry selects to the `user` Scope (`~/.claude`) whatever Scope `ap sync` targets; its pin lives in `~/.agent-plugins/state.json`, not in agent-plugins.lock. Only github and git sources can set it. Omitted: the targeted Scope."
     },
     "skillSource": {
       "type": "string",

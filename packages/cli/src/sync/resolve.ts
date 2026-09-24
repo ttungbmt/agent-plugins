@@ -235,7 +235,8 @@ function checkUserScopedPlugins(
  * Merge Skill declarations (or Agent declarations) by source (ignoring `ref`), with the same rules as marketplaces: a
  * declaration wins over every declaration it `shadows` (a child Preset beats its parent, the Config beats every Preset)
  * and replaces the whole list of selected names; peer declarations are unioned (see `unionSelections`), and a different
- * `ref` is a preset-clash.
+ * `ref` is a preset-clash. `scope` splits the winners: each Scope's declarations merge on their own, so one source can
+ * feed both Scopes, but peers selecting the same item at both Scopes are a preset-clash (ADR 0013).
  */
 function mergeItems(kind: ItemKind, declarations: ItemDeclaration[]) {
   const groups = new Map<string, ItemDeclaration[]>()
@@ -249,27 +250,47 @@ function mergeItems(kind: ItemKind, declarations: ItemDeclaration[]) {
   const notices: string[] = []
   for (const group of groups.values()) {
     const winners = group.filter((d) => !group.some((o) => o !== d && outranks(o, d)))
-    const [first, ...rest] = winners as [ItemDeclaration, ...ItemDeclaration[]]
-    const rival = rest.find((d) => !sameSource(d.source, first.source))
-    if (rival) {
-      const name = describeItemSource(withoutRef(first.source))
-      conflicts.push({ name, reason: 'preset-clash', detail: `"${name}" is declared with different refs by ${first.origin} and ${rival.origin}` })
+    const byScope = [...new Set(winners.map((d) => d.scope))].map((scope) => winners.filter((d) => d.scope === scope))
+    const clash = (what: string, a: ItemDeclaration, b: ItemDeclaration) => {
+      const name = describeItemSource(withoutRef(a.source))
+      conflicts.push({ name, reason: 'preset-clash', detail: `"${name}" is declared with different ${what} by ${a.origin} and ${b.origin}` })
+    }
+    const refClash = byScope
+      .map(([first, ...rest]) => ({ first: first!, rival: rest.find((d) => !sameSource(d.source, first!.source)) }))
+      .find((c) => c.rival)
+    if (refClash) {
+      clash('refs', refClash.first, refClash.rival!)
       continue
     }
-    const winner = rest.reduce(
-      (acc, d) => ({
-        ...acc,
-        select: unionSelections(acc.select, d.select),
-        presets: [...acc.presets, ...d.presets],
-        shadows: [...acc.shadows, ...d.shadows],
-      }),
-      first,
-    )
-    merged.push(winner)
-    for (const loser of group.filter((d) => !winners.includes(d))) {
-      if (!sameSource(loser.source, winner.source) || !isDeepStrictEqual(loser.select, winner.select)) {
-        notices.push(`${winner.origin} overrides ${kind}s from "${describeItemSource(loser.source)}" declared by ${loser.origin}`)
+    // `scope` is `user` or absent, so there are at most two Scopes to compare.
+    const [here = [], there = []] = byScope
+    const overlap = here.flatMap((a) => there.filter((b) => selectionsOverlap(a.select, b.select)).map((b) => [a, b] as const))[0]
+    if (overlap) {
+      const [a, b] = overlap
+      if (a.origin === b.origin) {
+        const name = describeItemSource(withoutRef(a.source))
+        throw new ConfigError(`${a.origin}: "${name}" selects the same ${kind}s with and without \`scope: user\`; each ${kind} has one Scope`)
       }
+      clash('scopes', a, b)
+      continue
+    }
+    const kept = byScope.map(([first, ...rest]) =>
+      rest.reduce(
+        (acc, d) => ({
+          ...acc,
+          select: unionSelections(acc.select, d.select),
+          presets: [...acc.presets, ...d.presets],
+          shadows: [...acc.shadows, ...d.shadows],
+        }),
+        first!,
+      ),
+    )
+    merged.push(...kept)
+    for (const loser of group.filter((d) => !winners.includes(d))) {
+      const same = kept.find((d) => d.scope === loser.scope)
+      if (same && sameSource(loser.source, same.source) && isDeepStrictEqual(loser.select, same.select)) continue
+      const winner = winners.find((d) => outranks(d, loser)) ?? kept[0]!
+      notices.push(`${winner.origin} overrides ${kind}s from "${describeItemSource(loser.source)}" declared by ${loser.origin}`)
     }
   }
   return { declarations: merged, conflicts, notices }
@@ -309,6 +330,18 @@ function unionSelections(a: Selection, b: Selection): Selection {
   if (Array.isArray(a)) return Array.isArray(b) ? [...new Set([...a, ...b])] : { exclude: b.exclude.filter((n) => !a.includes(n)) }
   if (Array.isArray(b)) return { exclude: a.exclude.filter((n) => !b.includes(n)) }
   return { exclude: a.exclude.filter((n) => b.exclude.includes(n)) }
+}
+
+/**
+ * Whether two selections of one source can take the same item. A selection entry may be a folder (Rules, ADR 0009); two
+ * exclusions always can, since the source's contents are unknown here.
+ */
+function selectionsOverlap(a: Selection, b: Selection): boolean {
+  const covers = (entry: string, name: string) => name === entry || name.startsWith(`${entry}/`)
+  if (Array.isArray(a) && Array.isArray(b)) return a.some((x) => b.some((y) => covers(x, y) || covers(y, x)))
+  if (Array.isArray(a) && !Array.isArray(b)) return a.some((x) => !b.exclude.some((e) => covers(e, x)))
+  if (Array.isArray(b)) return selectionsOverlap(b, a)
+  return true
 }
 
 /** `a` wins over `b` when every Preset declaring `b` is in `a`'s `extends` tree, or `a` is the Config. */
@@ -545,9 +578,10 @@ function readPluginValue(id: string, value: unknown, origin: string): Pick<Plugi
 /**
  * `skills` (or `agents`) is a list; each entry is a source (every Skill/Agent in it), `{ source, skills }` (`{ source, agents }`)
  * selecting some names, or `{ source, exclude }` taking everything but some. The map form may add `path`: the directory
- * in the source holding them, which is part of the source (for a `directory` source it is folded into its path).
+ * in the source holding them, which is part of the source (for a `directory` source it is folded into its path), and
+ * `scope: user` to sync them to the `user` Scope; a `directory` source cannot be User-scoped (ADR 0013).
  */
-async function readItems(kind: ItemKind, raw: unknown, origin: string, dir: string): Promise<Pick<ItemDeclaration, 'source' | 'select'>[]> {
+async function readItems(kind: ItemKind, raw: unknown, origin: string, dir: string): Promise<Pick<ItemDeclaration, 'source' | 'select' | 'scope'>[]> {
   const key = `${kind}s`
   if (!raw) return []
   if (!Array.isArray(raw)) throw new ConfigError(`${origin}: \`${key}\` must be a list of ${kind} sources`)
@@ -557,8 +591,15 @@ async function readItems(kind: ItemKind, raw: unknown, origin: string, dir: stri
       const entry = (typeof item === 'string' ? { source: item } : item) as Record<string, unknown>
       const { source } = entry
       if (typeof source !== 'string') throw new ConfigError(`${origin}: each ${kind} entry needs a \`source\` string`)
-      const unknown = Object.keys(entry).find((k) => !['source', key, 'exclude', 'path'].includes(k))
+      const unknown = Object.keys(entry).find((k) => !['source', key, 'exclude', 'path', 'scope'].includes(k))
       if (unknown) throw new ConfigError(`${origin}: "${source}" has unknown key \`${unknown}\``)
+      const { scope } = entry
+      if (scope !== undefined && scope !== 'user') {
+        throw new ConfigError(`${origin}: "${source}" has scope "${String(scope)}"; the only scope is "user"`)
+      }
+      if (scope && isLocal(source)) {
+        throw new ConfigError(`${origin}: "${source}" has \`scope: user\` but is a directory; only github and git sources can be User-scoped`)
+      }
       let select: Selection
       if (!(key in entry) && !('exclude' in entry)) select = { exclude: [] }
       else if (key in entry && 'exclude' in entry) {
@@ -576,7 +617,7 @@ async function readItems(kind: ItemKind, raw: unknown, origin: string, dir: stri
       if (parsed.source !== 'github' && parsed.source !== 'git' && parsed.source !== 'directory') {
         throw new ConfigError(`${origin}: ${kind} source "${source}" must be owner/repo, a git URL or a directory`)
       }
-      return { source: subdir && parsed.source !== 'directory' ? { ...parsed, path: subdir } : parsed, select }
+      return { source: subdir && parsed.source !== 'directory' ? { ...parsed, path: subdir } : parsed, select, ...(scope && { scope }) }
     }),
   )
 }

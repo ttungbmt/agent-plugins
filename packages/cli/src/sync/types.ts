@@ -59,6 +59,8 @@ export type Selection = string[] | { exclude: string[] }
 export type ItemDeclaration = {
   source: ItemSource
   select: Selection
+  /** `user`: a User-scoped item, synced to the `user` Scope whatever Scope the Sync targets (ADR 0013). */
+  scope?: 'user'
   origin: string
   presets: (string | null)[]
   shadows: string[]

@@ -624,6 +624,157 @@ spec:
         'agent-plugins.yaml: "acme/kit" has unknown key `as`',
       )
     })
+
+    describe('`scope: user`', () => {
+      const kinds = [
+        ['skills', 'skill'],
+        ['agents', 'agent'],
+        ['rules', 'rule'],
+        ['workflows', 'workflow'],
+      ] as const
+      const declared = (result: Awaited<ReturnType<typeof resolveIn>>, kind: (typeof kinds)[number][1]) =>
+        result.items[kind].map(({ source, select, scope }) => ({ source, select, scope }))
+
+      it.each(kinds)('carries `scope: user` on %s entries with every selection form, with or without `path`', async (key, kind) => {
+        const result = await resolveIn(
+          cfg(
+            key,
+            [
+              '{ source: acme/all, scope: user }',
+              `{ source: acme/some, ${key}: [a], scope: user }`,
+              '{ source: acme/most, exclude: [b], scope: user }',
+              '{ source: acme/nested, path: claude, scope: user }',
+              'acme/plain',
+            ].join(', '),
+          ),
+        )
+
+        expect(declared(result, kind)).toEqual([
+          { source: { source: 'github', repo: 'acme/all' }, select: { exclude: [] }, scope: 'user' },
+          { source: { source: 'github', repo: 'acme/some' }, select: ['a'], scope: 'user' },
+          { source: { source: 'github', repo: 'acme/most' }, select: { exclude: ['b'] }, scope: 'user' },
+          { source: { source: 'github', repo: 'acme/nested', path: 'claude' }, select: { exclude: [] }, scope: 'user' },
+          { source: { source: 'github', repo: 'acme/plain' }, select: { exclude: [] }, scope: undefined },
+        ])
+      })
+
+      it('accepts a git URL source', async () => {
+        const result = await resolveIn(cfg('skills', '{ source: "https://git.example.com/kit.git", scope: user }'))
+
+        expect(result.items.skill[0]?.scope).toBe('user')
+      })
+
+      it.each(['global', 'project', 'true'])('rejects `scope: %s`', async (scope) => {
+        await expect(resolveIn(cfg('skills', `{ source: acme/kit, scope: ${scope} }`))).rejects.toThrow(
+          `agent-plugins.yaml: "acme/kit" has scope "${scope}"; the only scope is "user"`,
+        )
+      })
+
+      it('rejects `scope: user` on a directory source, naming it', async () => {
+        await expect(resolveIn(cfg('agents', '{ source: ./agents, scope: user }'))).rejects.toThrow(
+          'agent-plugins.yaml: "./agents" has `scope: user` but is a directory; only github and git sources can be User-scoped',
+        )
+      })
+
+      it('keeps two entries of one source with different `scope` apart', async () => {
+        const result = await resolveIn(cfg('skills', '{ source: acme/kit, skills: [a], scope: user }, { source: acme/kit, skills: [b] }'))
+
+        expect(result.conflicts).toEqual([])
+        expect(declared(result, 'skill')).toEqual([
+          { source: { source: 'github', repo: 'acme/kit' }, select: ['a'], scope: 'user' },
+          { source: { source: 'github', repo: 'acme/kit' }, select: ['b'], scope: undefined },
+        ])
+      })
+
+      describe('when one item is selected at both Scopes', () => {
+        const preset = (name: string, skills: string, extra = '') => `kind: Preset\nmetadata: { name: ${name} }\nspec:\n${extra}  skills: [${skills}]\n`
+        const withPresets = (config: string, a: string, b: string) => ({
+          'agent-plugins.yaml': `kind: Config\nmetadata: { name: demo }\nspec:\n  presets: [./a.yaml, ./b.yaml]\n${config}`,
+          'a.yaml': preset('a', a),
+          'b.yaml': preset('b', b),
+        })
+
+        it('merges identical declarations from peer Presets', async () => {
+          const result = await resolveIn(withPresets('', '{ source: acme/kit, scope: user }', '{ source: acme/kit, scope: user }'))
+
+          expect(result.conflicts).toEqual([])
+          expect(result.notices).toEqual([])
+          expect(declared(result, 'skill')).toEqual([{ source: { source: 'github', repo: 'acme/kit' }, select: { exclude: [] }, scope: 'user' }])
+        })
+
+        it.each([
+          ['both select everything', '{ source: acme/kit, scope: user }', 'acme/kit'],
+          ['the selections share a name', '{ source: acme/kit, skills: [a, b], scope: user }', '{ source: acme/kit, skills: [b] }'],
+          ['an exclusion keeps a selected name', '{ source: acme/kit, exclude: [a], scope: user }', '{ source: acme/kit, skills: [a, b] }'],
+        ])('reports a preset clash when peer Presets disagree on `scope` and %s', async (_, a, b) => {
+          const result = await resolveIn(withPresets('', a, b))
+
+          expect(result.items.skill).toEqual([])
+          expect(result.conflicts).toEqual([
+            { name: 'acme/kit', reason: 'preset-clash', detail: '"acme/kit" is declared with different scopes by a.yaml and b.yaml' },
+          ])
+        })
+
+        it('names the two peer Presets whose selections overlap', async () => {
+          const result = await resolveIn({
+            ...withPresets('', '{ source: acme/kit, skills: [a], scope: user }', '{ source: acme/kit, skills: [b] }'),
+            'agent-plugins.yaml': `kind: Config\nmetadata: { name: demo }\nspec:\n  presets: [./a.yaml, ./b.yaml, ./c.yaml]\n`,
+            'c.yaml': preset('c', '{ source: acme/kit, skills: [b], scope: user }'),
+          })
+
+          expect(result.conflicts).toEqual([
+            { name: 'acme/kit', reason: 'preset-clash', detail: '"acme/kit" is declared with different scopes by c.yaml and b.yaml' },
+          ])
+        })
+
+        it('rejects one file selecting the same item at both Scopes', async () => {
+          await expect(resolveIn(cfg('skills', '{ source: acme/kit, scope: user }, { source: acme/kit, skills: [a] }'))).rejects.toThrow(
+            'agent-plugins.yaml: "acme/kit" selects the same skills with and without `scope: user`; each skill has one Scope',
+          )
+        })
+
+        it('keeps peer Presets that send different items of one source to different Scopes', async () => {
+          const result = await resolveIn(withPresets('', '{ source: acme/kit, skills: [a], scope: user }', '{ source: acme/kit, exclude: [a] }'))
+
+          expect(result.conflicts).toEqual([])
+          expect(declared(result, 'skill')).toEqual([
+            { source: { source: 'github', repo: 'acme/kit' }, select: ['a'], scope: 'user' },
+            { source: { source: 'github', repo: 'acme/kit' }, select: { exclude: ['a'] }, scope: undefined },
+          ])
+        })
+
+        it('lets the Config override a Preset’s `scope`, with a notice', async () => {
+          const result = await resolveIn(withPresets('  skills: [acme/kit]\n', '{ source: acme/kit, scope: user }', 'acme/other'))
+
+          expect(result.conflicts).toEqual([])
+          expect(declared(result, 'skill')).toEqual([
+            { source: { source: 'github', repo: 'acme/kit' }, select: { exclude: [] }, scope: undefined },
+            { source: { source: 'github', repo: 'acme/other' }, select: { exclude: [] }, scope: undefined },
+          ])
+          expect(result.notices).toEqual(['agent-plugins.yaml overrides skills from "acme/kit" declared by a.yaml'])
+        })
+
+        it('lets the Config override a Preset clash on `scope`', async () => {
+          const result = await resolveIn(withPresets('  skills: [{ source: acme/kit, scope: user }]\n', '{ source: acme/kit, scope: user }', 'acme/kit'))
+
+          expect(result.conflicts).toEqual([])
+          expect(declared(result, 'skill')).toEqual([{ source: { source: 'github', repo: 'acme/kit' }, select: { exclude: [] }, scope: 'user' }])
+          expect(result.notices).toEqual(['agent-plugins.yaml overrides skills from "acme/kit" declared by b.yaml'])
+        })
+
+        it('lets a child Preset override its parent’s `scope`, with a notice', async () => {
+          const result = await resolveIn({
+            'agent-plugins.yaml': `kind: Config\nmetadata: { name: demo }\nspec:\n  presets: [./child.yaml]\n`,
+            'parent.yaml': preset('parent', '{ source: acme/kit, scope: user }'),
+            'child.yaml': preset('child', 'acme/kit', '  extends: [./parent.yaml]\n'),
+          })
+
+          expect(result.conflicts).toEqual([])
+          expect(declared(result, 'skill')).toEqual([{ source: { source: 'github', repo: 'acme/kit' }, select: { exclude: [] }, scope: undefined }])
+          expect(result.notices).toEqual(['child.yaml overrides skills from "acme/kit" declared by parent.yaml'])
+        })
+      })
+    })
   })
 
   describe('spec.plugins', () => {
