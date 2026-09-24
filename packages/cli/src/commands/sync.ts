@@ -10,7 +10,7 @@ import { ConfigError, describeItemSource } from '../sync/resolve.js'
 import { ITEM_KINDS, type ItemKind } from '../sync/types.js'
 
 export default class Sync extends Command {
-  static override description = 'Sync marketplaces, plugins, skills, agents, rules and MCP servers declared in agent-plugins.yaml into Claude Code'
+  static override description = 'Sync marketplaces, plugins, skills, agents, rules, MCP servers and hooks declared in agent-plugins.yaml into Claude Code'
 
   static override flags = {
     scope: Flags.option({ options: SCOPES, default: 'project' as const, description: 'settings scope to write' })(),
@@ -51,7 +51,7 @@ export default class Sync extends Command {
     }
     for (const n of report.notices) this.log(`note    ${n}`)
     for (const c of report.conflicts) this.logToStderr(`conflict ${c.name}: ${c.detail}`)
-    if (report.inSync && report.actions.length === 0) this.log('marketplaces, plugins, skills, agents, rules and MCP servers are in sync')
+    if (report.inSync && report.actions.length === 0) this.log('marketplaces, plugins, skills, agents, rules, MCP servers and hooks are in sync')
     // dry-run chỉ báo lỗi khi có xung đột; check và apply báo lỗi khi còn lệch.
     if (mode === 'dry-run' ? report.conflicts.length > 0 : !report.inSync) this.exit(1)
   }
@@ -60,6 +60,7 @@ export default class Sync extends Command {
 function target(a: SyncProgress['action']): string {
   if (ITEM_KINDS.includes(a.target as ItemKind) && !a.name && a.source) return `${a.target}s from ${describeItemSource(a.source)}`
   if (a.target === 'mcp') return `MCP server ${a.name}`
+  if (a.target === 'hook') return `hook ${a.name}`
   return a.name ?? (a.source ? JSON.stringify(a.source) : '?')
 }
 

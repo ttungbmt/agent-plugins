@@ -4,10 +4,11 @@ import { basename, dirname, isAbsolute, join, posix, relative, resolve } from 'n
 import { isDeepStrictEqual } from 'node:util'
 import { parse } from 'yaml'
 import { sameSource } from './identity.js'
+import { checkHook } from './hooks.js'
 import { checkMcp, normalizeMcp, sameMcp } from './mcp.js'
 import { parseShorthand } from './shorthand.js'
 import { byKind, ITEM_KINDS } from './types.js'
-import type { ByKind, Conflict, ItemDeclaration, ItemKind, ItemSource, MarketplaceDeclaration, MarketplaceSource, McpConfig, McpDeclaration, PluginDeclaration, Selection } from './types.js'
+import type { ByKind, Conflict, HookDeclaration, HookGroup, ItemDeclaration, ItemKind, ItemSource, MarketplaceDeclaration, MarketplaceSource, McpConfig, McpDeclaration, PluginDeclaration, Selection } from './types.js'
 
 export type Fetch = (url: string) => Promise<string>
 /** URL Preset từ xa → sha256 nội dung đã chấp nhận. */
@@ -37,6 +38,8 @@ export type ResolvedConfig = {
    * marketplace, plugin hay Skill cùng tên không bị chặn theo, và ngược lại.
    */
   mcpConflicts: Conflict[]
+  /** Khai báo hook của Config; tên bị `false` đã được bỏ. */
+  hooks: HookDeclaration[]
   /** Mã băm của mọi Preset từ xa đã dùng lần này, để ghi lại vào Lock. */
   pins: PresetPins
   conflicts: Conflict[]
@@ -45,7 +48,7 @@ export type ResolvedConfig = {
 
 export class ConfigError extends Error {}
 
-type PresetDocument = { kind?: string; metadata?: { name?: string }; spec?: { presets?: unknown; extends?: unknown; marketplaces?: unknown; plugins?: unknown; mcpServers?: unknown } & { [K in ItemKind as `${K}s`]?: unknown } }
+type PresetDocument = { kind?: string; metadata?: { name?: string }; spec?: { presets?: unknown; extends?: unknown; marketplaces?: unknown; plugins?: unknown; mcpServers?: unknown; hooks?: unknown } & { [K in ItemKind as `${K}s`]?: unknown } }
 type LoadedPreset = { id: string; label: string; doc: PresetDocument; dir: string }
 type Resolution = ResolveContext & { root: string; usedPins: PresetPins; catalog?: Promise<Record<string, McpConfig>> }
 
@@ -95,6 +98,7 @@ export async function resolveConfig(configPath: string, ctx: ResolveContext): Pr
     items: byKind((kind) => items[kind].declarations),
     mcpServers: mcpServers.declarations,
     mcpConflicts: mcpServers.conflicts,
+    hooks: readHookDeclarations(config.spec?.hooks, configLabel),
     pins: resolution.usedPins,
     conflicts: [...merged.conflicts.filter((c) => !ownNames.has(c.name)), ...mergedItems.flatMap((m) => m.conflicts)],
     notices,
@@ -532,4 +536,22 @@ function mcpCatalog(resolution: Resolution): Promise<Record<string, McpConfig>> 
     },
   )
   return resolution.catalog
+}
+
+/** `hooks` là map theo tên: mỗi tên là một nhóm matcher đúng định dạng của Claude Code, `false` bỏ Hook kế thừa (ADR 0007). */
+function readHookDeclarations(raw: unknown, origin: string): HookDeclaration[] {
+  if (raw === undefined || raw === null) return []
+  if (typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new ConfigError(`${origin}: \`hooks\` must be a map of hook names to false or a hook (event, matcher, hooks)`)
+  }
+  return Object.entries(raw).flatMap(([name, value]) => {
+    if (value === false) return []
+    if (value === true) throw new ConfigError(`${origin}: hook "${name}" cannot be true: ap has no hook catalog yet; declare the hook inline`)
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      throw new ConfigError(`${origin}: hook "${name}" must be false or a hook (event, matcher, hooks)`)
+    }
+    const error = checkHook(name, value as Record<string, unknown>)
+    if (error) throw new ConfigError(`${origin}: ${error}`)
+    return [{ name, group: value as HookGroup, origin }]
+  })
 }

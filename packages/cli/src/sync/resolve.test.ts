@@ -417,4 +417,52 @@ spec:
       expect(result.conflicts).toEqual([expect.objectContaining({ name: 'claude-plugins-official', reason: 'preset-clash' })])
     })
   })
+
+  describe('hooks', () => {
+    const cfg = (hooks: string) => ({ 'agent-plugins.yaml': `kind: Config\nmetadata: { name: demo }\nspec:\n  hooks: ${hooks}\n` })
+
+    it('reads a map of named hook groups, keeping handlers as written and dropping `false`', async () => {
+      const result = await resolveIn(
+        cfg(`{ fmt: { event: PostToolUse, matcher: "Edit|Write", hooks: [{ type: command, command: prettier, x: 1 }] }, gone: false }`),
+      )
+
+      expect(result.hooks).toEqual([
+        {
+          name: 'fmt',
+          group: { event: 'PostToolUse', matcher: 'Edit|Write', hooks: [{ type: 'command', command: 'prettier', x: 1 }] },
+          origin: 'agent-plugins.yaml',
+        },
+      ])
+    })
+
+    it('accepts every handler type with its required fields', async () => {
+      const result = await resolveIn(
+        cfg(`{ all: { event: Stop, hooks: [
+          { type: command, command: a },
+          { type: http, url: "https://x" },
+          { type: mcp_tool, server: s, tool: t },
+          { type: prompt, prompt: p },
+          { type: agent, prompt: p } ] } }`),
+      )
+
+      expect(result.hooks[0]!.group.hooks).toHaveLength(5)
+    })
+
+    it.each([
+      ['[a]', '`hooks` must be a map of hook names'],
+      ['{ fmt: true }', 'hook "fmt" cannot be true: ap has no hook catalog yet'],
+      ['{ fmt: { hooks: [{ type: command, command: a }] } }', 'hook "fmt" needs an `event` string'],
+      ['{ fmt: { event: Stop } }', 'hook "fmt" needs a non-empty `hooks` list of handlers'],
+      ['{ fmt: { event: Stop, hooks: [] } }', 'hook "fmt" needs a non-empty `hooks` list of handlers'],
+      ['{ fmt: { event: Stop, matcher: 1, hooks: [{ type: command, command: a }] } }', '`matcher` of hook "fmt" must be a string'],
+      ['{ fmt: { event: Stop, hooks: [{ type: command, command: a }], name: x } }', 'hook "fmt" has unknown key `name`'],
+      ['{ fmt: { event: Stop, hooks: [{ command: a }] } }', 'handler 1 of hook "fmt" needs a `type`: command, http, mcp_tool, prompt or agent'],
+      ['{ fmt: { event: Stop, hooks: [{ type: shell, command: a }] } }', 'handler 1 of hook "fmt" needs a `type`: command, http, mcp_tool, prompt or agent'],
+      ['{ fmt: { event: Stop, hooks: [{ type: command, command: a }, { type: http }] } }', 'handler 2 of hook "fmt" (http) needs `url`'],
+      ['{ fmt: { event: Stop, hooks: [{ type: mcp_tool, server: s }] } }', 'handler 1 of hook "fmt" (mcp_tool) needs `tool`'],
+      ['{ fmt: { event: Stop, hooks: [{ type: agent }] } }', 'handler 1 of hook "fmt" (agent) needs `prompt`'],
+    ])('rejects %s', async (hooks, message) => {
+      await expect(resolveIn(cfg(hooks))).rejects.toThrow(`agent-plugins.yaml: ${message}`)
+    })
+  })
 })

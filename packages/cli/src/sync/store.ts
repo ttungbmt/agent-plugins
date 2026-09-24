@@ -13,6 +13,7 @@ import type {
   ItemKind,
   ItemSource,
   ManagedEntry,
+  ManagedHook,
   ManagedItem,
   ManagedMcp,
   ManagedPlugin,
@@ -27,7 +28,7 @@ import type {
 } from './types.js'
 
 /**
- * Managed entry của một scope: Known marketplace entry, Plugin entry, Bản cài của từng loại item và Bản cài MCP server,
+ * Managed entry của một scope: Known marketplace entry, Plugin entry, Bản cài của từng loại item, Bản cài MCP server và Bản cài hook,
  * kèm Danh mục nguồn của mỗi loại item (ghim riêng, kể cả khi cùng repo).
  */
 export type Owned = {
@@ -36,6 +37,7 @@ export type Owned = {
   items: ByKind<ManagedItem[]>
   itemSources: ByKind<SourceCatalog[]>
   mcpServers: ManagedMcp[]
+  hooks: ManagedHook[]
 }
 /** Khoá của một loại item trong Lock/State, vd. `skills`, `skillSources`, `skillClaims`. */
 type ItemsKey = `${ItemKind}s`
@@ -49,6 +51,7 @@ type Stored = {
   marketplaces?: ManagedEntry[]
   plugins?: ManagedPlugin[]
   mcpServers?: ManagedMcp[]
+  hooks?: ManagedHook[]
 } & { [K in ItemsKey]?: ManagedItem[] } & { [K in SourcesKey]?: SourceRecord[] }
 type Lock = Stored & { presets?: PresetPins }
 type State = Stored & {
@@ -64,7 +67,7 @@ export type Sharing = {
   mcpClaims: McpClaim[]
   released: Owned
 }
-export const NO_OWNED: Owned = { marketplaces: [], plugins: [], items: byKind(() => []), itemSources: byKind(() => []), mcpServers: [] }
+export const NO_OWNED: Owned = { marketplaces: [], plugins: [], items: byKind(() => []), itemSources: byKind(() => []), mcpServers: [], hooks: [] }
 const NO_SHARING: Sharing = { claims: [], pluginClaims: [], itemClaims: byKind(() => []), mcpClaims: [], released: NO_OWNED }
 
 /**
@@ -178,6 +181,7 @@ export function createStore({ cwd, homedir }: Location) {
         (state?.[keysOf(kind).sources] ?? []).map(({ source, commit, [keysOf(kind).items]: names }): SourceCatalog => ({ source, commit, names: names! })),
       ),
       managedMcp: state?.mcpServers ?? [],
+      managedHooks: state?.hooks ?? [],
       pins: lock.presets ?? {},
       shared: shared.marketplaces,
       sharedPlugins: shared.plugins,
@@ -218,6 +222,7 @@ function ownedFields(owned: Owned): Stored {
       ]),
     ),
     mcpServers: owned.mcpServers,
+    hooks: owned.hooks,
   }
 }
 

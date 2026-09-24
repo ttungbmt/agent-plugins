@@ -130,3 +130,15 @@ export type ManagedMcp = { name: string; server: McpConfig; origin: string }
 /** MCP server một Config khai báo ở scope user, và claim đó của Config khác. */
 export type McpClaim = { name: string; server: McpConfig; origin: string }
 export type SharedMcpClaim = McpClaim & { config: string }
+
+/** Một handler trong nhóm matcher, đúng định dạng của Claude Code; mọi field ngoài `type` được giữ nguyên văn. */
+export type HookHandler = { type: string; [field: string]: unknown }
+
+/** Một Hook: nhóm matcher (`matcher`, `hooks`) cùng event chứa nó trong khoá `hooks` của settings. */
+export type HookGroup = { event: string; matcher?: string; hooks: HookHandler[] }
+
+/** Khai báo hook đã phân giải: `group` giữ đúng như người dùng viết, để ghi ra settings nguyên văn. */
+export type HookDeclaration = { name: string; group: HookGroup; origin: string }
+
+/** Bản cài hook do `ap` quản lý, ghi trong Lock/State: nhóm đã chuẩn hoá, để nhận ra nó trong settings bằng nội dung. */
+export type ManagedHook = { name: string; group: HookGroup; origin: string }

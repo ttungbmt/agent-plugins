@@ -4,6 +4,7 @@ import { collectItems, type CollectedItems } from './collect-items.js'
 import { identifies, knownName, missingMarketplaceConflict, sameSource } from './identity.js'
 import { checkMarketplaces, manualPluginsOf, planPlugins, pluginsInUseConflict, type PlannedPluginAction } from './plan-plugins.js'
 import type { ItemHandler } from './items.js'
+import { normalizeHook, planHooks, readSettingsHooks, writeSettingsHooks, type PlannedHookAction } from './hooks.js'
 import { planMcp, unsetVariables, type PlannedMcpAction } from './mcp.js'
 import { planItems, type ItemPlan, type PlannedItemAction } from './plan-items.js'
 import { planSync, type PlannedAction } from './plan.js'
@@ -19,10 +20,10 @@ export type { Scope } from './types.js'
 export type SyncMode = 'apply' | 'dry-run' | 'check'
 
 export type SyncAction = {
-  target: 'marketplace' | 'plugin' | ItemKind | 'mcp'
+  target: 'marketplace' | 'plugin' | ItemKind | 'mcp' | 'hook'
   /** `fetch`: tải một Nguồn skill/Nguồn agent; chỉ có trong báo cáo khi thất bại. */
-  kind: PlannedAction['kind'] | PlannedPluginAction['kind'] | PlannedItemAction['kind'] | PlannedMcpAction['kind'] | 'fetch'
-  /** Tên marketplace, id `name@marketplace` của plugin, hoặc tên Skill/Agent/MCP server; null khi chưa biết. */
+  kind: PlannedAction['kind'] | PlannedPluginAction['kind'] | PlannedItemAction['kind'] | PlannedMcpAction['kind'] | PlannedHookAction['kind'] | 'fetch'
+  /** Tên marketplace, id `name@marketplace` của plugin, hoặc tên Skill/Agent/MCP server/Khai báo hook; null khi chưa biết. */
   name: string | null
   source: MarketplaceSource | null
   status: 'planned' | 'done' | 'failed'
@@ -46,6 +47,7 @@ type Step =
   | { target: 'plugin'; action: PlannedPluginAction }
   | { target: ItemKind; action: PlannedItemAction }
   | { target: 'mcp'; action: PlannedMcpAction }
+  | { target: 'hook'; action: PlannedHookAction }
 
 /** Việc đồng bộ Skill hoặc Agent của một Scope: khai báo, trạng thái đã ghi và kế hoạch của loại đó. */
 type ItemSync = {
@@ -63,7 +65,7 @@ const HANDLERS: ByKind<ItemHandler> = { skill: SKILLS, agent: AGENTS, rule: RULE
 
 const EMPTY_PLAN: ItemPlan = { actions: [], conflicts: [], notices: [], adopted: [], forgotten: [] }
 
-/** Đồng bộ Khai báo marketplace, Khai báo plugin, Khai báo skill, Khai báo agent và Khai báo MCP server của Config vào một Scope. */
+/** Đồng bộ Khai báo marketplace, Khai báo plugin, Khai báo skill, Khai báo agent, Khai báo MCP server và Khai báo hook của Config vào một Scope. */
 export async function sync(
   opts: { cwd: string; scope: Scope; mode: SyncMode; force?: boolean; update?: boolean },
   deps: {
@@ -165,6 +167,7 @@ export async function sync(
   // Giữ riêng khỏi `conflicts` (vốn dùng chung tên cho marketplace/plugin/Skill/Agent), chỉ gộp vào báo cáo.
   const mcpConflicts = [...resolved.mcpConflicts, ...mcpPlan.conflicts]
   const mcpSettled = (name: string) => !mcpConflicts.some((c) => c.name === name)
+  const hookPlan = planHooks(resolved.hooks, await readSettingsHooks(scope, location), loaded.managedHooks)
 
   // Gỡ marketplace kéo theo mọi Plugin entry của nó: còn Manual plugin entry thì không gỡ.
   const ownedPlugins = new Set([
@@ -177,13 +180,15 @@ export async function sync(
     if (manual.length) conflicts.push(pluginsInUseConflict(a.name, manual))
     return manual.length === 0
   })
-  const steps: Step[] = [
+  // Bước hook không chạy riêng từng bước: chúng gộp thành một lần ghi settings (`writeHooks`).
+  const steps: Exclude<Step, { target: 'hook' }>[] = [
     ...plan.actions.filter((a) => a.kind !== 'remove').map((action) => ({ target: 'marketplace' as const, action })),
     ...pluginPlan.actions.map((action) => ({ target: 'plugin' as const, action })),
     ...removals.map((action) => ({ target: 'marketplace' as const, action })),
     ...itemRuns.flatMap(({ handler, plan }) => plan.actions.map((action) => ({ target: handler.kind, action }))),
     ...mcpPlan.actions.map((action) => ({ target: 'mcp' as const, action })),
   ]
+  const hookSteps: Step[] = hookPlan.actions.map((action) => ({ target: 'hook' as const, action }))
 
   /** Chạy sau bước plugin (Q8 của ADR 0006): cảnh báo trùng tên với MCP của plugin, và liệt kê server `.mcp.json` chờ duyệt. */
   const mcpNotices = async () => {
@@ -201,7 +206,7 @@ export async function sync(
 
   if (mode !== 'apply') {
     const actions: SyncAction[] = [
-      ...steps.map((step) => ({ ...describe(step), status: 'planned' as const })),
+      ...[...steps, ...hookSteps].map((step) => ({ ...describe(step), status: 'planned' as const })),
       ...itemRuns.flatMap(({ handler, collected }) =>
         (collected?.unknown ?? []).map((source) => ({ target: handler.kind, kind: 'install' as const, name: null, source, status: 'planned' as const })),
       ),
@@ -220,6 +225,8 @@ export async function sync(
   const mcpRecords = new Map(loaded.managedMcp.map((m) => [m.name, m]))
   const releasedMcp = loaded.managedMcp.filter((m) => mcpPlan.forgotten.includes(m.name))
   for (const name of mcpPlan.forgotten) mcpRecords.delete(name)
+  const hookRecords = new Map(loaded.managedHooks.map((m) => [m.name, m]))
+  for (const name of hookPlan.forgotten) hookRecords.delete(name)
   const failedMarketplaces = new Set<string | null>()
   const itemRecords = byKind((kind) => {
     const { managed, plan } = items[kind]
@@ -278,6 +285,7 @@ export async function sync(
     }
     deps.onProgress?.({ phase: 'end', action: actions.at(-1)!, ms: Date.now() - started })
   }
+  await writeHooks()
   await Promise.all([...new Set(itemRuns.flatMap((i) => i.collected?.fetched ?? []))].map((f) => f.cleanup()))
   // Managed skill/agent không cần copy lại vẫn nhận nguồn và origin mới nhất; commit của nó nằm ở Danh mục nguồn.
   for (const kind of ITEM_KINDS) {
@@ -341,6 +349,27 @@ export async function sync(
     return name
   }
 
+  /** Mọi bước hook của Scope là một lần ghi settings (ADR 0007), rồi mới báo tiến độ và ghi nhận từng bước. */
+  async function writeHooks() {
+    if (!hookPlan.actions.length) return
+    let error: Error | undefined
+    await writeSettingsHooks(scope, location, hookPlan.actions, loaded.managedHooks).catch((e: Error) => (error = e))
+    for (const action of hookPlan.actions) {
+      const step: Step = { target: 'hook', action }
+      deps.onProgress?.({ phase: 'start', action: describe(step) })
+      if (error) actions.push({ ...describe(step), status: 'failed', error: error.message })
+      else {
+        if (action.kind === 'remove') hookRecords.delete(action.name)
+        else {
+          const { name, group, origin } = action.declaration
+          hookRecords.set(name, { name, group: normalizeHook(group), origin })
+        }
+        actions.push({ ...describe(step), status: 'done' })
+      }
+      deps.onProgress?.({ phase: 'end', action: actions.at(-1)!, ms: 0 })
+    }
+  }
+
   async function applyItem(kind: ItemKind, action: PlannedItemAction): Promise<string> {
     const { handler, dir } = items[kind]
     const records = itemRecords[kind]
@@ -381,6 +410,7 @@ export async function sync(
       items: byKind((kind) => [...itemRecords[kind].values()]),
       itemSources: byKind((kind) => items[kind].collected?.catalogs ?? items[kind].catalogs),
       mcpServers: [...mcpRecords.values()],
+      hooks: [...hookRecords.values()],
     },
     resolved.pins,
     {
@@ -446,7 +476,7 @@ async function reportFetch(kind: ItemKind, source: ItemSource, run: () => Promis
 
 function describe(step: Step): Omit<SyncAction, 'status' | 'error'> {
   if (step.target === 'plugin') return { target: step.target, kind: step.action.kind, name: step.action.id, source: null }
-  if (step.target === 'mcp') return { target: step.target, kind: step.action.kind, name: step.action.name, source: null }
+  if (step.target === 'mcp' || step.target === 'hook') return { target: step.target, kind: step.action.kind, name: step.action.name, source: null }
   if (step.target === 'marketplace') {
     const { target, action } = step
     return action.kind === 'remove'
