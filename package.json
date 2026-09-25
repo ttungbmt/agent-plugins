@@ -6,7 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "ap": "pnpm -C packages/cli build && node packages/cli/bin/run.js",
-    "mcp:outdated": "node scripts/mcp-outdated.mjs"
+    "mcp:outdated": "node scripts/mcp-outdated.mjs",
+    "plugins:update": "node scripts/external-plugins.mjs update",
+    "plugins:sync": "node scripts/external-plugins.mjs sync",
+    "plugins:check": "node scripts/external-plugins.mjs check"
   },
   "keywords": [],
   "author": "",

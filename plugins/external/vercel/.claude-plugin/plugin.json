@@ -1,0 +1,10 @@
+{
+  "name": "vercel",
+  "description": "Vercel Labs React skills: component composition patterns and React/Next.js performance best practices",
+  "author": {
+    "name": "vercel-labs",
+    "url": "https://github.com/vercel-labs"
+  },
+  "homepage": "https://github.com/vercel-labs/agent-skills",
+  "repository": "https://github.com/vercel-labs/agent-skills"
+}

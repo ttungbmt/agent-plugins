@@ -1,22 +1,33 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "agent-plugins",
-  "description": "",
-  "version": "0.0.1",
+  "description": "Curated agent plugins, skills, agents and workflows",
+  "version": "0.1.0",
   "owner": {
     "name": "Truong Thanh Tung",
     "email": "ttungbmt@gmail.com"
   },
   "plugins": [
-      {
-        "name": "my-plugin",
-        "description": "",
-        "author": {
-          "name": "Truong Thanh Tung",
-          "email": "ttungbmt@gmail.com"
-        },
-        "source": "./plugins/internal/my-plugin",
-        "category": "",
-        "homepage": "https://github.com/ttungbmt/agent-plugins/tree/main/plugins/internal/my-plugin"
-      }
+    {
+      "name": "my-plugin",
+      "description": "",
+      "author": {
+        "name": "Truong Thanh Tung",
+        "email": "ttungbmt@gmail.com"
+      },
+      "source": "./plugins/internal/my-plugin",
+      "category": "",
+      "homepage": "https://github.com/ttungbmt/agent-plugins/tree/main/plugins/internal/my-plugin"
+    },
+    {
+      "name": "vercel",
+      "description": "Vercel Labs React skills: component composition patterns and React/Next.js performance best practices",
+      "author": {
+        "name": "vercel-labs",
+        "url": "https://github.com/vercel-labs"
+      },
+      "source": "./plugins/external/vercel",
+      "homepage": "https://github.com/vercel-labs/agent-skills"
+    }
   ]
 }

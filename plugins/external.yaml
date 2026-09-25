@@ -1,0 +1,20 @@
+# External plugins of this repo's Marketplace (ADR 0018). Edit this file, then run `pnpm plugins:sync`;
+# `pnpm plugins:update` bumps every `ref`. Never edit plugins/external/ or their marketplace.json entries by hand.
+#
+#   <name>:            plugin name, as in <name>@agent-plugins
+#     repo:            GitHub owner/repo upstream
+#     ref:             pinned upstream commit (full sha, quoted)
+#     track:           branch (default) | tag — what `update` follows
+#     description:     marketplace description
+#     skills:          skill directories to vendor (Vendored plugin); omit when upstream already is a plugin
+#                      (Referenced plugin)
+
+plugins:
+  vercel:
+    repo: vercel-labs/agent-skills
+    ref: "063bee94c3f4df8453406c830b0a7df0f2860278"
+    description: "Vercel Labs React skills: component composition patterns and React/Next.js performance
+      best practices"
+    skills:
+      - skills/composition-patterns
+      - skills/react-best-practices

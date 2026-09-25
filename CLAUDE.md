@@ -13,6 +13,8 @@ Run from the repo root; `mise install` provides Node and pnpm.
 - `pnpm -C packages/cli pack:release`, then `packages/cli/scripts/smoke-release.sh` — build and smoke-test the
   release tarball. Full release runbook: `docs/releasing.md`.
 - `pnpm mcp:outdated` — list MCP catalog entries with stale version pins.
+- `pnpm plugins:sync` / `plugins:update` / `plugins:check` — regenerate, bump or verify this repo's External plugins
+  from `plugins/external.yaml` (ADR 0018).
 
 ## Repo map
 
@@ -71,6 +73,9 @@ Claude Code's live config — `--scope user` means your own `~/.claude`. Run app
   preset. Change the preset and run `pnpm ap sync` instead of editing them by hand. The exception is the files
   directly in `.claude/rules/`: they are hand-written Manual entries that `ap` never touches.
 - The git fetcher every item kind uses lives in `sync/skills.ts` (`createGitFetcher`), not in a module of its own.
+- Never edit `plugins/external/` or the External plugin entries in `.claude-plugin/marketplace.json` by hand; edit
+  `plugins/external.yaml` and run `pnpm plugins:sync`. Editing upstream content makes it a Custom plugin
+  (`plugins/custom/`).
 - After touching the MCP catalog (`packages/cli/presets/mcp-servers.yaml`), run `mcp-catalog.test.ts`.
 
 ## Conventions
