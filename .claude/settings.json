@@ -11,5 +11,8 @@
     "claude-md-management@claude-plugins-official": true,
     "skill-creator@claude-plugins-official": true
   },
-  "extraKnownMarketplaces": {}
+  "extraKnownMarketplaces": {},
+  "env": {
+    "CLAUDE_CODE_SHELL": "/usr/bin/zsh"
+  }
 }

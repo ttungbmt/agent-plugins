@@ -48,9 +48,56 @@ ap --version
    ap init
    ```
 
-   This writes `agent-plugins.yaml` with commented-out examples and adds `ap`'s local files to `.gitignore`.
+   This writes `agent-plugins.yaml` with commented-out examples and adds `ap`'s local files to `.gitignore`. The
+   Config is the file `ap sync` reads; it picks one or more Presets, which hold the actual declarations.
 
-2. Say what you want. This example uses every kind `ap` supports; keep only what you need:
+2. Choose your Presets. There are two ways to go:
+
+   **Use a Bundled preset as is.** `ap` ships ready-made Presets you select by name. `base` adds the official
+   marketplace and two plugins from it:
+
+   ```yaml
+   # agent-plugins.yaml
+   kind: Config
+   metadata:
+     name: my-app
+   spec:
+     presets:
+       - base
+   ```
+
+   **Write your own Preset (most setups).** Put your declarations in `agent-plugins.preset.yaml` next to the Config.
+   It can build on a Bundled preset with `extends`, and the same file can later be reused by other repos. For example:
+
+   ```yaml
+   # yaml-language-server: $schema=https://raw.githubusercontent.com/ttungbmt/agent-plugins/master/schemas/preset.schema.json
+   kind: Preset
+
+   metadata:
+     name: my-app
+
+   spec:
+     extends: base                   # start from the Bundled preset
+
+     marketplaces:
+       superpowers-marketplace:
+         source: { source: github, repo: obra/superpowers-marketplace }
+
+     plugins:                        # name@marketplace
+       superpowers@superpowers-marketplace: true
+       commit-commands@claude-plugins-official: true
+
+     skills:                         # standalone skills copied from a repo
+       - { source: anthropics/skills, skills: [pdf, docx] }
+
+     mcpServers:
+       context7: true                # from the bundled MCP catalog
+       deepwiki:                     # inline, in Claude Code's own format
+         type: http
+         url: https://mcp.deepwiki.com/mcp
+   ```
+
+   Then point the Config at it:
 
    ```yaml
    # yaml-language-server: $schema=https://raw.githubusercontent.com/ttungbmt/agent-plugins/master/schemas/config.schema.json
@@ -61,61 +108,46 @@ ap --version
 
    spec:
      presets:
-       - base                        # Bundled preset: the official marketplace + two plugins
-
-     plugins:
-       commit-commands@claude-plugins-official: true
-
-     skills:
-       - { source: anthropics/skills, skills: [pdf, docx] }
-
-     agents:
-       - { source: affaan-m/ECC, agents: [typescript-reviewer] }
-
-     rules:
-       - { source: affaan-m/ECC, rules: [common] }
-
-     workflows:
-       - { source: transilienceai/communitytools, path: .claude/workflows }
-
-     mcpServers:
-       context7: true                # from the bundled MCP catalog
-       docs:                         # inline, in Claude Code's own format
-         type: http
-         url: https://example.com/mcp
-         headers: { Authorization: "Bearer ${DOCS_TOKEN}" }
-
-     hooks:
-       format:
-         event: PostToolUse
-         matcher: Edit|Write
-         hooks: [{ type: command, command: npx prettier --write }]
+       - ./agent-plugins.preset.yaml
    ```
 
-   The first line gives editors that use `yaml-language-server` (e.g. VS Code with the YAML extension) completion and
+   The `yaml-language-server` line gives editors that support it (e.g. VS Code with the YAML extension) completion and
    validation.
+
+   For MCP servers, `name: true` takes the config from the
+   [bundled MCP catalog](packages/cli/presets/mcp-servers.yaml) (e.g. `github`, `firecrawl`, `context7`,
+   `playwright`); anything else is written inline. Write secrets as `${VAR}` placeholders, never as literal values.
+   Claude Code asks you to approve servers in `.mcp.json` before they run; `ap` never approves them for you.
+
+   Agents, rules, workflows and hooks can be declared too; the [schemas](#configuration-reference) describe every key.
 
 3. Preview the changes. Nothing is written yet:
 
    ```console
    $ ap sync --dry-run
-   Marketplaces (1)
+   Marketplaces (2)
      + claude-plugins-official                       add at user
+     + superpowers-marketplace                       add
 
-   Plugins (3)
+   Plugins (4)
      + claude-code-setup@claude-plugins-official     install
      + claude-md-management@claude-plugins-official  install
+     + superpowers@superpowers-marketplace           install
      + commit-commands@claude-plugins-official       install
 
    Skills (2)
      + pdf                                           install
      + docx                                          install
-   ...
-   12 to change: 4 add, 8 install
-   ! MCP server "docs" uses ${DOCS_TOKEN}, which is not set in this environment
+
+   MCP servers (2)
+     + context7                                      add
+     + deepwiki                                      add
+
+   10 to change: 4 add, 6 install
+   ! MCP server "context7" uses ${CONTEXT7_API_KEY}, which is not set in this environment
    ```
 
-4. Apply it, then commit `agent-plugins.yaml` and `agent-plugins.lock`:
+4. Apply it, then commit `agent-plugins.yaml`, `agent-plugins.preset.yaml` and `agent-plugins.lock`:
 
    ```bash
    ap sync
@@ -185,34 +217,22 @@ Skill, agent, rule and workflow sources are pinned to a commit in `agent-plugins
 ap sync --update
 ```
 
-### Add an MCP server
+### Reuse your Preset in other repos
 
-`name: true` takes the config from the [bundled MCP catalog](packages/cli/presets/mcp-servers.yaml) (e.g. `github`,
-`firecrawl`, `context7`, `playwright`, `sentry`). Otherwise write the server inline in Claude Code's own format. Write
-secrets as `${VAR}` placeholders, never as literal values. Claude Code asks you to approve servers in `.mcp.json`
-before they run; `ap` never approves them for you.
-
-### Share a Preset with your team
-
-Move the shared declarations into a Preset and point each repo's Config at it:
+Another repo's Config can select the same Preset by relative path, or by URL once it is pushed (e.g. its raw GitHub
+URL). A Remote preset's content is pinned by `sha256` in `agent-plugins.lock`, so a later change upstream stops the
+Sync until you accept it with `ap sync --update`:
 
 ```yaml
-# team.preset.yaml
-kind: Preset
-metadata:
-  name: team
-spec:
-  extends: base
-  plugins:
-    commit-commands@claude-plugins-official: true
-```
-
-```yaml
-# agent-plugins.yaml
 spec:
   presets:
-    - ./team.preset.yaml   # or https://example.com/team.preset.yaml
+    - ../shared/agent-plugins.preset.yaml
+    - https://raw.githubusercontent.com/acme/claude-setup/main/agent-plugins.preset.yaml
 ```
+
+Presets are merged in order, a Preset overrides the Presets it `extends`, and the Config's own declarations override
+them all. Set an inherited entry to `false` to turn it off, e.g. `claude-md-management@claude-plugins-official: false`
+under `plugins`, or `context7: false` under `mcpServers`.
 
 ## Commands
 
