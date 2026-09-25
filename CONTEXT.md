@@ -271,3 +271,30 @@ The `ap.tgz` file (and `ap-<ver>.tgz`) attached to a GitHub Release, containing 
 runtime dependencies; users install it with `npm i -g <url>`. See
 [ADR 0008](docs/adr/0008-distribute-ap-via-github-release-tarball.md).
 _Avoid_: npm package, build (when talking about what users install)
+
+## This repo's Marketplace
+
+This repo is also the `agent-plugins` Marketplace (`.claude-plugin/marketplace.json`), a personal catalog rather than a
+feature of `ap`. A skill packaged in one of its plugins is not a Skill. See
+[ADR 0018](docs/adr/0018-external-plugins-from-pinned-list.md).
+
+**Internal plugin**:
+A plugin written in this repo, under `plugins/internal/`.
+
+**External plugin**:
+A community plugin redistributed through this Marketplace with its upstream content byte-for-byte unchanged, listed in
+`plugins/external.yaml` and pinned to an upstream commit. Its `marketplace.json` entry is generated, never hand-edited.
+_Avoid_: third-party plugin, vendored skill
+
+**Vendored plugin**:
+An External plugin whose upstream ships no plugin manifest, so its selected skill directories are copied into
+`plugins/external/<name>/` next to a generated `plugin.json`.
+
+**Referenced plugin**:
+An External plugin whose upstream already is a plugin; its `marketplace.json` entry points at the upstream repo and
+commit, and nothing is copied.
+
+**Custom plugin**:
+A community plugin whose content was edited here, under `plugins/custom/`. Editing an External plugin's content turns it
+into a Custom plugin.
+_Avoid_: fork (when talking about the plugin rather than the repo)

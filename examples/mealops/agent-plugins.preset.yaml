@@ -8,16 +8,14 @@ spec:
 
   marketplaces:
     - clerk/skills
+    - ttungbmt/agent-plugins
 
   plugins:
     playground@claude-plugins-official: true
     core@clerk-skills: true
-    # vercel@agent-plugins: true
+    vercel@agent-plugins: true
 
   skills:
-    # - source: vercel-labs/agent-skills
-    #   skills: [vercel-composition-patterns, vercel-react-best-practices]
-
     - source: anthropics/skills
       skills: [webapp-testing]
 
