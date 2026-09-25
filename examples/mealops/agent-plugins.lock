@@ -21,7 +21,7 @@ skillSources:
   - source:
       source: github
       repo: anthropics/skills
-    commit: 34040c9c568585f6929bedeaad110ad08f079624
+    commit: 33375500bcea98d610eb30ce10ac4e59b89c390d
     skills:
       - academy-guide
       - algorithmic-art
@@ -70,7 +70,7 @@ skillSources:
       source: github
       repo: clerk/skills
       path: skills/frameworks
-    commit: 417e4783812dbe75eda43cb9882cc9d26b762a19
+    commit: d01c99c0d8f608d6a51bf5a62c79e30d2395248a
     skills:
       - clerk-astro-patterns
       - clerk-chrome-extension-patterns

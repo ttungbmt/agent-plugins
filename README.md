@@ -23,7 +23,9 @@ npm i -g https://github.com/ttungbmt/agent-plugins/releases/latest/download/ap.t
 ap --version
 ```
 
-`pnpm add -g <same url>` works too. The tarball is one bundled file, so nothing else is downloaded from the npm registry.
+`ap` is not published to the npm registry — install it from the GitHub Release URL above
+(`npm i -g @ttungbmt/agent-plugins` will not find it). `pnpm add -g <same url>` works too. The tarball is one bundled
+file, so it pulls no dependencies from the registry.
 
 - **Update:** run the install command again.
 - **Pin a version:** install the versioned asset instead, e.g.
@@ -265,7 +267,7 @@ Exit codes: `0` in sync, `1` out of sync or conflicts, `2` invalid Config. Run `
 
 - **`claude` or `git` not found** — an applying Sync shells out to both. Install them, or use `--dry-run`/`--check`,
   which do not need `claude`.
-- **`npm` refuses to install over the `ap` binary** — versions up to 0.2.0 were published as `agent-plugins`. Run
+- **`npm` refuses to install over the `ap` binary** — 0.1.x tarballs were named `agent-plugins`. Run
   `npm uninstall -g agent-plugins`, then install again.
 - **A conflict with a Manual entry** — something with the same name already exists and `ap` did not create it. Remove
   or rename it, or rerun with `--force` to let `ap` take it over.
