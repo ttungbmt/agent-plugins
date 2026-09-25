@@ -13,8 +13,25 @@ plugins:
   vercel:
     repo: vercel-labs/agent-skills
     ref: "063bee94c3f4df8453406c830b0a7df0f2860278"
-    description: "Vercel Labs React skills: component composition patterns and React/Next.js performance
-      best practices"
+    description: "Vercel Labs React skills: component composition patterns and
+      React/Next.js performance best practices"
     skills:
       - skills/composition-patterns
       - skills/react-best-practices
+  taste-skill:
+    repo: Leonxlnx/taste-skill
+    ref: "c184364c58658b2f131b4ae8bd3d206cabb3deee"
+    description: "Leonxlnx taste skills: frontend design taste, visual styles, image-to-code and redesign"
+    skills:
+      - skills/brandkit
+      - skills/brutalist-skill
+      - skills/gpt-tasteskill
+      - skills/image-to-code-skill
+      - skills/imagegen-frontend-mobile
+      - skills/imagegen-frontend-web
+      - skills/minimalist-skill
+      - skills/output-skill
+      - skills/redesign-skill
+      - skills/soft-skill
+      - skills/stitch-skill
+      - skills/taste-skill

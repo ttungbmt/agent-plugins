@@ -28,6 +28,16 @@
       },
       "source": "./plugins/external/vercel",
       "homepage": "https://github.com/vercel-labs/agent-skills"
+    },
+    {
+      "name": "taste-skill",
+      "description": "Leonxlnx taste skills: frontend design taste, visual styles, image-to-code and redesign",
+      "author": {
+        "name": "Leonxlnx",
+        "url": "https://github.com/Leonxlnx"
+      },
+      "source": "./plugins/external/taste-skill",
+      "homepage": "https://github.com/Leonxlnx/taste-skill"
     }
   ]
 }
