@@ -1,13 +1,44 @@
 {
   "enabledPlugins": {
     "playground@claude-plugins-official": true,
-    "core@clerk-skills": true
+    "core@clerk-skills": true,
+    "vercel@agent-plugins": true,
+    "context7@claude-plugins-official": true,
+    "cloudflare@claude-plugins-official": true,
+    "impeccable@impeccable": false,
+    "ui-ux-pro-max@ui-ux-pro-max-skill": false,
+    "taste-skill@agent-plugins": true,
+    "chrome-devtools-mcp@chrome-devtools-plugins": true
   },
   "extraKnownMarketplaces": {
     "clerk-skills": {
       "source": {
         "source": "github",
         "repo": "clerk/skills"
+      }
+    },
+    "agent-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "ttungbmt/agent-plugins"
+      }
+    },
+    "ui-ux-pro-max-skill": {
+      "source": {
+        "source": "github",
+        "repo": "nextlevelbuilder/ui-ux-pro-max-skill"
+      }
+    },
+    "impeccable": {
+      "source": {
+        "source": "github",
+        "repo": "pbakaus/impeccable"
+      }
+    },
+    "chrome-devtools-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "ChromeDevTools/chrome-devtools-mcp"
       }
     }
   }

@@ -1,44 +1,62 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ttungbmt/agent-plugins/master/schemas/preset.schema.json
+
 kind: Preset
 
 metadata:
   name: mealops
+  description: Next.js app with Clerk auth, deployed to Vercel and Cloudflare, with frontend design tooling.
 
 spec:
-  extends: base
+  extends: base # registers claude-plugins-official
 
+  # Every `@marketplace` suffix under `plugins` must be declared here (or inherited).
   marketplaces:
-    - clerk/skills
-    - ttungbmt/agent-plugins
+    - ttungbmt/agent-plugins # agent-plugins: vercel, taste-skill
+    - clerk/skills # clerk-skills
+    - nextlevelbuilder/ui-ux-pro-max-skill # ui-ux-pro-max-skill
+    - pbakaus/impeccable # impeccable
+    - ChromeDevTools/chrome-devtools-mcp # chrome-devtools-plugins
 
+  # Plugins and skills share the same groups, in the same order.
   plugins:
+    # Docs
+    context7@claude-plugins-official: true
+
+    # Planning — interactive HTML pages for exploring ideas
     playground@claude-plugins-official: true
+
+    # Auth
     core@clerk-skills: true
+    features@clerk-skills: true
+
+    # Deploy
     vercel@agent-plugins: true
+    cloudflare@claude-plugins-official: true
 
+    # Design — pick one; the rest stay installed but disabled
+    taste-skill@agent-plugins: true
+    ui-ux-pro-max@ui-ux-pro-max-skill: false
+    impeccable@impeccable: false
+
+    # Browser — chrome-devtools-mcp debugs (console, network, performance);
+    # the agent-browser and playwright-cli skills below drive user flows
+    chrome-devtools-mcp@chrome-devtools-plugins: true
+
+  # Standalone skills, copied straight from their repos (no plugin wraps them).
   skills:
-    - source: anthropics/skills
-      skills: [webapp-testing]
-
+    # Planning
     - source: jasonku09/grill-with-ui
 
-    - source: Leonxlnx/taste-skill
-      skills:
-        - brandkit
-        - design-taste-frontend
-        - full-output-enforcement
-        - gpt-taste
-        - high-end-visual-design
-        - image-to-code
-        - imagegen-frontend-mobile
-        - imagegen-frontend-web
-        - industrial-brutalist-ui
-        - minimalist-ui
-        - redesign-existing-projects
-        - stitch-design-taste
-
+    # Auth
     - source: clerk/skills
       path: skills/frameworks
       skills: [clerk-nextjs-patterns]
 
+    # Browser
+    - source: vercel-labs/agent-browser # needs the `agent-browser` CLI installed
+      skills: [agent-browser]
 
+    - source: microsoft/playwright-cli # needs the `playwright-cli` CLI installed
+      skills: [playwright-cli]
 
+  mcpServers:
