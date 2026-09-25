@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/ttungbmt/agent-plugins/packages/schemas/schemas/preset.schema.json",
+  "$id": "https://github.com/ttungbmt/agent-plugins/schemas/preset.schema.json",
   "title": "Preset",
   "description": "",
   "type": "object",

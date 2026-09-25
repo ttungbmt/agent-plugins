@@ -20,20 +20,6 @@ plugins:
 skillSources:
   - source:
       source: github
-      repo: vercel-labs/agent-skills
-    commit: 063bee94c3f4df8453406c830b0a7df0f2860278
-    skills:
-      - vercel-composition-patterns
-      - deploy-to-vercel
-      - vercel-react-best-practices
-      - vercel-react-native-skills
-      - vercel-react-view-transitions
-      - vercel-cli-with-tokens
-      - vercel-optimize
-      - web-design-guidelines
-      - writing-guidelines
-  - source:
-      source: github
       repo: anthropics/skills
     commit: 34040c9c568585f6929bedeaad110ad08f079624
     skills:
@@ -95,18 +81,6 @@ skillSources:
       - clerk-tanstack-patterns
       - clerk-vue-patterns
 skills:
-  - name: vercel-composition-patterns
-    source:
-      source: github
-      repo: vercel-labs/agent-skills
-    sha256: d60442200d59e98efd41a696422bcb239791d3eb08855fa7ad9c399f4f97a1a2
-    origin: agent-plugins.preset.yaml
-  - name: vercel-react-best-practices
-    source:
-      source: github
-      repo: vercel-labs/agent-skills
-    sha256: 5ec2c4c265afe01e6b5c38c7db4ea10010a1d329dc09230e3fcfe6d1986d00c2
-    origin: agent-plugins.preset.yaml
   - name: webapp-testing
     source:
       source: github

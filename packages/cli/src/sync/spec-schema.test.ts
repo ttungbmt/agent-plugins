@@ -10,7 +10,7 @@ import { CONFIG_SPEC_KEYS, PRESET_SPEC_KEYS } from './spec.js'
 import { makeTree } from './test-helpers.js'
 
 const repo = new URL('../../../../', import.meta.url)
-const schemas = new URL('packages/schemas/schemas/', repo)
+const schemas = new URL('schemas/', repo)
 type Schema = { properties: { spec: { properties: Record<string, unknown> } } }
 const readSchema = (file: string) => JSON.parse(readFileSync(fileURLToPath(new URL(file, schemas)), 'utf8')) as Schema
 const specOf = (file: string) => readSchema(file).properties.spec.properties

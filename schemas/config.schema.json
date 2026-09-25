@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/ttungbmt/agent-plugins/packages/schemas/schemas/config.schema.json",
+  "$id": "https://github.com/ttungbmt/agent-plugins/schemas/config.schema.json",
   "title": "Config",
   "description": "agent-plugins.yaml: the single entry point `ap` reads. Selects presets and may declare its own marketplaces, plugins, skills, agents and MCP servers, which override presets.",
   "type": "object",

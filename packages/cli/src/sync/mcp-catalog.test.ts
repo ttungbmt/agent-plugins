@@ -20,8 +20,8 @@ describe('the shipped MCP catalog', () => {
 
   it('matches mcp-catalog.schema.json', () => {
     const ajv = new Ajv2020({ strict: false, logger: false, allErrors: true })
-    ajv.addSchema(JSON.parse(read('schemas/schemas/preset.schema.json')), 'preset.schema.json')
-    const validate = ajv.compile(JSON.parse(read('schemas/schemas/mcp-catalog.schema.json')))
+    ajv.addSchema(JSON.parse(read('../schemas/preset.schema.json')), 'preset.schema.json')
+    const validate = ajv.compile(JSON.parse(read('../schemas/mcp-catalog.schema.json')))
     validate(catalog)
     expect(validate.errors ?? []).toEqual([])
   })
